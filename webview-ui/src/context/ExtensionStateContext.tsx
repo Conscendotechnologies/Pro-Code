@@ -399,7 +399,7 @@ export const ExtensionStateContextProvider: React.FC<{ children: React.ReactNode
 					break
 				}
 				case "loginSuccess": {
-					// Handle successful login
+					// Handle successful login (including Firebase authentication)
 					setShowLogin(false)
 					setState((prevState) => ({
 						...prevState,
@@ -427,6 +427,11 @@ export const ExtensionStateContextProvider: React.FC<{ children: React.ReactNode
 
 	useEffect(() => {
 		vscode.postMessage({ type: "webviewDidLaunch" })
+		// Check Firebase authentication status on app initialization
+		vscode.postMessage({
+			type: "executeCommand",
+			command: "firebase-authentication-v1.isAuthenticated",
+		} as any)
 	}, [])
 
 	const contextValue: ExtensionStateContextType = {
