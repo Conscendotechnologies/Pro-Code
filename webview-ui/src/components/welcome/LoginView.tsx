@@ -13,10 +13,10 @@ const LoginView = () => {
 	// const { t } = useAppTranslation() // Commented out as not used yet
 
 	const handleLogin = useCallback(() => {
-		// Execute firebase auth login command
+		// Execute firebase authentication command
 		vscode.postMessage({
 			type: "executeCommand",
-			command: "firebase-auth.login",
+			command: "firebase-authentication-v1.signIn",
 		} as any)
 	}, [])
 
