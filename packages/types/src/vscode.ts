@@ -52,6 +52,7 @@ export const commandIds = [
 	"acceptInput",
 	"focusPanel",
 	"onFirebaseLogin",
+	"onFirebaseLogout",
 ] as const
 
 export type CommandId = (typeof commandIds)[number]

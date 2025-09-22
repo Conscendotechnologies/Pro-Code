@@ -169,6 +169,11 @@
 				"command": "roo-cline.onFirebaseLogin",
 				"title": "Handle Firebase Login",
 				"category": "%configuration.title%"
+			},
+			{
+				"command": "roo-cline.onFirebaseLogout",
+				"title": "Handle Firebase Logout",
+				"category": "%configuration.title%"
 			}
 		],
 		"menus": {
