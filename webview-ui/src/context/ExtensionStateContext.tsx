@@ -406,6 +406,14 @@ export const ExtensionStateContextProvider: React.FC<{ children: React.ReactNode
 					}))
 					break
 				}
+				case "firebaseLogout": {
+					// Handle Firebase logout
+					setShowLogin(false)
+					setState((prevState) => ({
+						...prevState,
+					}))
+					break
+				}
 			}
 		},
 		[setListApiConfigMeta],

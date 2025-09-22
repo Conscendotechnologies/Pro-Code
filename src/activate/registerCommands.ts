@@ -230,6 +230,28 @@ const getCommandsMap = ({ context, outputChannel, provider }: RegisterCommandOpt
 			)
 		}
 	},
+	onFirebaseLogout: async () => {
+		const visibleProvider = getVisibleProviderOrLog(outputChannel)
+
+		if (!visibleProvider) {
+			return
+		}
+
+		try {
+			// Post a message to webview to handle logout
+			await visibleProvider.postMessageToWebview({
+				type: "firebaseLogout",
+			})
+
+			outputChannel.appendLine("Firebase logout - posted logout message to webview")
+			vscode.window.showInformationMessage("Firebase logout successful!")
+		} catch (error) {
+			outputChannel.appendLine(`Error handling Firebase logout: ${error}`)
+			vscode.window.showErrorMessage(
+				`Error handling Firebase logout: ${error instanceof Error ? error.message : String(error)}`,
+			)
+		}
+	},
 })
 
 export const openClineInNewTab = async ({ context, outputChannel }: Omit<RegisterCommandOptions, "provider">) => {
