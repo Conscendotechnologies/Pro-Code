@@ -408,7 +408,7 @@ export const ExtensionStateContextProvider: React.FC<{ children: React.ReactNode
 				}
 				case "firebaseLogout": {
 					// Handle Firebase logout
-					setShowLogin(false)
+					setShowLogin(true)
 					setState((prevState) => ({
 						...prevState,
 					}))
