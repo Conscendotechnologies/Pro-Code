@@ -164,6 +164,11 @@
 				"command": "roo-cline.acceptInput",
 				"title": "%command.acceptInput.title%",
 				"category": "%configuration.title%"
+			},
+			{
+				"command": "roo-cline.onFirebaseLogin",
+				"title": "Handle Firebase Login",
+				"category": "%configuration.title%"
 			}
 		],
 		"menus": {
