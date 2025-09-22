@@ -298,11 +298,16 @@ export const webviewMessageHandler = async (
 			await provider.postStateToWebview()
 			break
 		case "executeCommand":
-			vscode.window.showInformationMessage(`Executing command ${message.commands}`)
 			if (message.commands) {
-				vscode.window.showInformationMessage(`Executing command`)
 				try {
-					await vscode.commands.executeCommand(message.commands[0])
+					const command = message.commands[0]
+					const result = await vscode.commands.executeCommand(command)
+
+					// Handle Firebase authentication check specifically
+					if (command === "firebase-authentication-v1.isAuthenticated") {
+						// After checking Firebase auth, refresh the state to include updated cloudIsAuthenticated
+						await provider.postStateToWebview()
+					}
 				} catch (error) {
 					console.error(`Error executing command ${message.commands}:`, error)
 					vscode.window.showErrorMessage(

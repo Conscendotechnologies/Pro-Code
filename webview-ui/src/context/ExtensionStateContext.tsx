@@ -431,8 +431,22 @@ export const ExtensionStateContextProvider: React.FC<{ children: React.ReactNode
 		// Check Firebase authentication status on app initialization
 		vscode.postMessage({
 			type: "executeCommand",
-			command: "firebase-authentication-v1.isAuthenticated",
+			commands: ["firebase-authentication-v1.isAuthenticated"],
 		} as any)
+
+		const handleAuthMessage = (event: MessageEvent) => {
+			const message = event.data
+			if (
+				message &&
+				message.type === "commandResult" &&
+				message.command === "firebase-authentication-v1.isAuthenticated"
+			) {
+				const isAuthenticated = !!message.result
+				setShowLogin(!isAuthenticated)
+				window.removeEventListener("message", handleAuthMessage)
+			}
+		}
+		window.addEventListener("message", handleAuthMessage)
 	}, [])
 
 	const contextValue: ExtensionStateContextType = {
