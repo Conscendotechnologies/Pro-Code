@@ -16,13 +16,8 @@ const LoginView = () => {
 		// Execute firebase authentication command
 		vscode.postMessage({
 			type: "executeCommand",
-			command: "firebase-authentication-v1.signIn",
+			commands: ["firebase-authentication-v1.signIn"],
 		} as any)
-	}, [])
-
-	const handleSkipLogin = useCallback(() => {
-		// Skip login and proceed to welcome/main app
-		vscode.postMessage({ type: "skipLogin" } as any)
 	}, [])
 
 	return (
@@ -40,18 +35,12 @@ const LoginView = () => {
 					<VSCodeButton onClick={handleLogin} appearance="primary">
 						Login to Your Account
 					</VSCodeButton>
-
-					<VSCodeButton onClick={handleSkipLogin} appearance="secondary">
-						Skip Login (Limited Features)
-					</VSCodeButton>
 				</div>
 
 				<div className="text-sm text-vscode-descriptionForeground mt-4">
 					<p>By logging in, you&apos;ll have access to:</p>
 					<ul className="list-disc list-inside mt-2 space-y-1">
-						<li>Cloud synchronization</li>
 						<li>Advanced AI features</li>
-						<li>Team collaboration</li>
 						<li>Premium support</li>
 					</ul>
 				</div>
