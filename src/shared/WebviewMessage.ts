@@ -275,6 +275,9 @@ export interface WebviewMessage {
 		codebaseIndexGeminiApiKey?: string
 		codebaseIndexMistralApiKey?: string
 	}
+	loginData?: {
+		userInfo?: any
+	}
 }
 
 export const checkoutDiffPayloadSchema = z.object({
