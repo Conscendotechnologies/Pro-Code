@@ -403,14 +403,7 @@ export const ExtensionStateContextProvider: React.FC<{ children: React.ReactNode
 					setShowLogin(false)
 					setState((prevState) => ({
 						...prevState,
-						cloudIsAuthenticated: true,
-						cloudUserInfo: message.loginData?.userInfo || null,
 					}))
-					break
-				}
-				case "skipLogin": {
-					// Handle skip login
-					setShowLogin(false)
 					break
 				}
 			}

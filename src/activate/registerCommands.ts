@@ -205,6 +205,31 @@ const getCommandsMap = ({ context, outputChannel, provider }: RegisterCommandOpt
 
 		visibleProvider.postMessageToWebview({ type: "acceptInput" })
 	},
+	onFirebaseLogin: async (loginData?: any) => {
+		const visibleProvider = getVisibleProviderOrLog(outputChannel)
+
+		if (!visibleProvider) {
+			return
+		}
+
+		try {
+			// Post loginSuccess message to webview when Firebase login is successful
+			await visibleProvider.postMessageToWebview({
+				type: "loginSuccess",
+				loginData: {
+					userInfo: loginData?.userInfo || null,
+				},
+			})
+
+			outputChannel.appendLine("Firebase login successful - posted loginSuccess message to webview")
+			vscode.window.showInformationMessage("Firebase login successful!")
+		} catch (error) {
+			outputChannel.appendLine(`Error handling Firebase login: ${error}`)
+			vscode.window.showErrorMessage(
+				`Error handling Firebase login: ${error instanceof Error ? error.message : String(error)}`,
+			)
+		}
+	},
 })
 
 export const openClineInNewTab = async ({ context, outputChannel }: Omit<RegisterCommandOptions, "provider">) => {
