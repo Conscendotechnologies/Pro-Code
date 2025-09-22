@@ -6,39 +6,39 @@ describe("generatePackageJson", () => {
 	it("should be a test", () => {
 		const generatedPackageJson = generatePackageJson({
 			packageJson: {
-				name: "roo-cline",
+				name: "siid-roo-cline",
 				displayName: "%extension.displayName%",
 				description: "%extension.description%",
-				publisher: "RooVeterinaryInc",
+				publisher: "ConscendoTechInc",
 				version: "3.17.2",
 				icon: "assets/icons/iconV1.png",
 				contributes: {
 					viewsContainers: {
 						activitybar: [
 							{
-								id: "roo-cline-ActivityBar",
+								id: "siid-roo-cline-ActivityBar",
 								title: "%views.activitybar.title%",
 								icon: "assets/icons/iconV1.svg",
 							},
 						],
 					},
 					views: {
-						"roo-cline-ActivityBar": [
+						"siid-roo-cline-ActivityBar": [
 							{
 								type: "webview",
-								id: "roo-cline.SidebarProvider",
+								id: "siid-roo-cline.SidebarProvider",
 								name: "",
 							},
 						],
 					},
 					commands: [
 						{
-							command: "roo-cline.plusButtonClicked",
+							command: "siid-roo-cline.plusButtonClicked",
 							title: "%command.newTask.title%",
 							icon: "$(add)",
 						},
 						{
-							command: "roo-cline.openInNewTab",
+							command: "siid-roo-cline.openInNewTab",
 							title: "%command.openInNewTab.title%",
 							category: "%configuration.title%",
 						},
@@ -46,48 +46,48 @@ describe("generatePackageJson", () => {
 					menus: {
 						"editor/context": [
 							{
-								submenu: "roo-cline.contextMenu",
+								submenu: "siid-roo-cline.contextMenu",
 								group: "navigation",
 							},
 						],
-						"roo-cline.contextMenu": [
+						"siid-roo-cline.contextMenu": [
 							{
-								command: "roo-cline.addToContext",
+								command: "siid-roo-cline.addToContext",
 								group: "1_actions@1",
 							},
 						],
 						"editor/title": [
 							{
-								command: "roo-cline.plusButtonClicked",
+								command: "siid-roo-cline.plusButtonClicked",
 								group: "navigation@1",
-								when: "activeWebviewPanelId == roo-cline.TabPanelProvider",
+								when: "activeWebviewPanelId == siid-roo-cline.TabPanelProvider",
 							},
 							{
-								command: "roo-cline.settingsButtonClicked",
+								command: "siid-roo-cline.settingsButtonClicked",
 								group: "navigation@6",
-								when: "activeWebviewPanelId == roo-cline.TabPanelProvider",
+								when: "activeWebviewPanelId == siid-roo-cline.TabPanelProvider",
 							},
 							{
-								command: "roo-cline.accountButtonClicked",
+								command: "siid-roo-cline.accountButtonClicked",
 								group: "navigation@6",
-								when: "activeWebviewPanelId == roo-cline.TabPanelProvider",
+								when: "activeWebviewPanelId == siid-roo-cline.TabPanelProvider",
 							},
 						],
 					},
 					submenus: [
 						{
-							id: "roo-cline.contextMenu",
+							id: "siid-roo-cline.contextMenu",
 							label: "%views.contextMenu.label%",
 						},
 						{
-							id: "roo-cline.terminalMenu",
+							id: "siid-roo-cline.terminalMenu",
 							label: "%views.terminalMenu.label%",
 						},
 					],
 					configuration: {
 						title: "%configuration.title%",
 						properties: {
-							"roo-cline.allowedCommands": {
+							"siid-roo-cline.allowedCommands": {
 								type: "array",
 								items: {
 									type: "string",
@@ -95,7 +95,7 @@ describe("generatePackageJson", () => {
 								default: ["npm test", "npm install", "tsc", "git log", "git diff", "git show"],
 								description: "%commands.allowedCommands.description%",
 							},
-							"roo-cline.customStoragePath": {
+							"siid-roo-cline.customStoragePath": {
 								type: "string",
 								default: "",
 								description: "%settings.customStoragePath.description%",
@@ -110,19 +110,19 @@ describe("generatePackageJson", () => {
 			overrideJson: {
 				name: "roo-code-nightly",
 				displayName: "Roo Code Nightly",
-				publisher: "RooVeterinaryInc",
+				publisher: "ConscendoTechInc",
 				version: "0.0.1",
 				icon: "assets/icons/icon-nightlyV1.png",
 				scripts: {},
 			},
-			substitution: ["roo-cline", "roo-code-nightly"],
+			substitution: ["siid-roo-cline", "roo-code-nightly"],
 		})
 
 		expect(generatedPackageJson).toStrictEqual({
 			name: "roo-code-nightly",
 			displayName: "Roo Code Nightly",
 			description: "%extension.description%",
-			publisher: "RooVeterinaryInc",
+			publisher: "ConscendoTechInc",
 			version: "0.0.1",
 			icon: "assets/icons/icon-nightlyV1.png",
 			contributes: {

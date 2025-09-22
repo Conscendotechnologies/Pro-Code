@@ -28,7 +28,7 @@ export async function getVSCodeReviews() {
 					criteria: [
 						{
 							filterType: 7,
-							value: "RooVeterinaryInc.roo-cline",
+							value: "ConscendoTechInc.siid-roo-cline",
 						},
 					],
 				},
@@ -72,7 +72,7 @@ export async function getVSCodeDownloads() {
 					criteria: [
 						{
 							filterType: 7,
-							value: "RooVeterinaryInc.roo-cline",
+							value: "ConscendoTechInc.siid-roo-cline",
 						},
 					],
 				},
