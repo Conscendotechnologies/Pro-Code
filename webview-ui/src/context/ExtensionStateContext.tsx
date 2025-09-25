@@ -401,6 +401,7 @@ export const ExtensionStateContextProvider: React.FC<{ children: React.ReactNode
 				case "loginSuccess": {
 					// Handle successful login (including Firebase authentication)
 					setShowLogin(false)
+					setShowWelcome(true)
 					setState((prevState) => ({
 						...prevState,
 					}))
