@@ -26,7 +26,6 @@ import {
 	getToolUseGuidelinesSection,
 	getCapabilitiesSection,
 	getModesSection,
-	addCustomInstructions,
 	markdownFormattingSection,
 } from "./sections"
 
@@ -125,11 +124,7 @@ ${getDeveloperInfoSection()}
 
 ${getObjectiveSection(codeIndexManager, experiments)}
 
-${await addCustomInstructions(baseInstructions, globalCustomInstructions || "", cwd, mode, {
-	language: language ?? formatLanguage(vscode.env.language),
-	rooIgnoreInstructions,
-	settings,
-})}`
+${baseInstructions}`
 
 	return basePrompt
 }
@@ -182,18 +177,6 @@ export const SYSTEM_PROMPT = async (
 			customModes,
 		)
 
-		const customInstructions = await addCustomInstructions(
-			baseInstructionsForFile,
-			globalCustomInstructions || "",
-			cwd,
-			mode,
-			{
-				language: language ?? formatLanguage(vscode.env.language),
-				rooIgnoreInstructions,
-				settings,
-			},
-		)
-
 		// For file-based prompts, don't include the tool sections
 		return `${roleDefinition}
 
@@ -201,7 +184,7 @@ ${fileCustomSystemPrompt}
 
 ${getDeveloperInfoSection()}
 
-${customInstructions}`
+${baseInstructionsForFile}`
 	}
 
 	// If diff is disabled, don't pass the diffStrategy
