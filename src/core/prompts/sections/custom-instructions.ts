@@ -179,38 +179,27 @@ function formatDirectoryContent(dirPath: string, files: Array<{ filename: string
 }
 
 /**
- * Load rule files from global and project-local directories
- * Global rules are loaded first, then project-local rules which can override global ones
+ * Load rule files from bundled instructions only
+ * Project-level .roo folder scanning has been removed to prevent user modifications of core instructions
  */
 export async function loadRuleFiles(cwd: string): Promise<string> {
 	const rules: string[] = []
-	const rooDirectories = getRooDirectoriesForCwd(cwd)
+	// Use bundled instructions from global storage
+	const globalRooDir = getGlobalRooDirectory()
+	const bundledRulesDir = path.join(globalRooDir, "bundled", "rules")
 
-	// Check for .roo/rules/ directories in order (global first, then project-local)
-	for (const rooDir of rooDirectories) {
-		const rulesDir = path.join(rooDir, "rules")
-		if (await directoryExists(rulesDir)) {
-			const files = await readTextFilesFromDirectory(rulesDir)
-			if (files.length > 0) {
-				const content = formatDirectoryContent(rulesDir, files)
-				rules.push(content)
-			}
+	// Check for bundled rules directory
+	if (await directoryExists(bundledRulesDir)) {
+		const files = await readTextFilesFromDirectory(bundledRulesDir)
+		if (files.length > 0) {
+			const content = formatDirectoryContent(bundledRulesDir, files)
+			rules.push(content)
 		}
 	}
 
-	// If we found rules in .roo/rules/ directories, return them
+	// If we found rules in bundled directory, return them
 	if (rules.length > 0) {
 		return "\n" + rules.join("\n\n")
-	}
-
-	// Fall back to existing behavior for legacy .roorules/.clinerules files
-	const ruleFiles = [".roorules", ".clinerules"]
-
-	for (const file of ruleFiles) {
-		const content = await safeReadFile(path.join(cwd, file))
-		if (content) {
-			return `\n# Rules from ${file}:\n${content}\n`
-		}
 	}
 
 	return ""
@@ -274,37 +263,23 @@ export async function addCustomInstructions(
 
 	if (mode) {
 		const modeRules: string[] = []
-		const rooDirectories = getRooDirectoriesForCwd(cwd)
+		// Use bundled instructions from global storage
+		const globalRooDir = getGlobalRooDirectory()
+		const bundledModeRulesDir = path.join(globalRooDir, "bundled", `rules-${mode}`)
 
-		// Check for .roo/rules-${mode}/ directories in order (global first, then project-local)
-		for (const rooDir of rooDirectories) {
-			const modeRulesDir = path.join(rooDir, `rules-${mode}`)
-			if (await directoryExists(modeRulesDir)) {
-				const files = await readTextFilesFromDirectory(modeRulesDir)
-				if (files.length > 0) {
-					const content = formatDirectoryContent(modeRulesDir, files)
-					modeRules.push(content)
-				}
+		// Check for bundled mode-specific rules directory
+		if (await directoryExists(bundledModeRulesDir)) {
+			const files = await readTextFilesFromDirectory(bundledModeRulesDir)
+			if (files.length > 0) {
+				const content = formatDirectoryContent(bundledModeRulesDir, files)
+				modeRules.push(content)
 			}
 		}
 
-		// If we found mode-specific rules in .roo/rules-${mode}/ directories, use them
+		// If we found mode-specific rules in bundled directory, use them
 		if (modeRules.length > 0) {
 			modeRuleContent = "\n" + modeRules.join("\n\n")
-			usedRuleFile = `rules-${mode} directories`
-		} else {
-			// Fall back to existing behavior for legacy files
-			const rooModeRuleFile = `.roorules-${mode}`
-			modeRuleContent = await safeReadFile(path.join(cwd, rooModeRuleFile))
-			if (modeRuleContent) {
-				usedRuleFile = rooModeRuleFile
-			} else {
-				const clineModeRuleFile = `.clinerules-${mode}`
-				modeRuleContent = await safeReadFile(path.join(cwd, clineModeRuleFile))
-				if (modeRuleContent) {
-					usedRuleFile = clineModeRuleFile
-				}
-			}
+			usedRuleFile = `bundled rules-${mode} directory`
 		}
 	}
 

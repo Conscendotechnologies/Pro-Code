@@ -29,6 +29,7 @@ import { CodeIndexManager } from "./services/code-index/manager"
 import { MdmService } from "./services/mdm/MdmService"
 import { migrateSettings } from "./utils/migrateSettings"
 import { autoImportSettings } from "./utils/autoImportSettings"
+import { BundledInstructionsManager } from "./utils/bundled-instructions-manager"
 import { API } from "./extension/api"
 
 import {
@@ -85,6 +86,17 @@ export async function activate(context: vscode.ExtensionContext) {
 	} catch (error) {
 		outputChannel.appendLine(
 			`[CloudService] Failed to register TelemetryClient: ${error instanceof Error ? error.message : String(error)}`,
+		)
+	}
+
+	// Initialize bundled instructions manager
+	try {
+		const bundledInstructionsManager = new BundledInstructionsManager(context)
+		await bundledInstructionsManager.initializeBundledInstructions()
+		outputChannel.appendLine("[BundledInstructionsManager] Successfully initialized bundled instructions")
+	} catch (error) {
+		outputChannel.appendLine(
+			`[BundledInstructionsManager] Failed to initialize bundled instructions: ${error instanceof Error ? error.message : String(error)}`,
 		)
 	}
 
