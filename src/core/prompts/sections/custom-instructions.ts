@@ -179,25 +179,25 @@ function formatDirectoryContent(dirPath: string, files: Array<{ filename: string
 }
 
 /**
- * Load rule files from global directory only
+ * Load rule files from bundled instructions only
  * Project-level .roo folder scanning has been removed to prevent user modifications of core instructions
  */
 export async function loadRuleFiles(cwd: string): Promise<string> {
 	const rules: string[] = []
-	// Only use global directory, skip project-level
+	// Use bundled instructions from global storage
 	const globalRooDir = getGlobalRooDirectory()
+	const bundledRulesDir = path.join(globalRooDir, "bundled", "rules")
 
-	// Check for .roo/rules/ directory in global location only
-	const rulesDir = path.join(globalRooDir, "rules")
-	if (await directoryExists(rulesDir)) {
-		const files = await readTextFilesFromDirectory(rulesDir)
+	// Check for bundled rules directory
+	if (await directoryExists(bundledRulesDir)) {
+		const files = await readTextFilesFromDirectory(bundledRulesDir)
 		if (files.length > 0) {
-			const content = formatDirectoryContent(rulesDir, files)
+			const content = formatDirectoryContent(bundledRulesDir, files)
 			rules.push(content)
 		}
 	}
 
-	// If we found rules in .roo/rules/ directory, return them
+	// If we found rules in bundled directory, return them
 	if (rules.length > 0) {
 		return "\n" + rules.join("\n\n")
 	}
@@ -263,23 +263,23 @@ export async function addCustomInstructions(
 
 	if (mode) {
 		const modeRules: string[] = []
-		// Only use global directory, skip project-level
+		// Use bundled instructions from global storage
 		const globalRooDir = getGlobalRooDirectory()
+		const bundledModeRulesDir = path.join(globalRooDir, "bundled", `rules-${mode}`)
 
-		// Check for .roo/rules-${mode}/ directory in global location only
-		const modeRulesDir = path.join(globalRooDir, `rules-${mode}`)
-		if (await directoryExists(modeRulesDir)) {
-			const files = await readTextFilesFromDirectory(modeRulesDir)
+		// Check for bundled mode-specific rules directory
+		if (await directoryExists(bundledModeRulesDir)) {
+			const files = await readTextFilesFromDirectory(bundledModeRulesDir)
 			if (files.length > 0) {
-				const content = formatDirectoryContent(modeRulesDir, files)
+				const content = formatDirectoryContent(bundledModeRulesDir, files)
 				modeRules.push(content)
 			}
 		}
 
-		// If we found mode-specific rules in .roo/rules-${mode}/ directory, use them
+		// If we found mode-specific rules in bundled directory, use them
 		if (modeRules.length > 0) {
 			modeRuleContent = "\n" + modeRules.join("\n\n")
-			usedRuleFile = `rules-${mode} directory`
+			usedRuleFile = `bundled rules-${mode} directory`
 		}
 	}
 
