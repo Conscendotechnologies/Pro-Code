@@ -25,6 +25,8 @@ import { getModelEndpoints } from "./fetchers/modelEndpointCache"
 import { DEFAULT_HEADERS } from "./constants"
 import { BaseProvider } from "./base-provider"
 import type { SingleCompletionHandler } from "../index"
+import path from "path"
+import fs from "fs"
 
 // Add custom interface for OpenRouter params.
 type OpenRouterChatCompletionParams = OpenAI.Chat.ChatCompletionCreateParams & {
@@ -132,6 +134,18 @@ export class OpenRouterHandler extends BaseProvider implements SingleCompletionH
 				}),
 			...(transforms && { transforms }),
 			...(reasoning && { reasoning }),
+		}
+
+		// Write completionParams to a debug file for inspection
+
+		const debugFilePath = path.resolve(__dirname, "../../../debug/openrouter-completionParams.json")
+		console.log(`debugFilePath created/openrouter-completionParams.json: ${debugFilePath}`)
+
+		try {
+			fs.promises.mkdir(path.dirname(debugFilePath), { recursive: true })
+			await fs.promises.writeFile(debugFilePath, JSON.stringify(completionParams, null, 2), "utf8")
+		} catch (err) {
+			console.warn("Failed to write completionParams debug file:", err)
 		}
 
 		const stream = await this.client.chat.completions.create(completionParams)
