@@ -60,6 +60,7 @@ export async function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(outputChannel)
 	outputChannel.appendLine(`${Package.name} extension activated - ${JSON.stringify(Package)}`)
 	vscode.window.showInformationMessage("SIID Code activated!")
+	vscode.window.showInformationMessage(`Extension path: ${context.extensionPath}`)
 
 	// Migrate old settings to new
 	await migrateSettings(context, outputChannel)
@@ -91,6 +92,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
 	// Initialize bundled instructions manager
 	try {
+		vscode.window.showInformationMessage("Initializing bundled instructions...")
 		const bundledInstructionsManager = new BundledInstructionsManager(context)
 		await bundledInstructionsManager.initializeBundledInstructions()
 		outputChannel.appendLine("[BundledInstructionsManager] Successfully initialized bundled instructions")

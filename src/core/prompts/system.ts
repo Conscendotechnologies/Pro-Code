@@ -13,7 +13,7 @@ import { isEmpty } from "../../utils/object"
 import { McpHub } from "../../services/mcp/McpHub"
 import { CodeIndexManager } from "../../services/code-index/manager"
 
-import { PromptVariables, loadSystemPromptFile } from "./sections/custom-system-prompt"
+import { PromptVariables, loadCustomPromptIndexFile } from "./sections/custom-system-index"
 
 import { getToolDescriptionsForMode } from "./tools"
 import {
@@ -28,6 +28,8 @@ import {
 	getModesSection,
 	markdownFormattingSection,
 } from "./sections"
+
+let globalStoragePath: string = ""
 
 // Helper function to get prompt component, filtering out empty objects
 export function getPromptComponent(
@@ -65,6 +67,7 @@ async function generatePrompt(
 	if (!context) {
 		throw new Error("Extension context is required for generating system prompt")
 	}
+	globalStoragePath = `${context.globalStorageUri.fsPath}/instructions`
 
 	// If diff is disabled, don't pass the diffStrategy
 	const effectiveDiffStrategy = diffEnabled ? diffStrategy : undefined
@@ -87,7 +90,21 @@ async function generatePrompt(
 
 	const codeIndexManager = CodeIndexManager.getInstance(context, cwd)
 
+	// Try to load custom system prompt from file
+	const variablesForPrompt: PromptVariables = {
+		workspace: cwd,
+		extensionPath: context.extensionPath,
+		globalStoragePath: globalStoragePath,
+		mode: mode,
+		language: language ?? formatLanguage(vscode.env.language),
+		shell: vscode.env.shell,
+		operatingSystem: os.type(),
+	}
+	const customInstructionIndexs = await loadCustomPromptIndexFile(cwd, variablesForPrompt)
+
 	const basePrompt = `${roleDefinition}
+
+${customInstructionIndexs}
 
 ${markdownFormattingSection()}
 
@@ -153,39 +170,11 @@ export const SYSTEM_PROMPT = async (
 		throw new Error("Extension context is required for generating system prompt")
 	}
 
-	// Try to load custom system prompt from file
-	const variablesForPrompt: PromptVariables = {
-		workspace: cwd,
-		mode: mode,
-		language: language ?? formatLanguage(vscode.env.language),
-		shell: vscode.env.shell,
-		operatingSystem: os.type(),
-	}
-	const fileCustomSystemPrompt = await loadSystemPromptFile(cwd, mode, variablesForPrompt)
-
 	// Check if it's a custom mode
 	const promptComponent = getPromptComponent(customModePrompts, mode)
 
 	// Get full mode config from custom modes or fall back to built-in modes
 	const currentMode = getModeBySlug(mode, customModes) || modes.find((m) => m.slug === mode) || modes[0]
-
-	// If a file-based custom system prompt exists, use it
-	if (fileCustomSystemPrompt) {
-		const { roleDefinition, baseInstructions: baseInstructionsForFile } = getModeSelection(
-			mode,
-			promptComponent,
-			customModes,
-		)
-
-		// For file-based prompts, don't include the tool sections
-		return `${roleDefinition}
-
-${fileCustomSystemPrompt}
-
-${getDeveloperInfoSection()}
-
-${baseInstructionsForFile}`
-	}
 
 	// If diff is disabled, don't pass the diffStrategy
 	const effectiveDiffStrategy = diffEnabled ? diffStrategy : undefined

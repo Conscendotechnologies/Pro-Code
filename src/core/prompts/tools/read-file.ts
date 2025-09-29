@@ -12,7 +12,7 @@ ${isMultipleReadsEnabled ? `**IMPORTANT: You can read a maximum of ${maxConcurre
 ${args.partialReadsEnabled ? `By specifying line ranges, you can efficiently read specific portions of large files without loading the entire file into memory.` : ""}
 Parameters:
 - args: Contains one or more file elements, where each file contains:
-  - path: (required) File path (relative to workspace directory ${args.cwd})
+  - path: (required) File path (relative to workspace directory ${args.cwd}) or relative to the globalStoragePath ${args.globalStoragePath}.
   ${args.partialReadsEnabled ? `- line_range: (optional) One or more line range elements in format "start-end" (1-based, inclusive)` : ""}
 
 Usage:

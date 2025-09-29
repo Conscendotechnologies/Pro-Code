@@ -3,6 +3,7 @@ import { McpHub } from "../../../services/mcp/McpHub"
 
 export type ToolArgs = {
 	cwd: string
+	globalStoragePath?: string
 	supportsComputerUse: boolean
 	diffStrategy?: DiffStrategy
 	browserViewportSize?: string
