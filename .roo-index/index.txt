@@ -6,8 +6,8 @@
 @delimiter=|
 @notes=Fields are pipe-delimited; consumers should split on '|' then split last field on commas for keyword tokens.
 
-code-use-safeWriteJson-1758892247964|code|low|testing|modes/code/use-safeWriteJson.md|JSON File Writing Must Be Atomic|code,use-safeWriteJson,test,pr,md
-
+code-use-safeWriteJson-1758892247964|code|high|developement|modes/code/use-safeWriteJson.md|JSON File Writing Must Be Atomic|code,use-safeWriteJson,test,pr
+code-custom-object-1758892247966|code|high|developement|modes/code/custom-object.md|Salesforce Object Creation|object, create ,salesforce, create-xml
 docs-extractor-1_extraction_workflow-1758892247968|docs-extractor|high|testing|modes/docs-extractor/1_extraction_workflow.xml|Analyze and extract comprehensive details for documentation team|docs-extractor,1_extraction_workflow,test,error,architecture,design,pattern,workflow,integration,issue,pr,xml
 docs-extractor-2_documentation_patterns-1758892247971|docs-extractor|high|debugging|modes/docs-extractor/2_documentation_patterns.xml|docs-extractor instructions for 2_documentation_patterns|docs-extractor,2_documentation_patterns,debug,error,architecture,pattern,typescript,integration,issue,pr,xml
 docs-extractor-3_analysis_techniques-1758892247974|docs-extractor|high|testing|modes/docs-extractor/3_analysis_techniques.xml|Search for UI component files|docs-extractor,3_analysis_techniques,test,error,design,pattern,typescript,react,workflow,integration,pr,xml
