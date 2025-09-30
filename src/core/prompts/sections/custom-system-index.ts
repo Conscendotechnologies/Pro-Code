@@ -72,7 +72,12 @@ export async function loadCustomPromptIndexFile(cwd: string, variables: PromptVa
 	const interpolatedContent = interpolatePromptContent(rawContent, variables)
 	console.log("Loaded custom prompt index content:", interpolatedContent)
 
-	return `**IMPORTANT: This is index information to help you complete your tasks. Must the 'read_file' tool to access the instruction to complete the task.\n\n
+	return `**IMPORTANT: This is index information to help you complete your tasks.
+	**Rules for using instructions:**  
+	1. When a user makes a request, first identify the task type
+	 Must use the 'read_file' tool to access the instruction to complete the task.\n\n
+	 Do **not** attempt to complete the task without first reading the related instruction file.  
+	 Always follow the steps and format provided in the instruction file to complete the task.  
 	NOTE: Pass the globalStoragePath(${variables.globalStoragePath}) in the read_file tool to access the instruction files. \n\n
 	Instruction are located in this location: ${variables.globalStoragePath}/instructions. \n\n
 	NOTE: To complete the task from code mode you have to read the instruction file using the read_file tool.
