@@ -47,15 +47,12 @@ export class BundledInstructionsManager {
 	private readonly context: vscode.ExtensionContext
 
 	constructor(context: vscode.ExtensionContext) {
-		vscode.window.showInformationMessage(`[CHECKPOINT 1] BundledInstructionsManager constructor called.`)
+		// informational checkpoint removed
 		this.context = context
 		this.globalStoragePath = path.join(context.globalStorageUri.fsPath, "instructions")
 		this.instructionsPath = this.globalStoragePath
 		// Path to bundled instructions in the extension directory
 		this.bundledPath = path.join(context.extensionPath, "dist", "bundled", ".roo")
-		vscode.window.showInformationMessage(
-			`[CHECKPOINT 2] Paths initialized - globalStoragePath: ${this.globalStoragePath} bundledPath: ${this.bundledPath}`,
-		)
 	}
 
 	/**
@@ -63,36 +60,27 @@ export class BundledInstructionsManager {
 	 */
 	async initializeBundledInstructions(): Promise<void> {
 		try {
-			vscode.window.showInformationMessage(`[CHECKPOINT 3] initializeBundledInstructions called.`)
+			// informational checkpoint removed
 			// Check if bundled instructions exist in extension
 			if (!(await directoryExists(this.bundledPath))) {
-				vscode.window.showWarningMessage("[CHECKPOINT 4] Bundled instructions not found in extension package")
 				console.warn("Bundled instructions not found in extension package")
 				return
 			}
-			vscode.window.showInformationMessage(
-				`[CHECKPOINT 5] Directory exists - bundledPath: ${this.bundledPath} instructionsPath: ${this.instructionsPath}`,
-			)
+			// informational checkpoint removed
 			console.log("bundledPath:", this.bundledPath)
 			console.log("instructionsPath:", this.instructionsPath)
 
 			// Create the proper directory structure
-			vscode.window.showInformationMessage("[CHECKPOINT 6] Creating directory structure...")
 			await this.createDirectoryStructure()
 
 			// Check if we need to copy/update bundled instructions
-			vscode.window.showInformationMessage("[CHECKPOINT 7] Checking for updates...")
 			const shouldCopy = await this.checkForUpdates()
-			vscode.window.showInformationMessage(`[CHECKPOINT 8] Should copy: ${shouldCopy}`)
 			if (shouldCopy) {
-				vscode.window.showInformationMessage("[CHECKPOINT 9] Extracting and indexing instructions...")
-				await this.extractAndIndexInstructions()
+				// informational checkpoint removed
 			}
-			vscode.window.showInformationMessage("[CHECKPOINT 10] Bundled instructions initialized successfully.")
+			await this.extractAndIndexInstructions()
+			// informational checkpoint removed
 		} catch (error) {
-			vscode.window.showErrorMessage(
-				`[CHECKPOINT ERROR] Failed to initialize bundled instructions: ${error.message}`,
-			)
 			console.error("Failed to initialize bundled instructions:", error)
 			// Don't throw - extension should continue to work even if bundled instructions fail
 		}
@@ -102,13 +90,11 @@ export class BundledInstructionsManager {
 	 * Create the proper directory structure for instructions
 	 */
 	private async createDirectoryStructure(): Promise<void> {
-		vscode.window.showInformationMessage("[CHECKPOINT 11] Creating main directories...")
 		// Create main directories
 		await fs.mkdir(this.instructionsPath, { recursive: true })
 		await fs.mkdir(path.join(this.instructionsPath, "modes"), { recursive: true })
 		await fs.mkdir(path.join(this.instructionsPath, "meta"), { recursive: true })
 
-		vscode.window.showInformationMessage("[CHECKPOINT 12] Discovering available modes from bundled instructions...")
 		// Dynamically discover and create mode-specific directories
 		try {
 			const bundledItems = await fs.readdir(this.bundledPath)
@@ -117,25 +103,16 @@ export class BundledInstructionsManager {
 
 			// Always ensure "general" mode exists for standalone files
 			const allModes = [...new Set([...discoveredModes, "general"])]
-
-			vscode.window.showInformationMessage(
-				`[CHECKPOINT 13] Creating directories for modes: ${allModes.join(", ")}`,
-			)
 			for (const mode of allModes) {
 				await fs.mkdir(path.join(this.instructionsPath, "modes", mode), { recursive: true })
 			}
 		} catch (error) {
-			vscode.window.showWarningMessage(
-				`[CHECKPOINT WARNING] Could not discover modes, creating default structure: ${error.message}`,
-			)
 			// Fallback to default modes if discovery fails
 			const defaultModes = ["code", "ask", "architect", "test", "general"]
 			for (const mode of defaultModes) {
 				await fs.mkdir(path.join(this.instructionsPath, "modes", mode), { recursive: true })
 			}
 		}
-
-		vscode.window.showInformationMessage("[CHECKPOINT 14] Directory structure created successfully.")
 	}
 
 	/**
@@ -143,33 +120,23 @@ export class BundledInstructionsManager {
 	 */
 	private async extractAndIndexInstructions(): Promise<void> {
 		try {
-			vscode.window.showInformationMessage(
-				"[CHECKPOINT 15] Extracting bundled instructions and creating index...",
-			)
+			vscode.window.showInformationMessage("Extracting bundled instructions and creating index...")
 			console.log("Extracting bundled instructions and creating index...")
 
 			const instructions: InstructionItem[] = []
 
-			vscode.window.showInformationMessage("[CHECKPOINT 16] Discovering available rule folders...")
 			// Dynamically discover all available rule folders and files
 			const bundledItems = await fs.readdir(this.bundledPath)
 
 			// Process rule folders (rules-*)
 			const ruleFolders = bundledItems.filter((item) => item.startsWith("rules-"))
-			vscode.window.showInformationMessage(
-				`[CHECKPOINT 17] Found ${ruleFolders.length} rule folders: ${ruleFolders.join(", ")}`,
-			)
 
 			for (const ruleFolder of ruleFolders) {
 				const sourcePath = path.join(this.bundledPath, ruleFolder)
 				if (await directoryExists(sourcePath)) {
-					vscode.window.showInformationMessage(`[CHECKPOINT 18] Processing rule folder: ${ruleFolder}`)
 					const mode = ruleFolder.replace("rules-", "") // Extract mode from folder name
 					const modeInstructions = await this.processMode(mode, sourcePath)
 					instructions.push(...modeInstructions)
-					vscode.window.showInformationMessage(
-						`[CHECKPOINT 19] Added ${modeInstructions.length} instructions for ${ruleFolder}`,
-					)
 				}
 			}
 
@@ -178,21 +145,21 @@ export class BundledInstructionsManager {
 				(item) =>
 					item.endsWith(".md") || item.endsWith(".xml") || item.endsWith(".yml") || item.endsWith(".yaml"),
 			)
-			vscode.window.showInformationMessage(
-				`[CHECKPOINT 20] Found ${standaloneFiles.length} standalone files: ${standaloneFiles.join(", ")}`,
-			)
 
 			if (standaloneFiles.length > 0) {
 				const standaloneInstructions = await this.processStandaloneFiles(standaloneFiles)
 				instructions.push(...standaloneInstructions)
-				vscode.window.showInformationMessage(
-					`[CHECKPOINT 21] Added ${standaloneInstructions.length} standalone instructions`,
-				)
 			}
 
-			vscode.window.showInformationMessage(
-				`[CHECKPOINT 22] Creating searchable index with ${instructions.length} instructions...`,
-			)
+			// move index.txt file to instructions root
+			const indexTxtSource = path.join(this.bundledPath, "index.txt")
+			const indexTxtDest = path.join(this.instructionsPath, "index.txt")
+			vscode.window.showInformationMessage(`moving index file from ${indexTxtSource} to ${indexTxtDest}`)
+			// informational checkpoint removed
+			if (await fileExists(indexTxtSource)) {
+				await fs.copyFile(indexTxtSource, indexTxtDest)
+				// informational checkpoint removed
+			}
 			// Create the searchable index
 			const index: InstructionIndex = {
 				version: this.context.extension.packageJSON.version,
@@ -200,22 +167,14 @@ export class BundledInstructionsManager {
 				instructions,
 			}
 
-			vscode.window.showInformationMessage("[CHECKPOINT 23] Saving index to file...")
 			// Save the index
 			await fs.writeFile(path.join(this.instructionsPath, "index.json"), JSON.stringify(index, null, 2), "utf-8")
 
-			vscode.window.showInformationMessage("[CHECKPOINT 24] Saving extraction metadata...")
 			// Save extraction metadata
 			await this.saveExtractionInfo()
 
-			vscode.window.showInformationMessage(
-				`[CHECKPOINT 25] Successfully indexed ${instructions.length} instructions`,
-			)
 			console.log(`Successfully indexed ${instructions.length} instructions`)
 		} catch (error) {
-			vscode.window.showErrorMessage(
-				`[CHECKPOINT ERROR] Failed to extract and index instructions: ${error.message}`,
-			)
 			console.error("Failed to extract and index instructions:", error)
 			throw error
 		}
@@ -225,7 +184,6 @@ export class BundledInstructionsManager {
 	 * Process instructions for a specific mode
 	 */
 	private async processMode(mode: string, sourcePath: string): Promise<InstructionItem[]> {
-		vscode.window.showInformationMessage(`[CHECKPOINT 26] Processing mode: ${mode} from ${sourcePath}`)
 		const instructions: InstructionItem[] = []
 		const destinationPath = path.join(this.instructionsPath, "modes", mode)
 
@@ -239,30 +197,19 @@ export class BundledInstructionsManager {
 				(file) =>
 					file.endsWith(".md") || file.endsWith(".xml") || file.endsWith(".yml") || file.endsWith(".yaml"),
 			)
-			vscode.window.showInformationMessage(
-				`[CHECKPOINT 27] Found ${instructionFiles.length} instruction files in mode: ${mode}`,
-			)
 
 			for (const file of instructionFiles) {
 				const sourceFile = path.join(sourcePath, file)
 				const destFile = path.join(destinationPath, file)
-
-				vscode.window.showInformationMessage(
-					`[CHECKPOINT 28] Copying file: ${file} from ${sourceFile} to ${destFile}`,
-				)
 				// Copy the file
 				await fs.copyFile(sourceFile, destFile)
 
-				vscode.window.showInformationMessage(`[CHECKPOINT 29] Creating instruction item for: ${file}`)
 				// Create index entry
 				const instruction = await this.createInstructionItem(mode, file, destFile)
 				instructions.push(instruction)
 			}
-			vscode.window.showInformationMessage(
-				`[CHECKPOINT 30] Completed processing mode: ${mode} with ${instructions.length} instructions`,
-			)
 		} catch (error) {
-			vscode.window.showErrorMessage(`[CHECKPOINT ERROR] Error processing mode ${mode}: ${error.message}`)
+			// error message removed - retained console.error
 			console.error(`Error processing mode ${mode}:`, error)
 		}
 
@@ -273,7 +220,6 @@ export class BundledInstructionsManager {
 	 * Process standalone instruction files in the root .roo directory
 	 */
 	private async processStandaloneFiles(files: string[]): Promise<InstructionItem[]> {
-		vscode.window.showInformationMessage(`[CHECKPOINT 31] Processing ${files.length} standalone files`)
 		const instructions: InstructionItem[] = []
 		const destinationPath = path.join(this.instructionsPath, "modes", "general")
 
@@ -285,22 +231,15 @@ export class BundledInstructionsManager {
 				const sourceFile = path.join(this.bundledPath, file)
 				const destFile = path.join(destinationPath, file)
 
-				vscode.window.showInformationMessage(`[CHECKPOINT 32] Copying standalone file: ${file}`)
 				// Copy the file
 				await fs.copyFile(sourceFile, destFile)
 
-				vscode.window.showInformationMessage(
-					`[CHECKPOINT 33] Creating instruction item for standalone: ${file}`,
-				)
 				// Create index entry with "general" mode for standalone files
 				const instruction = await this.createInstructionItem("general", file, destFile)
 				instructions.push(instruction)
 			}
-			vscode.window.showInformationMessage(
-				`[CHECKPOINT 34] Completed processing standalone files: ${instructions.length} instructions`,
-			)
 		} catch (error) {
-			vscode.window.showErrorMessage(`[CHECKPOINT ERROR] Error processing standalone files: ${error.message}`)
+			// error message removed - retained console.error
 			console.error("Error processing standalone files:", error)
 		}
 
@@ -311,10 +250,6 @@ export class BundledInstructionsManager {
 	 * Create an instruction item for the index
 	 */
 	private async createInstructionItem(mode: string, fileName: string, filePath: string): Promise<InstructionItem> {
-		vscode.window.showInformationMessage(
-			`[CHECKPOINT 35] Creating instruction item for: ${fileName} in mode: ${mode}`,
-		)
-
 		// Get file extension and base name
 		const ext = path.extname(fileName)
 		const baseName = path.basename(fileName, ext)
@@ -326,7 +261,6 @@ export class BundledInstructionsManager {
 		let priority: "high" | "medium" | "low" = "medium"
 
 		try {
-			vscode.window.showInformationMessage(`[CHECKPOINT 35] Reading file content for: ${fileName}`)
 			const content = await fs.readFile(filePath, "utf-8")
 			const lines = content.split("\n").slice(0, 15) // Read first 15 lines for metadata
 
@@ -414,14 +348,8 @@ export class BundledInstructionsManager {
 			} else if (content.length < 800 || baseName.toLowerCase().includes("example")) {
 				priority = "low"
 			}
-
-			vscode.window.showInformationMessage(
-				`[CHECKPOINT 36] Analyzed content for ${fileName}: priority=${priority}, keywords=${keywords.length}`,
-			)
 		} catch (error) {
-			vscode.window.showWarningMessage(
-				`[CHECKPOINT WARNING] Could not analyze content for ${fileName}: ${error.message}`,
-			)
+			// warning message removed
 			console.warn(`Could not analyze content for ${fileName}:`, error)
 		}
 
@@ -434,7 +362,6 @@ export class BundledInstructionsManager {
 			priority,
 			description,
 		}
-		vscode.window.showInformationMessage(`[CHECKPOINT 37] Created instruction item: ${instructionItem.id}`)
 		return instructionItem
 	}
 
@@ -493,7 +420,6 @@ export class BundledInstructionsManager {
 	 * Save extraction and version information
 	 */
 	private async saveExtractionInfo(): Promise<void> {
-		vscode.window.showInformationMessage("[CHECKPOINT 33] Saving extraction info...")
 		const versionInfo: VersionInfo = {
 			version: this.context.extension.packageJSON.version,
 			extractedAt: new Date().toISOString(),
@@ -509,19 +435,11 @@ export class BundledInstructionsManager {
 			totalFiles,
 			modes: availableModes,
 		}
-
-		vscode.window.showInformationMessage(
-			`[CHECKPOINT 34] Saving version info: ${versionInfo.version}, totalFiles: ${totalFiles}`,
-		)
 		// Save version info
 		await fs.writeFile(
 			path.join(this.instructionsPath, "meta", "version-info.json"),
 			JSON.stringify(versionInfo, null, 2),
 			"utf-8",
-		)
-
-		vscode.window.showInformationMessage(
-			`[CHECKPOINT 35] Saving extraction info with modes: ${availableModes.join(", ")}`,
 		)
 		// Save extraction info
 		await fs.writeFile(
@@ -529,7 +447,7 @@ export class BundledInstructionsManager {
 			JSON.stringify(extractionInfo, null, 2),
 			"utf-8",
 		)
-		vscode.window.showInformationMessage("[CHECKPOINT 36] Extraction info saved successfully.")
+		// informational checkpoint removed
 	}
 
 	/**
@@ -537,12 +455,12 @@ export class BundledInstructionsManager {
 	 */
 	private async checkForUpdates(): Promise<boolean> {
 		try {
-			vscode.window.showInformationMessage("[CHECKPOINT 37] Checking for updates...")
+			// informational checkpoint removed
 			const versionInfoPath = path.join(this.instructionsPath, "meta", "version-info.json")
 
 			// If version info doesn't exist, need to extract
 			if (!(await fileExists(versionInfoPath))) {
-				vscode.window.showInformationMessage("[CHECKPOINT 38] Version info not found, need to extract")
+				// informational checkpoint removed
 				return true
 			}
 
@@ -550,12 +468,10 @@ export class BundledInstructionsManager {
 			const currentVersion = this.context.extension.packageJSON.version
 			const needsUpdate = versionInfo.version !== currentVersion
 
-			vscode.window.showInformationMessage(
-				`[CHECKPOINT 39] Version check - current: ${currentVersion}, stored: ${versionInfo.version}, needsUpdate: ${needsUpdate}`,
-			)
+			// informational checkpoint removed
 			return needsUpdate
 		} catch (error) {
-			vscode.window.showErrorMessage(`[CHECKPOINT ERROR] Error checking for updates: ${error.message}`)
+			// error message removed - retained console.error
 			console.error("Error checking for updates:", error)
 			return true
 		}
@@ -640,21 +556,19 @@ export class BundledInstructionsManager {
 	 */
 	async getInstructionIndex(): Promise<InstructionIndex | null> {
 		try {
-			vscode.window.showInformationMessage("[CHECKPOINT 40] Getting instruction index...")
+			// informational checkpoint removed
 			const indexPath = path.join(this.instructionsPath, "index.json")
 			if (!(await fileExists(indexPath))) {
-				vscode.window.showWarningMessage("[CHECKPOINT 41] Index file not found")
+				// warning message removed
 				return null
 			}
 
 			const indexContent = await fs.readFile(indexPath, "utf-8")
 			const index = JSON.parse(indexContent) as InstructionIndex
-			vscode.window.showInformationMessage(
-				`[CHECKPOINT 42] Index loaded with ${index.instructions.length} instructions`,
-			)
+			// informational checkpoint removed
 			return index
 		} catch (error) {
-			vscode.window.showErrorMessage(`[CHECKPOINT ERROR] Failed to get instruction index: ${error.message}`)
+			// error message removed - retained console.error
 			console.error("Failed to get instruction index:", error)
 			return null
 		}
@@ -665,12 +579,10 @@ export class BundledInstructionsManager {
 	 */
 	async searchInstructions(keywords: string[], mode?: string): Promise<InstructionItem[]> {
 		try {
-			vscode.window.showInformationMessage(
-				`[CHECKPOINT 43] Searching instructions with keywords: ${keywords.join(", ")} ${mode ? `in mode: ${mode}` : ""}`,
-			)
+			// informational checkpoint removed
 			const index = await this.getInstructionIndex()
 			if (!index) {
-				vscode.window.showWarningMessage("[CHECKPOINT 44] No index available for search")
+				// warning message removed
 				return []
 			}
 
@@ -697,9 +609,7 @@ export class BundledInstructionsManager {
 					return priorityOrder[b.priority] - priorityOrder[a.priority]
 				})
 
-			vscode.window.showInformationMessage(
-				`[CHECKPOINT 45] Search completed, found ${results.length} matching instructions`,
-			)
+			// informational checkpoint removed
 			return results
 		} catch (error) {
 			vscode.window.showErrorMessage(`[CHECKPOINT ERROR] Failed to search instructions: ${error.message}`)
