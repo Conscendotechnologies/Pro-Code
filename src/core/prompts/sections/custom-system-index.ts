@@ -73,6 +73,7 @@ export async function loadCustomPromptIndexFile(cwd: string, variables: PromptVa
 	console.log("Loaded custom prompt index content:", interpolatedContent)
 
 	return `**IMPORTANT: This is index information to help you complete your tasks. Must the 'read_file' tool to access the instruction to complete the task.\n\n
+	**IMPORTANT: Always refer to the instructions provided in the files to ensure accuracy and completeness, before starting the task.**\n\n
 	NOTE: Pass the globalStoragePath(${variables.globalStoragePath}) in the read_file tool to access the instruction files. \n\n
 	Instruction are located in this location: ${variables.globalStoragePath}/instructions. \n\n
 	NOTE: To complete the task from code mode you have to read the instruction file using the read_file tool.
