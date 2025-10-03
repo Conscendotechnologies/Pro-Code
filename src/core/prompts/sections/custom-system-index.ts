@@ -71,7 +71,6 @@ export async function loadCustomPromptIndexFile(cwd: string, variables: PromptVa
 	console.log("Custom prompt index file content loaded:", rawContent)
 	const interpolatedContent = interpolatePromptContent(rawContent, variables)
 	console.log("Loaded custom prompt index content:", interpolatedContent)
-
 	return `**IMPORTANT: This is index information to help you complete your tasks.
 	**Rules for using instructions:**  
 	1. When a user makes a request, first identify the task type

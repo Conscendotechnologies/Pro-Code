@@ -7,8 +7,7 @@
 @notes=Fields are pipe-delimited; consumers should split on '|' then split last field on commas for keyword tokens.
 
 code-use-safeWriteJson-1758892247964|code|high|developement|modes/code/use-safeWriteJson.md|JSON File Writing Must Be Atomic|code,use-safeWriteJson,test,pr
-code-custom-object-1758892246966|code|high|developement|modes/code/custom-object.md|Salesforce Object Creation|object, create , custom object, salesforce, create-xml
-code-custom-field-1758892247945|code|high|developement|modes/code/custom-field.md|Salesforce Field Creation|field, create ,salesforce,custom field, create-xml
+code-custom-object-1758892247966|code|high|developement|modes/code/custom-object.md|Salesforce Object Creation|object, create ,salesforce, create-xml
 code-profile-1758892247967|code|high|developement|modes/code/profile.md|Salesforce Profile Creation|profile, create, clone ,salesforce, create-xml
 code-object-permissions-1758892247969|code|high|developement|modes/code/object-permissions.md|Salesforce Object Permissions Management|assign,object, permissions, salesforce, create-xml
 code-field-permissions-1758892247970|code|high|developement|modes/code/field-permissions.md|Salesforce Field Permissions Management|assign, field, permissions, salesforce, create-xml
