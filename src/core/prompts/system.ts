@@ -67,7 +67,7 @@ async function generatePrompt(
 	if (!context) {
 		throw new Error("Extension context is required for generating system prompt")
 	}
-	globalStoragePath = `${context.globalStorageUri.fsPath}/instructions`
+	globalStoragePath = `${context.globalStorageUri.fsPath}`
 
 	// If diff is disabled, don't pass the diffStrategy
 	const effectiveDiffStrategy = diffEnabled ? diffStrategy : undefined
