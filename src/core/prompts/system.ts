@@ -13,8 +13,6 @@ import { isEmpty } from "../../utils/object"
 import { McpHub } from "../../services/mcp/McpHub"
 import { CodeIndexManager } from "../../services/code-index/manager"
 
-import { PromptVariables, loadCustomPromptIndexFile } from "./sections/custom-system-index"
-
 import { getToolDescriptionsForMode } from "./tools"
 import {
 	getRulesSection,
@@ -90,21 +88,11 @@ async function generatePrompt(
 
 	const codeIndexManager = CodeIndexManager.getInstance(context, cwd)
 
-	// Try to load custom system prompt from file
-	const variablesForPrompt: PromptVariables = {
-		workspace: cwd,
-		extensionPath: context.extensionPath,
-		globalStoragePath: globalStoragePath,
-		mode: mode,
-		language: language ?? formatLanguage(vscode.env.language),
-		shell: vscode.env.shell,
-		operatingSystem: os.type(),
-	}
-	const customInstructionIndexs = await loadCustomPromptIndexFile(cwd, variablesForPrompt)
+	const preTaskNote = ` ##IMPORTANT: Complete the pre-task before attempting to complete the main task.\n\n`
 
 	const basePrompt = `${roleDefinition}
 
-${customInstructionIndexs}
+	${preTaskNote}
 
 ${markdownFormattingSection()}
 

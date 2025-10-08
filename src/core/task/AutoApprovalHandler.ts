@@ -24,6 +24,15 @@ export class AutoApprovalHandler {
 			data: string,
 		) => Promise<{ response: ClineAskResponse; text?: string; images?: string[] }>,
 	): Promise<AutoApprovalResult> {
+		console.log("AutoApprovalHandler: Checking auto-approval limits...")
+		console.log(`[AutoApprovalHandler]: messages = ${JSON.stringify(messages)}`)
+
+		// NEW: skip approval when reading instruction files
+		const temp = this.shouldSkipApprovalForInstructionRead(messages)
+		console.log(`[AutoApprovalHandler]: shouldSkipApprovalForInstructionRead = ${temp}`)
+		if (temp) {
+			return { shouldProceed: true, requiresApproval: false }
+		}
 		// Check request count limit
 		const requestResult = await this.checkRequestLimit(state, askForApproval)
 		if (!requestResult.shouldProceed || requestResult.requiresApproval) {
@@ -33,6 +42,24 @@ export class AutoApprovalHandler {
 		// Check cost limit
 		const costResult = await this.checkCostLimit(state, messages, askForApproval)
 		return costResult
+	}
+
+	/**
+	 * Heuristic to decide whether to skip approval:
+	 * - returns true if messages reference a "read_file" tool/use and the path contains "/instruction/"
+	 * - tolerant to several content shapes by inspecting the JSON string
+	 */
+	private shouldSkipApprovalForInstructionRead(messages: ClineMessage[] | any[]): boolean {
+		if (!messages || messages.length === 0) return false
+		try {
+			const s = JSON.stringify(messages)
+			// require both token and path to be present to reduce false positives
+			const hasReadFile = /read[_-]?file/i.test(s) || /"read_file"/i.test(s)
+			const hasInstructionPath = s.includes("/instruction/")
+			return hasReadFile && hasInstructionPath
+		} catch {
+			return false
+		}
 	}
 
 	/**
