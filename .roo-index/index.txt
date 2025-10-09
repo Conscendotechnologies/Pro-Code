@@ -10,6 +10,8 @@ code-use-safeWriteJson-1758892247964|code|high|developement|modes/code/use-safeW
 code-custom-object-1758892246966|code|high|developement|modes/code/custom-object.md|Salesforce Object Creation|object, create , custom object, salesforce, create-xml
 code-custom-field-1758892247945|code|high|developement|modes/code/custom-field.md|Salesforce Field Creation|field, create ,salesforce,custom field, create-xml
 code-profile-1758892247967|code|high|developement|modes/code/profile.md|Salesforce Profile Creation|profile, create, clone ,salesforce, create-xml
+code-assignment-rules-1758892247956|code|high|developement|modes/code/assignment-rules.md|Salesforce Assignment Rules Management|assign, rules, salesforce, create-xml, case, lead, queue, user
+code-validation-rules-1758892247959|code|high|developement|modes/code/validation-rules.md|Salesforce Validation Rules Management|validation, rules, salesforce, create-xml, formula
 code-object-permissions-1758892247969|code|high|developement|modes/code/object-permissions.md|Salesforce Object Permissions Management|assign,object, permissions, salesforce, create-xml
 code-field-permissions-1758892247970|code|high|developement|modes/code/field-permissions.md|Salesforce Field Permissions Management|assign, field, permissions, salesforce, create-xml
 docs-extractor-1_extraction_workflow-1758892247968|docs-extractor|high|testing|modes/docs-extractor/1_extraction_workflow.xml|Analyze and extract comprehensive details for documentation team|docs-extractor,1_extraction_workflow,test,error,architecture,design,pattern,workflow,integration,issue,pr,xml
