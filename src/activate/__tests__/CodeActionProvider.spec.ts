@@ -110,7 +110,7 @@ describe("CodeActionProvider", () => {
 			const actions = provider.provideCodeActions(mockDocument, mockRange, mockContext)
 
 			expect(actions).toEqual([])
-			expect(vscode.workspace.getConfiguration).toHaveBeenCalledWith("siid-roo-cline")
+			expect(vscode.workspace.getConfiguration).toHaveBeenCalledWith("siid-code")
 			expect(mockGet).toHaveBeenCalledWith("enableCodeActions", true)
 		})
 

@@ -88,7 +88,7 @@ async function main() {
 					const generatedPackageJson = generatePackageJson({
 						packageJson,
 						overrideJson,
-						substitution: ["siid-roo-cline", "roo-code-nightly"],
+						substitution: ["siid-code", "roo-code-nightly"],
 					})
 
 					fs.writeFileSync(path.join(buildDir, "package.json"), JSON.stringify(generatedPackageJson, null, 2))
