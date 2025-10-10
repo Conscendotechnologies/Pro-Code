@@ -28,9 +28,9 @@
 <img src="https://media.githubusercontent.com/media/RooCodeInc/Roo-Code/main/src/assets/docs/demo.gif" width="100%" />
 </p>
 
-<a href="https://marketplace.visualstudio.com/items?itemName=ConscendoTechInc.siid-roo-cline" target="_blank"><img src="https://img.shields.io/badge/Скачать%20в%20VS%20Marketplace-blue?style=for-the-badge&logo=visualstudiocode&logoColor=white" alt="Скачать в VS Marketplace"></a>
+<a href="https://marketplace.visualstudio.com/items?itemName=ConscendoTechInc.siid-code" target="_blank"><img src="https://img.shields.io/badge/Скачать%20в%20VS%20Marketplace-blue?style=for-the-badge&logo=visualstudiocode&logoColor=white" alt="Скачать в VS Marketplace"></a>
 <a href="https://github.com/RooCodeInc/Roo-Code/discussions/categories/feature-requests?discussions_q=is%3Aopen+category%3A%22Feature+Requests%22+sort%3Atop" target="_blank"><img src="https://img.shields.io/badge/Запросы%20функций-yellow?style=for-the-badge" alt="Запросы функций"></a>
-<a href="https://marketplace.visualstudio.com/items?itemName=ConscendoTechInc.siid-roo-cline&ssr=false#review-details" target="_blank"><img src="https://img.shields.io/badge/Оценить%20%26%20Отзыв-green?style=for-the-badge" alt="Оценить & Отзыв"></a>
+<a href="https://marketplace.visualstudio.com/items?itemName=ConscendoTechInc.siid-code&ssr=false#review-details" target="_blank"><img src="https://img.shields.io/badge/Оценить%20%26%20Отзыв-green?style=for-the-badge" alt="Оценить & Отзыв"></a>
 <a href="https://docs.roocode.com" target="_blank"><img src="https://img.shields.io/badge/Документация-6B46C1?style=for-the-badge&logo=readthedocs&logoColor=white" alt="Документация"></a>
 
 </div>
@@ -157,7 +157,7 @@ npm run build
 Файл `.vsix` появится в директории `bin/`, который можно установить с помощью:
 
 ```sh
-code --install-extension bin/siid-roo-cline-<version>.vsix
+code --install-extension bin/siid-code-<version>.vsix
 ```
 
 Мы используем [changesets](https://github.com/changesets/changesets) для версионирования и публикации. Проверьте наш `CHANGELOG.md` для примечаний к релизу.
