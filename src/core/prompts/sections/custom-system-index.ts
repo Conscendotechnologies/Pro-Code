@@ -87,7 +87,7 @@ export async function loadCustomPromptIndexFile(cwd: string, variables: PromptVa
 	│   ├── version-info.json\n
 	├── modes/\n
 	│   ├── code/\n
-	│   │   ├── code-assistant.md\n
+	│   │   ├── sample.md\n
 	|___index.json\n
 	|___index.txt\n
 
