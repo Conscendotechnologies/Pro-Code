@@ -83,7 +83,7 @@ const faqs: FAQItem[] = [
 			<>
 				Install Roo Code from the{" "}
 				<a
-					href="https://marketplace.visualstudio.com/items?itemName=ConscendoTechInc.siid-roo-cline"
+					href="https://marketplace.visualstudio.com/items?itemName=ConscendoTechInc.siid-code"
 					target="_blank"
 					rel="noopener noreferrer"
 					className="text-primary underline-offset-4 hover:underline">

@@ -1,5 +1,5 @@
 {
-	"name": "siid-roo-cline",
+	"name": "siid-code",
 	"displayName": "%extension.displayName%",
 	"description": "%extension.description%",
 	"publisher": "ConscendoTechInc",
@@ -54,124 +54,130 @@
 		"viewsContainers": {
 			"activitybar": [
 				{
-					"id": "siid-roo-cline-ActivityBar",
+					"id": "siid-code-ActivityBar",
 					"title": "%views.activitybar.title%",
 					"icon": "assets/icons/iconV1.svg"
 				}
 			]
 		},
 		"views": {
-			"siid-roo-cline-ActivityBar": [
+			"siid-code-ActivityBar": [
 				{
 					"type": "webview",
-					"id": "siid-roo-cline.SidebarProvider",
+					"id": "siid-code.SidebarProvider",
 					"name": "%views.sidebar.name%"
 				}
 			]
 		},
 		"commands": [
 			{
-				"command": "siid-roo-cline.plusButtonClicked",
+				"command": "siid-code.plusButtonClicked",
 				"title": "%command.newTask.title%",
 				"icon": "$(add)"
 			},
 			{
-				"command": "siid-roo-cline.promptsButtonClicked",
+				"command": "siid-code.promptsButtonClicked",
 				"title": "%command.prompts.title%",
 				"icon": "$(organization)"
 			},
 			{
-				"command": "siid-roo-cline.mcpButtonClicked",
+				"command": "siid-code.mcpButtonClicked",
 				"title": "%command.mcpServers.title%",
 				"icon": "$(server)"
 			},
 			{
-				"command": "siid-roo-cline.historyButtonClicked",
+				"command": "siid-code.historyButtonClicked",
 				"title": "%command.history.title%",
 				"icon": "$(history)"
 			},
 			{
-				"command": "siid-roo-cline.popoutButtonClicked",
+				"command": "siid-code.popoutButtonClicked",
 				"title": "%command.openInEditor.title%",
 				"icon": "$(link-external)"
 			},
 			{
-				"command": "siid-roo-cline.settingsButtonClicked",
+				"command": "siid-code.settingsButtonClicked",
 				"title": "%command.settings.title%",
 				"icon": "$(settings-gear)"
 			},
 			{
-				"command": "siid-roo-cline.openInNewTab",
+				"command": "siid-code.openInNewTab",
 				"title": "%command.openInNewTab.title%",
 				"category": "%configuration.title%"
 			},
 			{
-				"command": "siid-roo-cline.explainCode",
+				"command": "siid-code.explainCode",
 				"title": "%command.explainCode.title%",
 				"category": "%configuration.title%"
 			},
 			{
-				"command": "siid-roo-cline.fixCode",
+				"command": "siid-code.fixCode",
 				"title": "%command.fixCode.title%",
 				"category": "%configuration.title%"
 			},
 			{
-				"command": "siid-roo-cline.improveCode",
+				"command": "siid-code.improveCode",
 				"title": "%command.improveCode.title%",
 				"category": "%configuration.title%"
 			},
 			{
-				"command": "siid-roo-cline.addToContext",
+				"command": "siid-code.addToContext",
 				"title": "%command.addToContext.title%",
 				"category": "%configuration.title%"
 			},
 			{
-				"command": "siid-roo-cline.newTask",
+				"command": "siid-code.newTask",
 				"title": "%command.newTask.title%",
 				"category": "%configuration.title%"
 			},
 			{
-				"command": "siid-roo-cline.terminalAddToContext",
+				"command": "siid-code.terminalAddToContext",
 				"title": "%command.terminal.addToContext.title%",
 				"category": "Terminal"
 			},
 			{
-				"command": "siid-roo-cline.terminalFixCommand",
+				"command": "siid-code.terminalFixCommand",
 				"title": "%command.terminal.fixCommand.title%",
 				"category": "Terminal"
 			},
 			{
-				"command": "siid-roo-cline.terminalExplainCommand",
+				"command": "siid-code.terminalExplainCommand",
 				"title": "%command.terminal.explainCommand.title%",
 				"category": "Terminal"
 			},
 			{
-				"command": "siid-roo-cline.setCustomStoragePath",
+				"command": "siid-code.setCustomStoragePath",
 				"title": "%command.setCustomStoragePath.title%",
 				"category": "%configuration.title%"
 			},
 			{
-				"command": "siid-roo-cline.importSettings",
+				"command": "siid-code.importSettings",
 				"title": "%command.importSettings.title%",
 				"category": "%configuration.title%"
 			},
 			{
-				"command": "siid-roo-cline.focusInput",
+				"command": "siid-code.focusInput",
 				"title": "%command.focusInput.title%",
 				"category": "%configuration.title%"
 			},
 			{
-				"command": "siid-roo-cline.acceptInput",
+				"command": "siid-code.acceptInput",
 				"title": "%command.acceptInput.title%",
 				"category": "%configuration.title%"
 			},
 			{
-				"command": "siid-roo-cline.onFirebaseLogin",
+				"command": "siid-code.openChatView",
+				"title": "%command.openChatView.title%",
+				"icon": "$(comment-discussion)",
+				"category": "%configuration.title%"
+			},
+			{
+				"command": "siid-code.onFirebaseLogin",
 				"title": "Handle Firebase Login",
 				"category": "%configuration.title%"
 			},
 			{
-				"command": "siid-roo-cline.onFirebaseLogout",
+				"command": "siid-code.onFirebaseLogout",
 				"title": "Handle Firebase Logout",
 				"category": "%configuration.title%"
 			}
@@ -179,123 +185,128 @@
 		"menus": {
 			"editor/context": [
 				{
-					"submenu": "siid-roo-cline.contextMenu",
+					"submenu": "siid-code.contextMenu",
 					"group": "1"
 				}
 			],
-			"siid-roo-cline.contextMenu": [
+			"siid-code.contextMenu": [
 				{
-					"command": "siid-roo-cline.addToContext",
+					"command": "siid-code.addToContext",
 					"group": "1_actions@1"
 				},
 				{
-					"command": "siid-roo-cline.explainCode",
+					"command": "siid-code.explainCode",
 					"group": "1_actions@2"
 				},
 				{
-					"command": "siid-roo-cline.improveCode",
+					"command": "siid-code.improveCode",
 					"group": "1_actions@3"
 				}
 			],
 			"terminal/context": [
 				{
-					"submenu": "siid-roo-cline.terminalMenu",
+					"submenu": "siid-code.terminalMenu",
 					"group": "2"
 				}
 			],
-			"siid-roo-cline.terminalMenu": [
+			"siid-code.terminalMenu": [
 				{
-					"command": "siid-roo-cline.terminalAddToContext",
+					"command": "siid-code.terminalAddToContext",
 					"group": "1_actions@1"
 				},
 				{
-					"command": "siid-roo-cline.terminalFixCommand",
+					"command": "siid-code.terminalFixCommand",
 					"group": "1_actions@2"
 				},
 				{
-					"command": "siid-roo-cline.terminalExplainCommand",
+					"command": "siid-code.terminalExplainCommand",
 					"group": "1_actions@3"
 				}
 			],
 			"view/title": [
 				{
-					"command": "siid-roo-cline.plusButtonClicked",
+					"command": "siid-code.plusButtonClicked",
 					"group": "navigation@1",
-					"when": "view == siid-roo-cline.SidebarProvider"
+					"when": "view == siid-code.SidebarProvider"
 				},
 				{
-					"command": "siid-roo-cline.settingsButtonClicked",
+					"command": "siid-code.settingsButtonClicked",
 					"group": "navigation@3",
-					"when": "view == siid-roo-cline.SidebarProvider"
+					"when": "view == siid-code.SidebarProvider"
 				},
 				{
-					"command": "siid-roo-cline.historyButtonClicked",
+					"command": "siid-code.historyButtonClicked",
 					"group": "overflow@1",
-					"when": "view == siid-roo-cline.SidebarProvider"
+					"when": "view == siid-code.SidebarProvider"
 				},
 				{
-					"command": "siid-roo-cline.promptsButtonClicked",
+					"command": "siid-code.promptsButtonClicked",
 					"group": "overflow@2",
-					"when": "view == siid-roo-cline.SidebarProvider"
+					"when": "view == siid-code.SidebarProvider"
 				},
 				{
-					"command": "siid-roo-cline.mcpButtonClicked",
+					"command": "siid-code.mcpButtonClicked",
 					"group": "overflow@3",
-					"when": "view == siid-roo-cline.SidebarProvider"
+					"when": "view == siid-code.SidebarProvider"
 				},
 				{
-					"command": "siid-roo-cline.popoutButtonClicked",
+					"command": "siid-code.popoutButtonClicked",
 					"group": "overflow@4",
-					"when": "view == siid-roo-cline.SidebarProvider"
+					"when": "view == siid-code.SidebarProvider"
 				}
 			],
 			"editor/title": [
 				{
-					"command": "siid-roo-cline.plusButtonClicked",
+					"command": "siid-code.openChatView",
+					"group": "navigation@0",
+					"when": "!activeWebviewPanelId"
+				},
+				{
+					"command": "siid-code.plusButtonClicked",
 					"group": "navigation@1",
-					"when": "activeWebviewPanelId == siid-roo-cline.TabPanelProvider"
+					"when": "activeWebviewPanelId == siid-code.TabPanelProvider"
 				},
 				{
-					"command": "siid-roo-cline.settingsButtonClicked",
+					"command": "siid-code.settingsButtonClicked",
 					"group": "navigation@3",
-					"when": "activeWebviewPanelId == siid-roo-cline.TabPanelProvider"
+					"when": "activeWebviewPanelId == siid-code.TabPanelProvider"
 				},
 				{
-					"command": "siid-roo-cline.historyButtonClicked",
+					"command": "siid-code.historyButtonClicked",
 					"group": "overflow@1",
-					"when": "activeWebviewPanelId == siid-roo-cline.TabPanelProvider"
+					"when": "activeWebviewPanelId == siid-code.TabPanelProvider"
 				},
 				{
-					"command": "siid-roo-cline.promptsButtonClicked",
+					"command": "siid-code.promptsButtonClicked",
 					"group": "overflow@2",
-					"when": "activeWebviewPanelId == siid-roo-cline.TabPanelProvider"
+					"when": "activeWebviewPanelId == siid-code.TabPanelProvider"
 				},
 				{
-					"command": "siid-roo-cline.mcpButtonClicked",
+					"command": "siid-code.mcpButtonClicked",
 					"group": "overflow@3",
-					"when": "activeWebviewPanelId == siid-roo-cline.TabPanelProvider"
+					"when": "activeWebviewPanelId == siid-code.TabPanelProvider"
 				},
 				{
-					"command": "siid-roo-cline.popoutButtonClicked",
+					"command": "siid-code.popoutButtonClicked",
 					"group": "overflow@4",
-					"when": "activeWebviewPanelId == siid-roo-cline.TabPanelProvider"
+					"when": "activeWebviewPanelId == siid-code.TabPanelProvider"
 				}
 			]
 		},
 		"submenus": [
 			{
-				"id": "siid-roo-cline.contextMenu",
+				"id": "siid-code.contextMenu",
 				"label": "%views.contextMenu.label%"
 			},
 			{
-				"id": "siid-roo-cline.terminalMenu",
+				"id": "siid-code.terminalMenu",
 				"label": "%views.terminalMenu.label%"
 			}
 		],
 		"configuration": {
 			"title": "%configuration.title%",
 			"properties": {
-				"siid-roo-cline.allowedCommands": {
+				"siid-code.allowedCommands": {
 					"type": "array",
 					"items": {
 						"type": "string"
@@ -310,7 +321,7 @@
 					],
 					"description": "%commands.allowedCommands.description%"
 				},
-				"siid-roo-cline.deniedCommands": {
+				"siid-code.deniedCommands": {
 					"type": "array",
 					"items": {
 						"type": "string"
@@ -318,14 +329,14 @@
 					"default": [],
 					"description": "%commands.deniedCommands.description%"
 				},
-				"siid-roo-cline.commandExecutionTimeout": {
+				"siid-code.commandExecutionTimeout": {
 					"type": "number",
 					"default": 0,
 					"minimum": 0,
 					"maximum": 600,
 					"description": "%commands.commandExecutionTimeout.description%"
 				},
-				"siid-roo-cline.commandTimeoutAllowlist": {
+				"siid-code.commandTimeoutAllowlist": {
 					"type": "array",
 					"items": {
 						"type": "string"
@@ -333,12 +344,12 @@
 					"default": [],
 					"description": "%commands.commandTimeoutAllowlist.description%"
 				},
-				"siid-roo-cline.preventCompletionWithOpenTodos": {
+				"siid-code.preventCompletionWithOpenTodos": {
 					"type": "boolean",
 					"default": false,
 					"description": "%commands.preventCompletionWithOpenTodos.description%"
 				},
-				"siid-roo-cline.vsCodeLmModelSelector": {
+				"siid-code.vsCodeLmModelSelector": {
 					"type": "object",
 					"properties": {
 						"vendor": {
@@ -352,22 +363,22 @@
 					},
 					"description": "%settings.vsCodeLmModelSelector.description%"
 				},
-				"siid-roo-cline.customStoragePath": {
+				"siid-code.customStoragePath": {
 					"type": "string",
 					"default": "",
 					"description": "%settings.customStoragePath.description%"
 				},
-				"siid-roo-cline.enableCodeActions": {
+				"siid-code.enableCodeActions": {
 					"type": "boolean",
 					"default": true,
 					"description": "%settings.enableCodeActions.description%"
 				},
-				"siid-roo-cline.autoImportSettingsPath": {
+				"siid-code.autoImportSettingsPath": {
 					"type": "string",
 					"default": "",
 					"description": "%settings.autoImportSettingsPath.description%"
 				},
-				"siid-roo-cline.useAgentRules": {
+				"siid-code.useAgentRules": {
 					"type": "boolean",
 					"default": true,
 					"description": "%settings.useAgentRules.description%"

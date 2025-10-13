@@ -254,6 +254,23 @@ const getCommandsMap = ({ context, outputChannel, provider }: RegisterCommandOpt
 			)
 		}
 	},
+	openChatView: async () => {
+		// Open the sidebar view first
+		await vscode.commands.executeCommand("workbench.view.extension.siid-code-ActivityBar")
+
+		// Then focus on the chat and trigger new chat
+		const visibleProvider = getVisibleProviderOrLog(outputChannel)
+		if (!visibleProvider) {
+			return
+		}
+
+		TelemetryService.instance.captureTitleButtonClicked("openChatView")
+
+		await visibleProvider.removeClineFromStack()
+		await visibleProvider.postStateToWebview()
+		await visibleProvider.postMessageToWebview({ type: "action", action: "chatButtonClicked" })
+		await visibleProvider.postMessageToWebview({ type: "action", action: "focusInput" })
+	},
 })
 
 export const openClineInNewTab = async ({ context, outputChannel }: Omit<RegisterCommandOptions, "provider">) => {
