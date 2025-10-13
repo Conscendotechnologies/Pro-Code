@@ -3,7 +3,7 @@
 This workflow automates creation and deployment of Assignment Rules in Salesforce using the Salesforce CLI.  
 It supports creating a new Queue dynamically if it does not already exist.
 
-All commands use the `sf` CLI. Use `--target-org <alias>` where applicable.
+All commands use the `sf` CLI.
 
 ## 1. Prompt: Gather Minimal Inputs
 
@@ -67,13 +67,13 @@ sf data query --query "SELECT Id, Name, Username, Email FROM User WHERE IsActive
 ## If Public Groups,
 
 query:
-sf data query --query "SELECT Id, Name, DeveloperName FROM Group WHERE Type = 'Regular'" --json --target-org <org-alias>
+sf data query --query "SELECT Id, Name, DeveloperName FROM Group WHERE Type = 'Regular'" --json
 Display numbered list, prompt for one or more group numbers.
 
 ## If Roles,
 
 query:
-sf data query --query "SELECT Id, Name FROM UserRole ORDER BY Name" --json --target-org <org-alias>
+sf data query --query "SELECT Id, Name FROM UserRole ORDER BY Name" --json
 Display list and prompt for selections.
 
 For each selected type, retrieve available options using CLI and prompt for one or more selections.  
@@ -135,7 +135,7 @@ Each member block:
 ** Immediatly after creating the queue deploy it to current authorized org( WITHOUT ANY DELAY) **
 Deploy the queue before creating the assignment rule:
 
-sf project deploy start --source-dir force-app/main/default/queues/<DeveloperName>.queue-meta.xml --target-org <alias>
+sf project deploy start --source-dir force-app/main/default/queues/<DeveloperName>.queue-meta.xml
 On successful deployment:
 Set assignedToType = "Queue"
 Set assignedToValue = DeveloperName
@@ -224,7 +224,7 @@ force-app/main/default/assignmentRules/<ObjectApiName>.assignmentRules-meta.xml
 
 ** Immediatly after creating the Assignment Rule deploy it to current authorized org( WITHOUT ANY DELAY) **
 Run:
-sf project deploy start --source-dir force-app/main/default/assignmentRules/<ObjectApiName>.assignmentRules-meta.xml --target-org <alias>
+sf project deploy start --source-dir force-app/main/default/assignmentRules/<ObjectApiName>.assignmentRules-meta.xml
 Capture and log deployment status and messages.
 
 ## 9. Validations

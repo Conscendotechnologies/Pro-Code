@@ -82,7 +82,7 @@
     Include brief deployment guidance:
     # Save XML to: force-app/main/default/objects/[ObjectName]/validationRules/[RuleName].validationRule-meta.xml
     # Always and immediatly Deploy using sf command:(!IMPORTANT)
-    sf project deploy start --source-dir force-app\main\default\objects\[ObjectName]\validationRules\[RuleName].validationRule-meta.xml --target-org <alias>
+    sf project deploy start --source-dir force-app\main\default\objects\[ObjectName]\validationRules\[RuleName].validationRule-meta.xml
 
 ## Common Formula Patterns to Recognize
 
