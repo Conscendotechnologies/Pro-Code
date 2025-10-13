@@ -38,12 +38,10 @@ suite("Roo Code Extension", function () {
 			"terminalExplainCommand",
 		]
 
-		const commands = new Set(
-			(await vscode.commands.getCommands(true)).filter((cmd) => cmd.startsWith("siid-roo-cline")),
-		)
+		const commands = new Set((await vscode.commands.getCommands(true)).filter((cmd) => cmd.startsWith("siid-code")))
 
 		for (const command of expectedCommands) {
-			assert.ok(commands.has(`siid-roo-cline.${command}`), `Command ${command} should be registered`)
+			assert.ok(commands.has(`siid-code.${command}`), `Command ${command} should be registered`)
 		}
 	})
 })

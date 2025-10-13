@@ -11,7 +11,7 @@ argument-hint: patch | minor | major
 
 ```
 ---
-"siid-roo-cline": patch|minor|major
+"siid-code": patch|minor|major
 ---
 [list of changes]
 ```

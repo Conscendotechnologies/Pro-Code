@@ -50,6 +50,7 @@ export const commandIds = [
 
 	"focusInput",
 	"acceptInput",
+	"openChatView",
 	"focusPanel",
 	"onFirebaseLogin",
 	"onFirebaseLogout",

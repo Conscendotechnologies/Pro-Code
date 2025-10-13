@@ -175,6 +175,14 @@ export async function activate(context: vscode.ExtensionContext) {
 
 	registerCommands({ context, outputChannel, provider })
 
+	// Create status bar item for chat access
+	const statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100)
+	statusBarItem.text = "$(comment-discussion)"
+	statusBarItem.tooltip = "Open SIID Code Chat"
+	statusBarItem.command = "siid-code.openChatView"
+	statusBarItem.show()
+	context.subscriptions.push(statusBarItem)
+
 	/**
 	 * We use the text document content provider API to show the left side for diff
 	 * view by creating a virtual document for the original content. This makes it

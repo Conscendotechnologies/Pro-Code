@@ -47,7 +47,7 @@ export default async function Home() {
 									size="lg"
 									className="w-full hover:bg-gray-200 dark:bg-white dark:text-black sm:w-auto">
 									<a
-										href="https://marketplace.visualstudio.com/items?itemName=ConscendoTechInc.siid-roo-cline"
+										href="https://marketplace.visualstudio.com/items?itemName=ConscendoTechInc.siid-code"
 										target="_blank"
 										className="flex w-full items-center justify-center">
 										Install Roo Code

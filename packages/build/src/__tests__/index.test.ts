@@ -6,7 +6,7 @@ describe("generatePackageJson", () => {
 	it("should be a test", () => {
 		const generatedPackageJson = generatePackageJson({
 			packageJson: {
-				name: "siid-roo-cline",
+				name: "siid-code",
 				displayName: "%extension.displayName%",
 				description: "%extension.description%",
 				publisher: "ConscendoTechInc",
@@ -16,29 +16,29 @@ describe("generatePackageJson", () => {
 					viewsContainers: {
 						activitybar: [
 							{
-								id: "siid-roo-cline-ActivityBar",
+								id: "siid-code-ActivityBar",
 								title: "%views.activitybar.title%",
 								icon: "assets/icons/iconV1.svg",
 							},
 						],
 					},
 					views: {
-						"siid-roo-cline-ActivityBar": [
+						"siid-code-ActivityBar": [
 							{
 								type: "webview",
-								id: "siid-roo-cline.SidebarProvider",
+								id: "siid-code.SidebarProvider",
 								name: "",
 							},
 						],
 					},
 					commands: [
 						{
-							command: "siid-roo-cline.plusButtonClicked",
+							command: "siid-code.plusButtonClicked",
 							title: "%command.newTask.title%",
 							icon: "$(add)",
 						},
 						{
-							command: "siid-roo-cline.openInNewTab",
+							command: "siid-code.openInNewTab",
 							title: "%command.openInNewTab.title%",
 							category: "%configuration.title%",
 						},
@@ -46,48 +46,48 @@ describe("generatePackageJson", () => {
 					menus: {
 						"editor/context": [
 							{
-								submenu: "siid-roo-cline.contextMenu",
+								submenu: "siid-code.contextMenu",
 								group: "navigation",
 							},
 						],
-						"siid-roo-cline.contextMenu": [
+						"siid-code.contextMenu": [
 							{
-								command: "siid-roo-cline.addToContext",
+								command: "siid-code.addToContext",
 								group: "1_actions@1",
 							},
 						],
 						"editor/title": [
 							{
-								command: "siid-roo-cline.plusButtonClicked",
+								command: "siid-code.plusButtonClicked",
 								group: "navigation@1",
-								when: "activeWebviewPanelId == siid-roo-cline.TabPanelProvider",
+								when: "activeWebviewPanelId == siid-code.TabPanelProvider",
 							},
 							{
-								command: "siid-roo-cline.settingsButtonClicked",
+								command: "siid-code.settingsButtonClicked",
 								group: "navigation@6",
-								when: "activeWebviewPanelId == siid-roo-cline.TabPanelProvider",
+								when: "activeWebviewPanelId == siid-code.TabPanelProvider",
 							},
 							{
-								command: "siid-roo-cline.accountButtonClicked",
+								command: "siid-code.accountButtonClicked",
 								group: "navigation@6",
-								when: "activeWebviewPanelId == siid-roo-cline.TabPanelProvider",
+								when: "activeWebviewPanelId == siid-code.TabPanelProvider",
 							},
 						],
 					},
 					submenus: [
 						{
-							id: "siid-roo-cline.contextMenu",
+							id: "siid-code.contextMenu",
 							label: "%views.contextMenu.label%",
 						},
 						{
-							id: "siid-roo-cline.terminalMenu",
+							id: "siid-code.terminalMenu",
 							label: "%views.terminalMenu.label%",
 						},
 					],
 					configuration: {
 						title: "%configuration.title%",
 						properties: {
-							"siid-roo-cline.allowedCommands": {
+							"siid-code.allowedCommands": {
 								type: "array",
 								items: {
 									type: "string",
@@ -95,7 +95,7 @@ describe("generatePackageJson", () => {
 								default: ["npm test", "npm install", "tsc", "git log", "git diff", "git show"],
 								description: "%commands.allowedCommands.description%",
 							},
-							"siid-roo-cline.customStoragePath": {
+							"siid-code.customStoragePath": {
 								type: "string",
 								default: "",
 								description: "%settings.customStoragePath.description%",
@@ -115,7 +115,7 @@ describe("generatePackageJson", () => {
 				icon: "assets/icons/icon-nightlyV1.png",
 				scripts: {},
 			},
-			substitution: ["siid-roo-cline", "roo-code-nightly"],
+			substitution: ["siid-code", "roo-code-nightly"],
 		})
 
 		expect(generatedPackageJson).toStrictEqual({
