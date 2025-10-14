@@ -206,7 +206,6 @@ const getCommandsMap = ({ context, outputChannel, provider }: RegisterCommandOpt
 		visibleProvider.postMessageToWebview({ type: "acceptInput" })
 	},
 	onFirebaseLogin: async (loginData?: any) => {
-		vscode.window.showInformationMessage(t("onFirebaseLogin"))
 		const visibleProvider = getVisibleProviderOrLog(outputChannel)
 
 		if (!visibleProvider) {
@@ -232,7 +231,6 @@ const getCommandsMap = ({ context, outputChannel, provider }: RegisterCommandOpt
 		}
 	},
 	onFirebaseLogout: async () => {
-		vscode.window.showInformationMessage(t("onFirebaseLogout"))
 		const visibleProvider = getVisibleProviderOrLog(outputChannel)
 
 		if (!visibleProvider) {
@@ -246,7 +244,6 @@ const getCommandsMap = ({ context, outputChannel, provider }: RegisterCommandOpt
 			})
 
 			outputChannel.appendLine("Firebase logout - posted logout message to webview")
-			vscode.window.showInformationMessage("Firebase logout successful!")
 		} catch (error) {
 			outputChannel.appendLine(`Error handling Firebase logout: ${error}`)
 			vscode.window.showErrorMessage(

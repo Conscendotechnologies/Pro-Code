@@ -67,8 +67,6 @@ export class BundledInstructionsManager {
 				return
 			}
 			// informational checkpoint removed
-			console.log("bundledPath:", this.bundledPath)
-			console.log("instructionsPath:", this.instructionsPath)
 
 			// Create the proper directory structure
 			await this.createDirectoryStructure()
@@ -120,9 +118,6 @@ export class BundledInstructionsManager {
 	 */
 	private async extractAndIndexInstructions(): Promise<void> {
 		try {
-			vscode.window.showInformationMessage("Extracting bundled instructions and creating index...")
-			console.log("Extracting bundled instructions and creating index...")
-
 			const instructions: InstructionItem[] = []
 
 			// Dynamically discover all available rule folders and files
@@ -154,7 +149,6 @@ export class BundledInstructionsManager {
 			// move index.txt file to instructions root
 			const indexTxtSource = path.join(this.bundledPath, "index.txt")
 			const indexTxtDest = path.join(this.instructionsPath, "index.txt")
-			vscode.window.showInformationMessage(`moving index file from ${indexTxtSource} to ${indexTxtDest}`)
 			// informational checkpoint removed
 			if (await fileExists(indexTxtSource)) {
 				await fs.copyFile(indexTxtSource, indexTxtDest)
@@ -612,8 +606,6 @@ export class BundledInstructionsManager {
 			// informational checkpoint removed
 			return results
 		} catch (error) {
-			vscode.window.showErrorMessage(`[CHECKPOINT ERROR] Failed to search instructions: ${error.message}`)
-			console.error("Failed to search instructions:", error)
 			return []
 		}
 	}
@@ -711,18 +703,13 @@ export class BundledInstructionsManager {
 	 */
 	async isInitialized(): Promise<boolean> {
 		try {
-			vscode.window.showInformationMessage("[CHECKPOINT 46] Checking initialization status...")
 			const indexExists = await fileExists(path.join(this.instructionsPath, "index.json"))
 			const versionExists = await fileExists(path.join(this.instructionsPath, "meta", "version-info.json"))
 			const modesExist = await directoryExists(path.join(this.instructionsPath, "modes"))
 
 			const isInitialized = indexExists && versionExists && modesExist
-			vscode.window.showInformationMessage(
-				`[CHECKPOINT 47] Initialization check - index: ${indexExists}, version: ${versionExists}, modes: ${modesExist}, initialized: ${isInitialized}`,
-			)
 			return isInitialized
 		} catch (error) {
-			vscode.window.showErrorMessage(`[CHECKPOINT ERROR] Failed to check initialization status: ${error.message}`)
 			console.error("Failed to check initialization status:", error)
 			return false
 		}
