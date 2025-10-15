@@ -14,6 +14,42 @@ export function getObjectiveSection(
 		? "First, for ANY exploration of code you haven't examined yet in this conversation, you MUST use the `codebase_search` tool to search for relevant code based on the task's intent BEFORE using any other search or file exploration tools. This applies throughout the entire task, not just at the beginning - whenever you need to explore a new area of code, codebase_search must come first. Then, "
 		: "First, "
 
+	// New: Instruction reading guidance for Salesforce components
+	const salesforceInstructionGuidance = `
+
+	CRITICAL: Before proceeding with any Salesforce component creation or modification, you MUST read the relevant instruction files within your <thinking> process. The instruction file paths are provided in the environment_details section.
+
+	**Instruction Reading Protocol:**
+	- If creating/modifying a **Custom Object** → Read the object creation instruction file
+	- If creating/modifying **Fields** → Read the field creation instruction file  
+	- If adding/modifying **field permissions** to the profile → Read the field permission instruction file
+	- If adding/modifying **Object permissions** to the profile → Read the object permission instruction file
+	- If creating/modifying **Profiles** → Read the profile creation instruction file
+	- If creating/modifying **path** → Read the path creation instruction file
+	- If creating/modifying **role** → Read the role creation instruction file
+	- And so on for each component type
+
+	**Within <thinking> tags, you must:**
+	1. Identify what Salesforce component(s) the task requires
+	2. Use the \`read_file\` tool to read the corresponding instruction file(s) from the paths in environment_details
+	3. Analyze the instructions and understand the requirements, naming conventions, and best practices
+	4. Plan your implementation according to those instructions
+	5. Only then proceed with tool selection and execution
+
+	**Example thinking process:**
+	<thinking>
+	The user wants to create a custom object called Customer_Feedback__c with multiple fields.
+	- This requires object creation and field creation
+	- I must first read the object creation instructions
+	- Then read the field creation instructions
+	- After understanding both, I'll plan the implementation following those guidelines
+	- I'll use read_file tool to load: 
+	* [path-from-env]/object-creation-instructions.md
+	* [path-from-env]/field-creation-instructions.md
+	</thinking>
+
+	This instruction reading is MANDATORY and must happen BEFORE you select which tool to use for the actual implementation.`
+
 	return `====
 
 OBJECTIVE
@@ -22,7 +58,7 @@ You accomplish a given task iteratively, breaking it down into clear steps and w
 
 1. Analyze the user's task and set clear, achievable goals to accomplish it. Prioritize these goals in a logical order.
 2. Work through these goals sequentially, utilizing available tools one at a time as necessary. Each goal should correspond to a distinct step in your problem-solving process. You will be informed on the work completed and what's remaining as you go.
-3. Remember, you have extensive capabilities with access to a wide range of tools that can be used in powerful and clever ways as necessary to accomplish each goal. Before calling a tool, do some analysis within <thinking></thinking> tags. ${codebaseSearchInstruction}analyze the file structure provided in environment_details to gain context and insights for proceeding effectively. Next, think about which of the provided tools is the most relevant tool to accomplish the user's task. Go through each of the required parameters of the relevant tool and determine if the user has directly provided or given enough information to infer a value. When deciding if the parameter can be inferred, carefully consider all the context to see if it supports a specific value. If all of the required parameters are present or can be reasonably inferred, close the thinking tag and proceed with the tool use. BUT, if one of the values for a required parameter is missing, DO NOT invoke the tool (not even with fillers for the missing params) and instead, ask the user to provide the missing parameters using the ask_followup_question tool. DO NOT ask for more information on optional parameters if it is not provided.
+3. Remember, you have extensive capabilities with access to a wide range of tools that can be used in powerful and clever ways as necessary to accomplish each goal. Before calling a tool, do some analysis within <thinking></thinking> tags. ${codebaseSearchInstruction}analyze the file structure provided in environment_details to gain context and insights for proceeding effectively. Next, think about which of the provided tools is the most relevant tool to accomplish the user's task. Go through each of the required parameters of the relevant tool and determine if the user has directly provided or given enough information to infer a value. When deciding if the parameter can be inferred, carefully consider all the context to see if it supports a specific value. If all of the required parameters are present or can be reasonably inferred, close the thinking tag and proceed with the tool use. BUT, if one of the values for a required parameter is missing, DO NOT invoke the tool (not even with fillers for the missing params) and instead, ask the user to provide the missing parameters using the ask_followup_question tool. DO NOT ask for more information on optional parameters if it is not provided. ${salesforceInstructionGuidance}
 4. Once you've completed the user's task, you must use the attempt_completion tool to present the result of the task to the user.
 5. The user may provide feedback, which you can use to make improvements and try again. But DO NOT continue in pointless back and forth conversations, i.e. don't end your responses with questions or offers for further assistance.`
 }
