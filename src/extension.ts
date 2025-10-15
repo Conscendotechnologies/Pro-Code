@@ -59,8 +59,7 @@ export async function activate(context: vscode.ExtensionContext) {
 	outputChannel = vscode.window.createOutputChannel(Package.outputChannel)
 	context.subscriptions.push(outputChannel)
 	outputChannel.appendLine(`${Package.name} extension activated - ${JSON.stringify(Package)}`)
-	vscode.window.showInformationMessage("SIID Code activated!")
-	vscode.window.showInformationMessage(`Extension path: ${context.extensionPath}`)
+	vscode.window.showInformationMessage("Siid Code activated!")
 
 	// Migrate old settings to new
 	await migrateSettings(context, outputChannel)
