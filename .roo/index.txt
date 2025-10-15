@@ -8,6 +8,7 @@
 
 Salesforce_Agent-use-safeWriteJson-1758892247964|Salesforce_Agent|high|developement|modes/Salesforce_Agent/use-safeWriteJson.md|JSON File Writing Must Be Atomic|Salesforce_Agent,use-safeWriteJson,test,pr
 Salesforce_Agent-custom-object-1758892247966|Salesforce_Agent|high|developement|modes/Salesforce_Agent/custom-object.md|Salesforce Object Creation|object, create ,salesforce, create-xml
+Salesforce_Agent-custom-field-1758892247945|Salesforce_Agent|high|developement|modes/Salesforce_Agent/custom-field.md|Salesforce Field Creation|field, create ,salesforce,custom field, create-xml
 Salesforce_Agent-role-create-1758892246967|Salesforce_Agent|high|developement|modes/Salesforce_Agent/role-creation.md|Salesforce Role Creation|role, create , update, parent role, child role, hierarchy, salesforce, create-xml
 Salesforce_Agent-profile-1758892247967|Salesforce_Agent|high|developement|modes/Salesforce_Agent/profile.md|Salesforce Profile Creation|profile, create, clone ,salesforce, create-xml
 Salesforce_Agent-object-permissions-1758892247969|Salesforce_Agent|high|developement|modes/Salesforce_Agent/object-permissions.md|Salesforce Object Permissions Management|assign,object, permissions, salesforce, create-xml

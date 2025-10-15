@@ -85,6 +85,7 @@ import { MultiSearchReplaceDiffStrategy } from "../diff/strategies/multi-search-
 import { MultiFileSearchReplaceDiffStrategy } from "../diff/strategies/multi-file-search-replace"
 import { readApiMessages, saveApiMessages, readTaskMessages, saveTaskMessages, taskMetadata } from "../task-persistence"
 import { getEnvironmentDetails } from "../environment/getEnvironmentDetails"
+import { getPreTaskDetails } from "./getPreTaskDetails"
 import {
 	type CheckpointDiffOptions,
 	type CheckpointRestoreOptions,
@@ -1443,11 +1444,21 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 			maxReadFileLine,
 		})
 
-		const environmentDetails = await getEnvironmentDetails(this, includeFileDetails)
+		const environmentDetails = await getEnvironmentDetails(
+			this,
+			provider?.contextProxy.globalStorageUri,
+			includeFileDetails,
+		)
 
-		// Add environment details as its own text block, separate from tool
-		// results.
-		const finalUserContent = [...parsedUserContent, { type: "text" as const, text: environmentDetails }]
+		const preTaskDetails = await getPreTaskDetails(provider?.contextProxy.globalStorageUri, includeFileDetails)
+
+		// Add pre-task details FIRST for higher priority, then parsed content, then environment details
+		const finalUserContent = [
+			...parsedUserContent,
+			{ type: "text" as const, text: preTaskDetails },
+			{ type: "text" as const, text: environmentDetails },
+		]
+		console.log("Final user content:", finalUserContent)
 
 		await this.addToApiConversationHistory({ role: "user", content: finalUserContent })
 		TelemetryService.instance.captureConversationMessage(this.taskId, "user")

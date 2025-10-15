@@ -126,7 +126,7 @@ Default value (if applicable)
 For Lookup fields: Target Object, Relationship Label, Relationship Name
 
 **7. Deployment**
-After creating each field, immediately deploy it using CLI:
+After creating all field, immediately deploy it using CLI:
 
 sf project deploy start --source-dir force-app/main/default/objects/<ObjectApiName>/fields/<FieldApiName>.field-meta.xml
 

@@ -151,9 +151,7 @@ export const DEFAULT_MODES: readonly ModeConfig[] = [
 		description:
 			"Answer and generate solutions strictly related to Salesforce. Politely refuse anything outside Salesforce scope.",
 		groups: ["read", "edit", "browser", "command", "mcp"],
-		customInstructions:
-			getCustomInstructionsForMode("salesforce_agent") +
-			"\n1. Whenever you are creating an APEX Class, you MUST create a XML file for related apex class as well.",
+		customInstructions: getCustomInstructionsForMode("salesforce_agent"),
 	},
 	{
 		slug: "Code",

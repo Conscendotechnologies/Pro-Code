@@ -21,7 +21,21 @@ import { formatResponse } from "../prompts/responses"
 import { Task } from "../task/Task"
 import { formatReminderSection } from "./reminder"
 
-export async function getEnvironmentDetails(cline: Task, includeFileDetails: boolean = false) {
+export async function getEnvironmentDetails(
+	cline: Task,
+	// Backwards-compatible: callers may pass (cline), (cline, includeFileDetails:boolean),
+	// (cline, globalStorageUri:Uri) or (cline, globalStorageUri:Uri, includeFileDetails:boolean)
+	maybeGlobalStorageOrInclude?: vscode.Uri | boolean,
+	includeFileDetails: boolean = false,
+) {
+	// Normalize parameters
+	let globalStorageUri: vscode.Uri | undefined
+	if (typeof maybeGlobalStorageOrInclude === "boolean") {
+		includeFileDetails = maybeGlobalStorageOrInclude
+	} else {
+		globalStorageUri = maybeGlobalStorageOrInclude
+	}
+
 	let details = ""
 
 	const clineProvider = cline.providerRef.deref()
@@ -235,6 +249,33 @@ export async function getEnvironmentDetails(cline: Task, includeFileDetails: boo
 		if (modeDetails.customInstructions) {
 			details += `<custom_instructions>${modeDetails.customInstructions}</custom_instructions>\n`
 		}
+	}
+	if (globalStorageUri) {
+		const instructionsPath = path.join(globalStorageUri.fsPath, "instructions")
+		let instructionDirs: string[] = []
+		let instructionFiles: string[] = []
+		try {
+			const walk = async (dir: string, relPath = ""): Promise<void> => {
+				const dirUri = vscode.Uri.file(dir)
+				const dirEntries = await vscode.workspace.fs.readDirectory(dirUri)
+				for (const [name, type] of dirEntries) {
+					const fullPath = path.join(dir, name)
+					const relative = path.join(relPath, name)
+					if (type === vscode.FileType.Directory) {
+						instructionDirs.push(relative)
+						await walk(fullPath, relative)
+					} else if (type === vscode.FileType.File) {
+						instructionFiles.push(relative)
+					}
+				}
+			}
+			await walk(instructionsPath)
+		} catch (err) {
+			// Directory may not exist
+		}
+		details += `\n# Custom Instructions Root (${globalStorageUri}/instructions) Files: \n ${instructionFiles.length > 0 ? instructionFiles.join("\n ") : "(None)"}\n`
+	} else {
+		details += `# Custom Instructions Root (none) Files: \n (globalStorageUri not provided)\n`
 	}
 
 	if (includeFileDetails) {
