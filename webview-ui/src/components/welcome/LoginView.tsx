@@ -24,11 +24,10 @@ const LoginView = () => {
 		<Tab>
 			<TabContent className="flex flex-col gap-5 p-16">
 				<RooHero />
-				<h2 className="mt-0 mb-0">Welcome to SIID-Code | TEST-V2</h2>
+				<h2 className="mt-0 mb-0">Welcome to Siid-Code</h2>
 
 				<div className="font-bold">
-					<p>Please log in to continue using Roo with full features.</p>
-					<p>You can also skip login to use basic features.</p>
+					<p>Please log in to continue using Siid Code with full features.</p>
 				</div>
 
 				<div className="flex flex-col gap-4 mt-8">
