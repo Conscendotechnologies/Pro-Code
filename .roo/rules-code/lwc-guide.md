@@ -673,6 +673,17 @@ Salesforce provides base components built on SLDS:
 
 ---
 
+### Dry run and Deployment:(! IMPORTANT)
+
+After creation of all required apex classes and LWC components then first do dry run on LWC using this command:(After completion of apex deployment)
+`sf project deploy start --dry-run --source-dir force-app/main/default/lwc/<componentname>`
+Replace <componentname> with the actual classes.
+
+- If got any errors after dry run solve them.
+- After successful dry run then proceed with deloyment process.
+  `sf project deploy start --source-dir force-app/main/default/objects/<componentname>`
+- Replace <componentname> with the all objects that are created comma separated.
+
 ## Development Tools
 
 ### Local Development
