@@ -16,8 +16,8 @@ import { DEFAULT_WRITE_DELAY_MS } from "@siid-code/types"
 
 import { DecorationController } from "./DecorationController"
 
-export const DIFF_VIEW_URI_SCHEME = "cline-diff"
-export const DIFF_VIEW_LABEL_CHANGES = "Original ↔ Roo's Changes"
+export const DIFF_VIEW_URI_SCHEME = "siid-diff"
+export const DIFF_VIEW_LABEL_CHANGES = "Original ↔ Siid's Changes"
 
 // TODO: https://github.com/cline/cline/pull/3354
 export class DiffViewProvider {
