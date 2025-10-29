@@ -527,6 +527,11 @@ Step 6: sf project deploy start --source-dir force-app/main/default/pathAssistan
 - **Deploy ONLY ONCE with the complete, finalized path XML.**
 - **WAIT for deployment completion before confirming success.**
 
+### Dry Run Before Deployment (Pre-check)
+
+- Before executing the deployment, perform a dry run using the same deployment command with the `--dry-run` flag.
+- If you have multiple path files to deploy, perform a single consolidated dry run for all of them at once by including all intended targets in one command along with `--dry-run`.
+
 ## Path Activation
 
 - Paths are automatically activated when `<active>true</active>` is set in the XML.
@@ -571,18 +576,18 @@ Step 6: sf project deploy start --source-dir force-app/main/default/pathAssistan
 ## Session Behavior - Complete Workflow
 
 - When the user requests path creation, follow these steps IN ORDER:
-    **Step 1: Gather Information**
+  **Step 1: Gather Information**
     - Check if both object and field are provided. If not, ask for missing information.
-    **Step 2: Retrieve Object Metadata (MANDATORY)**
+      **Step 2: Retrieve Object Metadata (MANDATORY)**
     - Execute: `sf project retrieve start --metadata CustomObject:<ObjectName>`
     - **WAIT for command completion**
     - Read the retrieved metadata XML file from: `force-app/main/default/objects/<ObjectName>/<ObjectName>.object-meta.xml`
-    **Step 3: Parse and Extract Record Types (MANDATORY)**
+      **Step 3: Parse and Extract Record Types (MANDATORY)**
     - Parse the object metadata XML file
     - Look for `<recordTypes>` sections
     - Extract all `<fullName>` values from each `<recordTypes>` block
     - Store the record type API names in a list
-    **Step 4: Record Type Selection (MANDATORY)**
+      **Step 4: Record Type Selection (MANDATORY)**
     - **If record types exist:**
         - Present all record types to the user
         - Ask: "Which record type should this path be created for?"
@@ -592,11 +597,11 @@ Step 6: sf project deploy start --source-dir force-app/main/default/pathAssistan
         - Automatically select **MASTER** record type
         - Inform user: "This object uses the Master record type."
     - **CRITICAL: Selected record type (**MASTER** or specific) MUST be included in XML as `<recordTypeName>` tag**
-    **Step 5: Verify Picklist Field (MANDATORY)**
+      **Step 5: Verify Picklist Field (MANDATORY)**
     - Verify the picklist field exists in the metadata
     - Check field type is Picklist
     - If field doesn't exist or is not a picklist, inform the user and STOP
-    **Step 6: Check for Existing Paths (MANDATORY)**
+      **Step 6: Check for Existing Paths (MANDATORY)**
     - Execute: `sf project retrieve start --metadata PathAssistant`
     - **WAIT for command completion**
     - Check if a path exists for the object/field/record type combination
@@ -605,24 +610,18 @@ Step 6: sf project deploy start --source-dir force-app/main/default/pathAssistan
         - Ask user to UPDATE or DELETE+CREATE NEW
         - Do NOT proceed with creation until user responds
     - If no path exists: Proceed with creation
-    **Step 7: Extract Picklist Values (MANDATORY)**
+      **Step 7: Extract Picklist Values (MANDATORY)**
     - Extract picklist values from the field metadata
     - Look in `<valueSet>` → `<valueSetDefinition>` → `<value>` → `<fullName>` tags
     - Filter by record type if the field has record-type-specific values
     - Store these values for reference (path will work for all values even without steps)
-    **Step 8: Gather Field Customizations (BEFORE Creating XML)**
+      **Step 8: Gather Field Customizations (BEFORE Creating XML)**
     - Ask: "Would you like to add key fields to display for any stages? (Up to 5 fields per stage)"
     - **If NO or user doesn't specify fields:**
         - Proceed to create minimal path XML with NO `<pathAssistantSteps>` blocks
         - Skip to Step 9
-    - **If YES:**
-        - For each picklist value the user wants to customize:
-            - Ask which picklist value to customize
-            - Ask which fields to add (up to 5)
-            - Verify each field exists in the already retrieved object metadata
-            - Note all fields to be included in the XML
-        - **Collect ALL customizations BEFORE creating the XML file**
-    **Step 9: Create Complete Path XML**
+    - **If YES:** - For each picklist value the user wants to customize: - Ask which picklist value to customize - Ask which fields to add (up to 5) - Verify each field exists in the already retrieved object metadata - Note all fields to be included in the XML - **Collect ALL customizations BEFORE creating the XML file**
+      **Step 9: Create Complete Path XML**
     - **CRITICAL: Calculate clean file name by removing `__c` suffixes:**
         - If ObjectName ends with `__c` → Remove it (e.g., `Nineteen__c` → `Nineteen`)
         - If FieldName ends with `__c` → Remove it (e.g., `Mic_Color__c` → `Mic_Color`)
@@ -637,7 +636,7 @@ Step 6: sf project deploy start --source-dir force-app/main/default/pathAssistan
     - NEVER include `<info>` tags
     - NEVER include HTML tags
     - **The XML file must be complete and finalized with all customizations included**
-    **Step 10: Deploy Automatically (MANDATORY - CANNOT BE SKIPPED)**
+      **Step 10: Deploy Automatically (MANDATORY - CANNOT BE SKIPPED)**
     - Execute deployment command immediately using the cleaned file name:
         ```bash
         sf project deploy start --source-dir force-app/main/default/pathAssistants/<CleanObjectName>_<CleanFieldName>.pathAssistant-meta.xml
@@ -645,7 +644,7 @@ Step 6: sf project deploy start --source-dir force-app/main/default/pathAssistan
     - **WAIT for deployment completion**
     - **Deploy ONLY ONCE with the complete path**
     - Verify deployment success
-    **Step 11: Final Confirmation**
+      **Step 11: Final Confirmation**
     - Confirm successful deployment and activation
     - Inform user: "Path deployed successfully! Users will see the path on [Object] record pages."
     - If record type specific, mention which record type

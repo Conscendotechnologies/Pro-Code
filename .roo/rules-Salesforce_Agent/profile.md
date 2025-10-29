@@ -49,11 +49,18 @@ When the user asks to "create a profile" or to "create from <source profile>", f
 
 6. Update the new profile XML content if needed (display name, permissions, layout assignments, etc.).
 
-7. Deploy the new profile using the exact new profile name (fullName).
+## Dry Run and deployment for Profiles (Mandatory)
 
-    ```bash
-    sf project deploy start --metadata "Profile:NewProfile"
-    ```
+- Before deploying the created Profiles into the org do the dry run first using below command
+- Do dry run for all profiles at once.
+  `sf project deploy start --dry-run --source-dir force-app/main/default/Profiles/
+<profilename>`
+- If got any errors after dry run solve them.
+- After successful dry run then proceed with deloyment process.
+- Do deploy all profiles at once.
+  `sf project deploy start --source-dir force-app/main/default/assignmentRules/
+<profilename>`
+- Replace <profilename> with the actual profiles that are created.
 
 8. Confirm deployment success and update `profiles.json` (rerun step 1) to keep the mapping file current.
 

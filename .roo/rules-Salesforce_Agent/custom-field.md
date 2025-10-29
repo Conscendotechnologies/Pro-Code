@@ -115,7 +115,21 @@ Target Object
 <required>false</required>
 </fields>
 
-**6. Validation with User**
+**6. Permission Assignment**( !IMPORTANT)
+
+- After creation of field assign read permission to those fields for system administrator profile.
+- Fetch the system administrator profile and assign read permission like this
+    <?xml version="1.0" encoding="UTF-8"?>
+    <Profile xmlns="http://soap.sforce.com/2006/04/metadata">
+        <fieldPermissions>
+            <editable>false</editable>
+            <field>Project__c.Start_Date__c</field>
+            <readable>true</readable>
+        </fieldPermissions>
+    </Profile>
+    **MUST ASSIGN READ PERMISSION TO THAT FIELDS FOR SYSTEM ADMINISTRATOR PROFILE**
+
+**7. Validation with User**
 Before generating final XML, confirm:
 Target Object
 Field Label
@@ -125,10 +139,17 @@ Is it required?
 Default value (if applicable)
 For Lookup fields: Target Object, Relationship Label, Relationship Name
 
-**7. Deployment**
-After creating all field, immediately deploy it using CLI:
+**8. Dry run and Deployment** (!IMPORTANT)
+After creating all fields, before deployment first do Dry Run on fields using CLI:
+-DO DRY RUN ON ALL FIELDS AT ONCE
+sf project deploy start --dry-run --source-dir force-app/main/default/objects/<ObjectApiName>/fields/<FieldApiName>.field-meta.xml
 
-sf project deploy start --source-dir force-app/main/default/objects/<ObjectApiName>/fields/<FieldApiName>.field-meta.xml
+- Replace <FieldApiName> with created fields
+- If got any errors after dry run solve them.
+- After successful dry run then proceed with deloyment process.
+- Do deploy all fields rules at once.
+  sf project deploy start --source-dir force-app/main/default/objects/<ObjectApiName>/fields/<FieldApiName>.field-meta.xml
+- Replace <FieldApiName> with created fields
 
 **8. Compliance**
 XML must follow Salesforce Metadata API standards

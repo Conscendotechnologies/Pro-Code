@@ -54,11 +54,50 @@ Example: Invoice_Item**c/Invoice_Item**c.object-meta.xml.
     - enableFeeds
     - enableHistory
 
-## Automatic Deployment
+## Tab Creation (MANDATORY)
 
-- After creating each object, automatically deploy it to the default Salesforce org using the Salesforce CLI.
-- Run the deployment command immediately after object creation: `sf project deploy start --source-dir force-app/main/default/objects/<ObjectApiName>`
+- When creating a custom object you MUST also create a corresponding custom tab. Tab creation is required and cannot be skipped.
+- Create the tab file at:
+
+```
+force-app/main/default/tabs/<ObjectApiName>.tab-meta.xml
+```
+
+- Example minimal Tab XML (replace placeholders):
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomTab xmlns="http://soap.sforce.com/2006/04/metadata">
+    <customObject>true</customObject>
+    <motif>Custom53: Bell</motif>
+</CustomTab>
+
+```
+
+- Ensure the tab file name and the object API name match the custom object. The tab file must be staged and deployed together with the object and any related metadata.
+
+## Dry Run and deployment for objects(Mandatory)
+
+- Before deploying the created objects and tabs into the org do the dry run first using below command
+- Do dry run for all objects at once.
+  `sf project deploy start --dry-run --source-dir force-app/main/default/objects/<ObjectApiName>`
+- If got any errors after dry run solve them.
+- After successful dry run then proceed with deloyment process.
+- Do deploy all objects at once.
+  `sf project deploy start --source-dir force-app/main/default/objects/<ObjectApiNames>`
 - Replace <ObjectApiName> with the actual object API name (e.g., Invoice_Item\_\_c).
+
+## Dry Run and deployment for tabs(Mandatory)
+
+- After creating all objects and tabs, automatically deploy it to the default Salesforce org using the Salesforce CLI.
+- Run the deployment command after creating all objects and tabs creation
+- Do dry run for all tabs at once.
+  `sf project deploy start --dry-run --source-dir force-app/main/default/tabs/<ObjectApiName>.tab-meta.xml`
+- If got any errors after dry run solve them.
+- After successful dry run then proceed with deloyment process.
+- Do deploy all tabs at once.
+  `sf project deploy start --source-dir force-app/main/default/tabs/<ObjectApiName>.tab-meta.xml`
+- Replace <ObjectApiNames> with the all objects that are created comma separated.
 
 ## Compliance
 
