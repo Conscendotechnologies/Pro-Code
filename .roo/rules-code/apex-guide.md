@@ -1503,6 +1503,8 @@ public with sharing class SecureSOQL {
 }
 ```
 
+When using WITH USER_MODE in SOQL or DML statements, always ensure your Apex class is set to API version 59.0 or higher (Winter ’24 or later), as earlier versions do not support this keyword. If your org or class uses an older API version, replace WITH USER_MODE with WITH SECURITY_ENFORCED to enforce object- and field-level security instead.
+
 #### Option 2: Security.stripInaccessible()
 
 ```apex
@@ -2312,6 +2314,17 @@ for(Account acc : accountList) {
 ```
 
 ---
+
+### 9. Dry run and Deployment:(! IMPORTANT)
+
+After creation of all required apex classes and LWC components then first do dry run on apex using this command:
+`sf project deploy start --dry-run --source-dir force-app/main/default/classes/<classname.cls>`
+Replace <classname.cls> with the actual classes.
+
+- If got any errors after dry run solve them.
+- After successful dry run then proceed with deloyment process.
+  `sf project deploy start --source-dir force-app/main/default/objects/<classname.cls>`
+- Replace <classname.cls> with the all objects that are created comma separated.
 
 ## Quick Reference: Common Patterns
 
