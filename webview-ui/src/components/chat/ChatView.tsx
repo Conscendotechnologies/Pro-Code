@@ -1754,42 +1754,23 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 
 	// Track if a file was created
 	const [__fileCreated, setFileCreated] = useState(false)
-	const [showDeployPrompt, setShowDeployPrompt] = useState(false)
 	const [__deploying, setDeploying] = useState(false)
-	const [deployResult, setDeployResult] = useState<{ success: boolean; message?: string } | null>(null)
 
 	// Listen for file creation and task completion events
 	useEffect(() => {
 		function handleVSCodeMessage(event: MessageEvent) {
-			const { type, payload } = event.data
+			const { type } = event.data
 			if (type === "newFileCreated" || type === "taskCompleted") {
 				setFileCreated(true)
 				setDeploying(false) // <-- ADD THIS LINE
 			}
 			if (type === "deployResult") {
 				setDeploying(false)
-				setDeployResult(payload)
 			}
 		}
 		window.addEventListener("message", handleVSCodeMessage)
 		return () => window.removeEventListener("message", handleVSCodeMessage)
 	}, [])
-
-	function handleDeployClick() {
-		setShowDeployPrompt(true)
-	}
-	function handleDeployAccept() {
-		setShowDeployPrompt(false)
-		setDeploying(true)
-		setDeployResult(null)
-		// Send prompt to AI (as a chat message)
-		handleSendMessage("Deploy to Salesforce", [])
-		// Also execute deploy command
-		vscode.postMessage({ type: "deploy" })
-	}
-	function handleDeployReject() {
-		setShowDeployPrompt(false)
-	}
 
 	const areButtonsVisible = showScrollToBottom || primaryButtonText || secondaryButtonText || isStreaming
 
@@ -2016,38 +1997,6 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 			)}
 
 			<div id="roo-portal" />
-
-			{/* Main action area: always show deploy button alongside Start New Task */}
-			<div style={{ display: "flex", gap: "12px", margin: "16px 0" }}>
-				<button
-					onClick={handleDeployClick}
-					style={{
-						padding: "8px 16px",
-						color: "white",
-						border: "none",
-						borderRadius: "4px",
-						fontWeight: "bold",
-						cursor: "pointer",
-					}}>
-					Deploy to Salesforce
-				</button>
-			</div>
-			{/* Deploy prompt and result */}
-			{showDeployPrompt && (
-				<div className="deploy-prompt" style={{ margin: "8px", padding: "8px", border: "1px solid #ccc" }}>
-					<p>Do you want to deploy to the connected Salesforce org?</p>
-					<button onClick={handleDeployAccept} style={{ marginRight: "8px" }}>
-						Accept
-					</button>
-					<button onClick={handleDeployReject}>Reject</button>
-				</div>
-			)}
-			{deployResult && (
-				<div className="deploy-result" style={{ margin: "8px", padding: "8px", border: "1px solid #ccc" }}>
-					<p>Deploy Result: {deployResult.success ? "Success" : "Failed"}</p>
-					{deployResult.message && <pre>{deployResult.message}</pre>}
-				</div>
-			)}
 		</div>
 	)
 }
