@@ -1618,10 +1618,5 @@ export const webviewMessageHandler = async (
 				}
 			}
 			break
-		case "deploy": {
-			const result = await provider.api.deployToSalesforce()
-			await provider.postMessageToWebview({ type: "deployResult", payload: result })
-			break
-		}
 	}
 }

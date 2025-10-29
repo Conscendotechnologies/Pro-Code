@@ -439,26 +439,4 @@ export class API extends EventEmitter<RooCodeEvents> implements RooCodeAPI {
 		await this.sidebarProvider.activateProviderProfile({ name })
 		return this.getActiveProfile()
 	}
-
-	// Deploy to Salesforce CLI logic
-	public async deployToSalesforce(): Promise<{ success: boolean; message?: string }> {
-		try {
-			// Get default org from Salesforce extension
-			const salesforceExt = vscode.extensions.getExtension("salesforce.salesforcedx-vscode-core")
-			let orgAlias = "default"
-			if (salesforceExt && salesforceExt.isActive && salesforceExt.exports) {
-				// Try to get org alias from extension API if available
-				if (salesforceExt.exports.getDefaultUsernameOrAlias) {
-					orgAlias = await salesforceExt.exports.getDefaultUsernameOrAlias()
-				}
-			}
-			// Run Salesforce CLI deploy command
-			const terminal = vscode.window.createTerminal("Salesforce Deploy")
-			terminal.show()
-			terminal.sendText(`sfdx force:source:deploy -u ${orgAlias} -p force-app`)
-			return { success: true, message: `Deploy command sent to org: ${orgAlias}` }
-		} catch (err: any) {
-			return { success: false, message: err?.message || String(err) }
-		}
-	}
 }
