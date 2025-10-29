@@ -11,14 +11,14 @@ describe("generatePackageJson", () => {
 				description: "%extension.description%",
 				publisher: "ConscendoTechInc",
 				version: "3.17.2",
-				icon: "assets/icons/iconV1.png",
+				icon: "assets/icons/icon.png",
 				contributes: {
 					viewsContainers: {
 						activitybar: [
 							{
 								id: "siid-code-ActivityBar",
 								title: "%views.activitybar.title%",
-								icon: "assets/icons/iconV1.svg",
+								icon: "assets/icons/icon.svg",
 							},
 						],
 					},
@@ -112,7 +112,7 @@ describe("generatePackageJson", () => {
 				displayName: "Roo Code Nightly",
 				publisher: "ConscendoTechInc",
 				version: "0.0.1",
-				icon: "assets/icons/icon-nightlyV1.png",
+				icon: "assets/icons/icon-nightly.png",
 				scripts: {},
 			},
 			substitution: ["siid-code", "roo-code-nightly"],
@@ -124,14 +124,14 @@ describe("generatePackageJson", () => {
 			description: "%extension.description%",
 			publisher: "ConscendoTechInc",
 			version: "0.0.1",
-			icon: "assets/icons/icon-nightlyV1.png",
+			icon: "assets/icons/icon-nightly.png",
 			contributes: {
 				viewsContainers: {
 					activitybar: [
 						{
 							id: "roo-code-nightly-ActivityBar",
 							title: "%views.activitybar.title%",
-							icon: "assets/icons/iconV1.svg",
+							icon: "assets/icons/icon.svg",
 						},
 					],
 				},
