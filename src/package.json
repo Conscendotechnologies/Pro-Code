@@ -56,7 +56,7 @@
 				{
 					"id": "siid-code-ActivityBar",
 					"title": "%views.activitybar.title%",
-					"icon": "assets/icons/iconV1.svg"
+					"icon": "assets/icons/icon.svg"
 				}
 			]
 		},
