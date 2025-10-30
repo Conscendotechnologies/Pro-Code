@@ -130,7 +130,18 @@ jobs:
     - name: Get package version
       id: version
       run: |
-        VERSION=$(node -p "require('./package.json').version")
+        # Try to get version from package.json, fallback to 1.0.0 if not found
+        if [ -f "package.json" ]; then
+          VERSION=$(node -p "require('./package.json').version" 2>/dev/null || echo "1.0.0")
+        else
+          VERSION="1.0.0"
+        fi
+        
+        # Check if VERSION is empty or undefined
+        if [ -z "$VERSION" ] || [ "$VERSION" == "undefined" ]; then
+          VERSION="1.0.0"
+        fi
+        
         echo "version=$VERSION" >> $GITHUB_OUTPUT
         echo "Package version: $VERSION"
     
@@ -207,7 +218,10 @@ jobs:
         VERSION="${{ steps.version.outputs.version }}"
         COMMIT_SHA=$(git rev-parse --short HEAD)
         BUILD_DATE="${{ steps.timestamp.outputs.build_date }}"
-        TAG_NAME="v${VERSION}-${BUILD_DATE}"
+        
+        # Create a cleaner tag name: release-VERSION or release-VERSION-COMMIT_SHA
+        TAG_NAME="release-${VERSION}"
+        
         VSIX_FILE="${{ steps.find-vsix.outputs.vsix_path }}"
         VSIX_NAME="${{ steps.find-vsix.outputs.vsix_name }}"
         SHA256="${{ steps.checksums.outputs.sha256 }}"
@@ -267,9 +281,9 @@ jobs:
         sed -i "/CONTRIBUTORS_PLACEHOLDER/r contributors_temp.txt" release_notes.md
         sed -i "/CONTRIBUTORS_PLACEHOLDER/d" release_notes.md
         
-        # Create release
+        # Create release with a cleaner title
         gh release create "$TAG_NAME" \
-          --title "Main Build $TAG_NAME" \
+          --title "SIID Code Extension v${VERSION}" \
           --notes-file release_notes.md \
           "$VSIX_FILE" \
           "${VSIX_FILE}.sha256"
