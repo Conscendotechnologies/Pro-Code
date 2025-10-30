@@ -112,28 +112,167 @@ jobs:
           exit 1
         fi
     
+    - name: Generate checksums
+      id: checksums
+      run: |
+        VSIX_FILE="${{ steps.find-vsix.outputs.vsix_path }}"
+        SHA256=$(sha256sum "$VSIX_FILE" | awk '{print $1}')
+        echo "$SHA256" > "${VSIX_FILE}.sha256"
+        echo "sha256=$SHA256" >> $GITHUB_OUTPUT
+        echo "✓ Checksum generated"
+        echo "SHA256: $SHA256"
+    
+    - name: Get build timestamp
+      id: timestamp
+      run: |
+        echo "build_date=$(date +'%Y.%m.%d-%H%M%S')" >> $GITHUB_OUTPUT
+    
+    - name: Get package version
+      id: version
+      run: |
+        VERSION=$(node -p "require('./package.json').version")
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "Package version: $VERSION"
+    
+    - name: Get last release tag
+      id: last_release
+      run: |
+        # Get the last release tag
+        LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+        echo "last_tag=$LAST_TAG" >> $GITHUB_OUTPUT
+        echo "Last release tag: $LAST_TAG"
+    
+    - name: Generate changelog
+      id: changelog
+      run: |
+        LAST_TAG="${{ steps.last_release.outputs.last_tag }}"
+        
+        if [ -z "$LAST_TAG" ]; then
+          echo "No previous release found. Generating changelog from all commits."
+          COMMITS=$(git log --pretty=format:"- %s by @%an in %h" --no-merges | head -n 20)
+        else
+          echo "Generating changelog from $LAST_TAG to HEAD"
+          COMMITS=$(git log $LAST_TAG..HEAD --pretty=format:"- %s by @%an in %h" --no-merges)
+        fi
+        
+        # Check if there are any commits
+        if [ -z "$COMMITS" ]; then
+          COMMITS="- No changes since last release"
+        fi
+        
+        # Save to file to handle multiline output properly
+        echo "$COMMITS" > changelog.txt
+        
+        echo "changelog_file=changelog.txt" >> $GITHUB_OUTPUT
+    
+    - name: Read changelog
+      id: read_changelog
+      run: |
+        CHANGELOG=$(cat changelog.txt)
+        echo "changelog<<EOF" >> $GITHUB_OUTPUT
+        echo "$CHANGELOG" >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+    
+    - name: Get contributors
+      id: contributors
+      run: |
+        LAST_TAG="${{ steps.last_release.outputs.last_tag }}"
+        
+        if [ -z "$LAST_TAG" ]; then
+          CONTRIBUTORS=$(git log --pretty=format:"%an" --no-merges | sort -u | sed 's/^/@/' | paste -sd "," - | sed 's/,/, /g')
+        else
+          CONTRIBUTORS=$(git log $LAST_TAG..HEAD --pretty=format:"%an" --no-merges | sort -u | sed 's/^/@/' | paste -sd "," - | sed 's/,/, /g')
+        fi
+        
+        if [ -z "$CONTRIBUTORS" ]; then
+          CONTRIBUTORS="@${{ github.actor }}"
+        fi
+        
+        echo "contributors=$CONTRIBUTORS" >> $GITHUB_OUTPUT
+    
     - name: Upload VSIX artifact
       uses: actions/upload-artifact@v4
       with:
         name: siid-code-extension-${{ github.sha }}
-        path: ${{ steps.find-vsix.outputs.vsix_path }}
+        path: |
+          ${{ steps.find-vsix.outputs.vsix_path }}
+          ${{ steps.find-vsix.outputs.vsix_path }}.sha256
         retention-days: 30
     
-    - name: Create Release (fixed)
+    - name: Create Release
       if: startsWith(github.ref, 'refs/heads/main')
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        # Get package version
-        VERSION=$(node -p "require('./package.json').version")
+        VERSION="${{ steps.version.outputs.version }}"
         COMMIT_SHA=$(git rev-parse --short HEAD)
-        TAG_NAME="v${VERSION}-main-${COMMIT_SHA}"
+        BUILD_DATE="${{ steps.timestamp.outputs.build_date }}"
+        TAG_NAME="v${VERSION}-${BUILD_DATE}"
+        VSIX_FILE="${{ steps.find-vsix.outputs.vsix_path }}"
+        VSIX_NAME="${{ steps.find-vsix.outputs.vsix_name }}"
+        SHA256="${{ steps.checksums.outputs.sha256 }}"
+        CHANGELOG="${{ steps.read_changelog.outputs.changelog }}"
+        CONTRIBUTORS="${{ steps.contributors.outputs.contributors }}"
+        LAST_TAG="${{ steps.last_release.outputs.last_tag }}"
         
-        # Create release WITHOUT --prerelease flag
+        # Build the full changelog comparison URL
+        if [ -n "$LAST_TAG" ]; then
+          FULL_CHANGELOG="${LAST_TAG}...${TAG_NAME}"
+        else
+          FULL_CHANGELOG="${TAG_NAME}"
+        fi
+        
+        # Create release notes
+        cat > release_notes.md << 'EOF'
+## SIID Code Extension
+
+**Build Date:** $BUILD_DATE
+**Version:** $VERSION
+**Commit:** $COMMIT_SHA
+
+### Downloads:
+- **$VSIX_NAME** - VS Code Extension Package
+
+### Checksums:
+Use the .sha256 file to verify your download integrity.
+
+**SHA256:** `$SHA256`
+
+### What's Changed
+$CHANGELOG
+
+**Full Changelog:** $FULL_CHANGELOG
+
+### Contributors
+$CONTRIBUTORS
+
+---
+*This is an automated build from the main branch.*
+EOF
+        
+        # Replace variables in the release notes
+        sed -i "s|\$BUILD_DATE|$BUILD_DATE|g" release_notes.md
+        sed -i "s|\$VERSION|$VERSION|g" release_notes.md
+        sed -i "s|\$COMMIT_SHA|$COMMIT_SHA|g" release_notes.md
+        sed -i "s|\$VSIX_NAME|$VSIX_NAME|g" release_notes.md
+        sed -i "s|\$SHA256|$SHA256|g" release_notes.md
+        sed -i "s|\$FULL_CHANGELOG|$FULL_CHANGELOG|g" release_notes.md
+        
+        # Handle multiline changelog
+        sed -i "/\$CHANGELOG/r changelog.txt" release_notes.md
+        sed -i "/\$CHANGELOG/d" release_notes.md
+        
+        # Add contributors
+        echo "$CONTRIBUTORS" | sed 's/^//' >> contributors_temp.txt
+        sed -i "/\$CONTRIBUTORS/r contributors_temp.txt" release_notes.md
+        sed -i "/\$CONTRIBUTORS/d" release_notes.md
+        
+        # Create release
         gh release create "$TAG_NAME" \
           --title "Main Build $TAG_NAME" \
-          --notes "Automated build from main branch commit $COMMIT_SHA" \
-          "${{ steps.find-vsix.outputs.vsix_path }}"
+          --notes-file release_notes.md \
+          "$VSIX_FILE" \
+          "${VSIX_FILE}.sha256"
 
   # Job 3: Code Quality Checks (runs on PRs)
   quality-checks:
