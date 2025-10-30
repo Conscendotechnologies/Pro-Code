@@ -220,12 +220,18 @@ force-app/main/default/assignmentRules/<ObjectApiName>.assignmentRules-meta.xml
 
 <template>{FolderName/DeveloperName}</template>
 
-## 8. Deploy the Assignment Rule (!IMPORTANT)
+## Dry Run and deployment for Assignment-Rules(Mandatory)
 
-** Immediatly after creating the Assignment Rule deploy it to current authorized org( WITHOUT ANY DELAY) **
-Run:
-sf project deploy start --source-dir force-app/main/default/assignmentRules/<ObjectApiName>.assignmentRules-meta.xml
-Capture and log deployment status and messages.
+- Before deploying the created Assignmentrules into the org do the dry run first using below command
+- Do dry run for all assignment rules at once.
+  `sf project deploy start --dry-run --source-dir force-app/main/default/assignmentRules /
+<obj.Assignmentrules-meta.xml>`
+- If got any errors after dry run solve them.
+- After successful dry run then proceed with deloyment process.
+- Do deploy all assignment rules at once.
+  `sf project deploy start --source-dir force-app/main/default/assignmentRules/
+<obj.Assignmentrules-meta.xml>`
+- Replace <obj.Assignmentrules-meta.xml> with the actual assignment rules that are created.
 
 ## 9. Validations
 

@@ -74,15 +74,24 @@
     Use <errorDisplayField> for field-level errors
     Omit <errorDisplayField> for top-of-page errors
 
-## Step 6:
+## Step 6: Deployment Process
 
-    Don't wait or ask for the user DEPLOY IT DIRECTLY.
-    Immediatly deploy after creating validation rule XML (!IMPORTANT)
-    Provide Deployment Instructions
-    Include brief deployment guidance:
-    # Save XML to: force-app/main/default/objects/[ObjectName]/validationRules/[RuleName].validationRule-meta.xml
-    # Always and immediatly Deploy using sf command:(!IMPORTANT)
-    sf project deploy start --source-dir force-app\main\default\objects\[ObjectName]\validationRules\[RuleName].validationRule-meta.xml
+     1. Save the XML first:
+         Save XML to: force-app/main/default/objects/[ObjectName]/validationRules/[RuleName].validationRule-meta.xml
+
+     Important: create all required validation rule XML files first (for one object or across objects). Do NOT run dry runs or deployments per-rule.
+     Do dry run for all created validation rules at once
+
+     ## Dry Run and deployment for Assignment-Rules(Mandatory)
+
+    - Before deploying the created validaiton rules into the org do the dry run first using below command
+    - Do dry run for all validation rules at once.
+    `sf project deploy start --dry-run --source-dir force-app/main/default/objects/[ObjectName]/validationRules/[RuleName].validationRule-meta.xml`
+    - If got any errors after dry run solve them.
+    - After successful dry run then proceed with deloyment process.
+    - Do deploy  all validation rules at once.
+    `sf project deploy start --source-dir force-app/main/default/objects/[ObjectName]/validationRules/[RuleName].validationRule-meta.xml`
+    - Replace [RuleName] with the actual  rules that are created.
 
 ## Common Formula Patterns to Recognize
 

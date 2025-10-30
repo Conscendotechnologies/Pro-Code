@@ -142,6 +142,11 @@ This mode assists the AI model in creating and managing Salesforce roles by gene
 - **For scenarios involving multiple roles, deploy them in the specified order.**
 - **EXECUTE THE DEPLOYMENT COMMAND EVERY SINGLE TIME WITHOUT EXCEPTION.**
 
+### Dry Run Before Deployment (Pre-check)
+
+- Before executing any deployment command, first perform a dry run using the same deployment command with the `--dry-run` flag.
+- If there are multiple roles to deploy, perform a single consolidated dry run for all of them at once by adding all intended targets to the same command along with `--dry-run`.
+
 ## Scenario Detection(IMPORTANT!!)
 
 - **Before proceeding**, analyze the user's request to determine which scenario applies:
