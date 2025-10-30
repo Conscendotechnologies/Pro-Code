@@ -223,49 +223,49 @@ jobs:
         fi
         
         # Create release notes
-        cat > release_notes.md << 'EOF'
-## SIID Code Extension
-
-**Build Date:** $BUILD_DATE
-**Version:** $VERSION
-**Commit:** $COMMIT_SHA
-
-### Downloads:
-- **$VSIX_NAME** - VS Code Extension Package
-
-### Checksums:
-Use the .sha256 file to verify your download integrity.
-
-**SHA256:** `$SHA256`
-
-### What's Changed
-$CHANGELOG
-
-**Full Changelog:** $FULL_CHANGELOG
-
-### Contributors
-$CONTRIBUTORS
-
----
-*This is an automated build from the main branch.*
-EOF
+        cat > release_notes.md << 'RELEASE_NOTES'
+        ## SIID Code Extension
+        
+        **Build Date:** BUILD_DATE_PLACEHOLDER
+        **Version:** VERSION_PLACEHOLDER
+        **Commit:** COMMIT_SHA_PLACEHOLDER
+        
+        ### Downloads:
+        - **VSIX_NAME_PLACEHOLDER** - VS Code Extension Package
+        
+        ### Checksums:
+        Use the .sha256 file to verify your download integrity.
+        
+        **SHA256:** `SHA256_PLACEHOLDER`
+        
+        ### What's Changed
+        CHANGELOG_PLACEHOLDER
+        
+        **Full Changelog:** FULL_CHANGELOG_PLACEHOLDER
+        
+        ### Contributors
+        CONTRIBUTORS_PLACEHOLDER
+        
+        ---
+        *This is an automated build from the main branch.*
+        RELEASE_NOTES
         
         # Replace variables in the release notes
-        sed -i "s|\$BUILD_DATE|$BUILD_DATE|g" release_notes.md
-        sed -i "s|\$VERSION|$VERSION|g" release_notes.md
-        sed -i "s|\$COMMIT_SHA|$COMMIT_SHA|g" release_notes.md
-        sed -i "s|\$VSIX_NAME|$VSIX_NAME|g" release_notes.md
-        sed -i "s|\$SHA256|$SHA256|g" release_notes.md
-        sed -i "s|\$FULL_CHANGELOG|$FULL_CHANGELOG|g" release_notes.md
+        sed -i "s|BUILD_DATE_PLACEHOLDER|$BUILD_DATE|g" release_notes.md
+        sed -i "s|VERSION_PLACEHOLDER|$VERSION|g" release_notes.md
+        sed -i "s|COMMIT_SHA_PLACEHOLDER|$COMMIT_SHA|g" release_notes.md
+        sed -i "s|VSIX_NAME_PLACEHOLDER|$VSIX_NAME|g" release_notes.md
+        sed -i "s|SHA256_PLACEHOLDER|$SHA256|g" release_notes.md
+        sed -i "s|FULL_CHANGELOG_PLACEHOLDER|$FULL_CHANGELOG|g" release_notes.md
         
         # Handle multiline changelog
-        sed -i "/\$CHANGELOG/r changelog.txt" release_notes.md
-        sed -i "/\$CHANGELOG/d" release_notes.md
+        sed -i "/CHANGELOG_PLACEHOLDER/r changelog.txt" release_notes.md
+        sed -i "/CHANGELOG_PLACEHOLDER/d" release_notes.md
         
         # Add contributors
-        echo "$CONTRIBUTORS" | sed 's/^//' >> contributors_temp.txt
-        sed -i "/\$CONTRIBUTORS/r contributors_temp.txt" release_notes.md
-        sed -i "/\$CONTRIBUTORS/d" release_notes.md
+        echo "$CONTRIBUTORS" > contributors_temp.txt
+        sed -i "/CONTRIBUTORS_PLACEHOLDER/r contributors_temp.txt" release_notes.md
+        sed -i "/CONTRIBUTORS_PLACEHOLDER/d" release_notes.md
         
         # Create release
         gh release create "$TAG_NAME" \
