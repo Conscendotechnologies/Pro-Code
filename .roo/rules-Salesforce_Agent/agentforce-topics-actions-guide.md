@@ -82,6 +82,27 @@ The following fields **MUST use the exact same name** (e.g., `Topic_Name`):
 </localTopicLinks>
 ```
 
+## 🚨 STRICT TOPIC-ACTION LINKING RULES (MANDATORY) 🚨
+
+**This is a non-negotiable instruction. The AI MUST follow these rules exactly for every GenAiPlannerBundle XML file.**
+
+- **Every local action MUST be defined inside the topic that references it in `<localActionLinks>`.**
+- **Every `<functionName>` in a topic's `<localActionLinks>` MUST reference an action defined in that same topic's `<localActions>` section.**
+- **Do not link an action to a different topic.** If an action is local, it must be defined inside the same topic that references it.
+- **Root-level `<localTopicLinks>` MUST only list topics defined in `<localTopics>`.** No orphaned topic references.
+- **Action names must be fully consistent:** `<fullName>`, `<developerName>`, `<localDeveloperName>`, and `<localActionLinks><functionName>` must match exactly.
+- **Topic names must be fully consistent:** `<fullName>`, `<developerName>`, `<localDeveloperName>`, and `<localTopicLinks><genAiPluginName>` must match exactly.
+- **If the agent deploys successfully but the UI is wrong, this linking rule was violated.** Always fix the XML before deployment.
+
+### Validation Checklist (MANDATORY)
+
+- [ ] Topic `Topic_Name` exists in `<localTopics>` and is referenced in root `<localTopicLinks>`.
+- [ ] Each topic contains `<localActionLinks>` only for actions defined inside that topic.
+- [ ] Each action referenced in `<localActionLinks>` has a matching `<localActions>` definition in the same topic.
+- [ ] No local action is referenced from a topic where it is not defined.
+- [ ] All local action names are consistent across XML tags and folder structure.
+- [ ] All topic names are consistent across XML tags.
+
 ---
 
 ## Actions
@@ -1056,26 +1077,25 @@ See example files in:
 
 ## Permissions
 
-**🚨 CRITICAL:** After creating Apex invocable classes, you **MUST** grant permissions to the **Einstein Agent User** profile. Without this, the action will not work.
+**🚨 CRITICAL - MANDATORY STEP:** After creating Apex invocable classes, you **MUST** grant permissions to the **Einstein Agent User** profile. **Without this, the agent action will NOT execute.** This step cannot be skipped.
 
 ### Granting Apex Class Access
 
-**Option 1: Via Setup UI**
+**Via Metadata (MANDATORY - Recommended for version control and automation)**
 
-1. Navigate to **Setup** → **Users** → **Profiles**
-2. Find and open **Einstein Agent User** profile
-3. Scroll to **Enabled Apex Class Access** section
-4. Click **Edit**
-5. Add your Apex class to the **Enabled** list
-6. Click **Save**
+**Step 1: Retrieve Einstein Agent User Profile**
 
-**Option 2: Via Metadata (Recommended for version control)**
+```bash
+sf project retrieve start --metadata Profile:"Einstein Agent User" --target-org <org> --json
+```
 
-Add this block to the existing profile metadata file:
+**Result:** Profile file retrieved to `force-app/main/default/profiles/Einstein Agent User.profile-meta.xml`
 
-**File:** `force-app/main/default/profiles/Einstein Agent User.profile-meta.xml`
+**Step 2: Update Profile XML with Apex Class Access**
 
-**Add this block:**
+Open the profile file and add a `<classAccesses>` block inside the `<Profile>` root element:
+
+**Add this block (replace `YourApexClassName` with actual class name):**
 
 ```xml
 <classAccesses>
@@ -1084,29 +1104,24 @@ Add this block to the existing profile metadata file:
 </classAccesses>
 ```
 
-**Note:** Add this `<classAccesses>` block inside the existing `<Profile>` tags. If the profile file doesn't exist, retrieve it first:
-
-```bash
-sf project retrieve start --metadata Profile:"Einstein Agent User" --target-org <org> --json
-```
-
-**Option 3: Via Permission Set (Alternative approach)**
-
-Create a permission set and assign it to the Einstein Agent User:
+**Example with actual class name:**
 
 ```xml
-<?xml version="1.0" encoding="UTF-8"?>
-<PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
-    <classAccesses>
-        <apexClass>YourApexClassName</apexClass>
-        <enabled>true</enabled>
-    </classAccesses>
-    <hasActivationRequired>false</hasActivationRequired>
-    <label>Agent Actions Permission Set</label>
-</PermissionSet>
+<classAccesses>
+    <apexClass>ContactCreationAgentAction</apexClass>
+    <enabled>true</enabled>
+</classAccesses>
 ```
 
-**Best Practice:** Use permission sets for easier management and deployment across orgs.
+**⚠️ CRITICAL:** Use the EXACT Apex class name (case-sensitive)
+
+**Step 3: Deploy Updated Profile**
+
+```bash
+sf project deploy start --metadata Profile:"Einstein Agent User" --json
+```
+
+**Verification:** Profile deployment must complete successfully before deploying the agent
 
 ---
 
