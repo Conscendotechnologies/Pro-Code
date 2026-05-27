@@ -16,6 +16,7 @@
 [ ] **ANALYZE if Adaptive Response is applicable** - IF YES, ASK USER!
 [ ] Delegate Apex action creation to Code mode (if needed)
 [ ] WAIT for Code mode to create AND deploy Apex (verify deployment, do NOT retrieve)
+[ ] **MANDATORY: Retrieve Einstein Agent User profile and assign Apex class access**
 [ ] AFTER Apex deployed: Create local action in topic with invocationTarget
 [ ] Create schema files (input/output) for action - VERIFY ALL REQUIRED PROPERTIES
 [ ] Link action to topic with localActionLinks
@@ -278,10 +279,74 @@ Before proceeding to code creation, verify you have completed ALL of the followi
 1. **FIRST:** Delegate to Code mode to create Apex action (with `useAdaptiveResponse` property)
 2. **SECOND:** Wait for Code mode to complete AND deploy the Apex class
 3. **THIRD:** **VERIFY deployment success** (do NOT retrieve - just check `sf project deploy report`)
-4. **FOURTH:** ONLY AFTER Apex is deployed and verified, add the local action XML that references it
-5. **FIFTH:** Deploy the GenAiPlannerBundle with the action reference
+4. **FOURTH - MANDATORY:** **Assign Apex class access to Einstein Agent User profile**
+5. **FIFTH:** ONLY AFTER Apex is deployed and verified, add the local action XML that references it
+6. **SIXTH:** Deploy the GenAiPlannerBundle with the action reference
 
 **DO NOT add `<localActions>` XML before Apex exists and is deployed!**
+
+---
+
+## 🚨 STEP 4 (MANDATORY): Assign Apex Class Access to Einstein Agent User Profile 🚨
+
+**⛔ THIS STEP CANNOT BE SKIPPED - Without this, the agent action will NOT execute ⛔**
+
+**After Apex class is deployed and verified successfully:**
+
+### Step 4.1: Retrieve Einstein Agent User Profile
+
+```bash
+sf project retrieve start --metadata Profile:"Einstein Agent User" --target-org <org> --json
+```
+
+**Result:** Profile file retrieved to: `force-app/main/default/profiles/Einstein Agent User.profile-meta.xml`
+
+### Step 4.2: Update Profile XML with Apex Class Access
+
+Open the profile file and add a `<classAccesses>` block for your Apex class:
+
+**Location:** Inside the `<Profile>` root element (add with other `<classAccesses>` blocks if they exist)
+
+**Add this block:**
+
+```xml
+<classAccesses>
+    <apexClass>YourApexClassName</apexClass>
+    <enabled>true</enabled>
+</classAccesses>
+```
+
+**Example (replace with actual Apex class name):**
+
+```xml
+<classAccesses>
+    <apexClass>ContactCreationAgentAction</apexClass>
+    <enabled>true</enabled>
+</classAccesses>
+```
+
+**⚠️ CRITICAL:** Use the EXACT Apex class name as it appears in your code (case-sensitive)
+
+### Step 4.3: Deploy Updated Profile
+
+```bash
+sf project deploy start --metadata Profile:"Einstein Agent User" --json
+```
+
+**Verification:** Profile deployment must succeed before proceeding to step 5
+
+---
+
+**✅ CHECKPOINT AFTER STEP 4:**
+
+- [ ] ✅ Apex class is deployed to org
+- [ ] ✅ Einstein Agent User profile is retrieved
+- [ ] ✅ `<classAccesses>` block added to profile with Apex class name
+- [ ] ✅ Profile redeployed successfully to org
+
+**If any checkpoint fails, FIX BEFORE PROCEEDING to step 5**
+
+---
 
 **⚠️ VERIFICATION vs RETRIEVAL:**
 
@@ -416,13 +481,17 @@ Which approach would you prefer?
 **CORRECT SEQUENCE:**
 
 1. **FIRST - Delegate to Code mode to CREATE Apex:**
+
     - Create subtask or switch to Code mode
     - **Add property:** `useAdaptiveResponse: true`
     - **STEP 1:** Fetch `create-agentforce-agent` Guide to Implement the APEX Class.
+
         ```
 
         ```
+
     - **STEP 2:** Follow the fetched instructions to create invocable Apex action 'ProductRecommendationAction'. The fetched instructions contain all required field names and schema structure guidance. Method should query Product2 records and return as visual cards with LIMIT 5 for Chat channel.
+
 2. **WAIT for Code mode to complete the Apex class creation AND deployment**
 3. **AFTER Apex is deployed - Add LOCAL action reference in GenAiPlannerBundle:**
     ```xml
