@@ -1,5 +1,4 @@
-import { describe, expect, test, vi } from "vitest"
-import { normalizeSfMetadataParams } from "../sfMetadataParams"
+import { describe, expect, test } from "vitest"
 import { formatSfOutput } from "../retrieveSfMetadataTool"
 
 /**
@@ -505,35 +504,5 @@ describe("retrieveSfMetadataTool - integration scenarios", () => {
 		const maxBuffer = 10 * 1024 * 1024 // 10MB
 		expect(maxBuffer).toBe(10485760)
 		expect(maxBuffer).toBeGreaterThan(0)
-	})
-})
-
-describe("retrieveSfMetadataTool - streamed param normalization", () => {
-	test("should recover metadata name leaked into metadata type", () => {
-		const normalized = normalizeSfMetadataParams({
-			metadata_type: "Profile</metadata_name>Admin</metadata_name>\n</retrieve_sf_metadata>",
-		})
-
-		expect(normalized.metadata_type).toBe("Profile")
-		expect(normalized.metadata_name).toBe("Admin")
-	})
-
-	test("should preserve a valid metadata name when present", () => {
-		const normalized = normalizeSfMetadataParams({
-			metadata_type: "CustomObject",
-			metadata_name: "Invoice__c</metadata_name>",
-		})
-
-		expect(normalized.metadata_type).toBe("CustomObject")
-		expect(normalized.metadata_name).toBe("Invoice__c")
-	})
-
-	test("should recover metadata name from a standard leaked tag sequence", () => {
-		const normalized = normalizeSfMetadataParams({
-			metadata_type: "Profile</metadata_type><metadata_name>Admin</metadata_name>",
-		})
-
-		expect(normalized.metadata_type).toBe("Profile")
-		expect(normalized.metadata_name).toBe("Admin")
 	})
 })

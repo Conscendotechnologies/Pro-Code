@@ -207,7 +207,6 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 		notificationsEnabled,
 		soundEnabled,
 		soundVolume,
-		developerMode,
 	} = useExtensionState()
 
 	const selectedModel = useSelectedModel(apiConfiguration)
@@ -1076,6 +1075,9 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 						setIsCondensing(false)
 					}
 					break
+				case "taskCancelling":
+					setDidClickCancel(true)
+					break
 			}
 			// textAreaRef.current is not explicitly required here since React
 			// guarantees that ref will be stable across re-renders, and we're
@@ -1112,19 +1114,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 		const latestApiReqStarted = apiReqStartedMessages.at(-1)
 
 		const newVisibleMessages = recentMessages.filter((message: ClineMessage) => {
-			const isEmptyReasoning = message.say === "reasoning" && (message.text ?? "").trim() === ""
-
-			// Hide assistant's thinking/explanation text when developer mode is OFF
-			if (!developerMode && message.say === "text" && message.type === "say") {
-				return false
-			}
-			// Hide reasoning blocks when developer mode is OFF
-			if (!developerMode && message.say === "reasoning") {
-				return false
-			}
-			if (isEmptyReasoning) {
-				return false
-			}
+			// Always show assistant text and reasoning for all users
 
 			if (everVisibleMessagesTsRef.current.has(message.ts)) {
 				const alwaysHiddenOnceProcessedAsk: ClineAsk[] = [
@@ -1197,10 +1187,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 					}
 					break
 				case "text":
-					// Hide assistant's thinking/explanation text when developer mode is OFF
-					if (!developerMode && message.type === "say") {
-						return false
-					}
+					// Always show assistant text
 					if ((message.text ?? "") === "" && (message.images?.length ?? 0) === 0) return false
 					// Hide text messages that come between thinking/ask messages (informational boxes)
 					{
@@ -1220,13 +1207,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 					}
 					break
 				case "reasoning":
-					// Hide reasoning blocks when developer mode is OFF
-					if (!developerMode) {
-						return false
-					}
-					if ((message.text ?? "").trim() === "") {
-						return false
-					}
+					// Always show reasoning blocks
 					break
 				case "mcp_server_request_started":
 					return false
@@ -1261,7 +1242,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 			.forEach((msg: ClineMessage) => everVisibleMessagesTsRef.current.set(msg.ts, true))
 
 		return newVisibleMessages
-	}, [isCondensing, modifiedMessages, developerMode])
+	}, [isCondensing, modifiedMessages])
 
 	useEffect(() => {
 		const cleanupInterval = setInterval(() => {
@@ -1440,20 +1421,6 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 					return false
 				}
 
-				if (tool?.tool === "fetchInstructions" || tool?.tool === "getTaskGuides") {
-					if (tool.content === "create_mode" || tool.content === "create-custom-mode") {
-						return alwaysAllowModeSwitch
-					}
-
-					if (tool.content === "create_mcp_server" || tool.content === "create-mcp-server") {
-						return alwaysAllowMcp
-					}
-
-					// Auto-approve get_task_guides as it's read-only
-					if (tool?.tool === "getTaskGuides") {
-						return alwaysAllowReadOnly
-					}
-				}
 				if (tool?.tool === "deploySfMetadata") {
 					return alwaysAllowDeploySfMetadata
 				}
@@ -1513,7 +1480,6 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 
 			alwaysAllowDeploySfMetadata,
 			alwaysAllowRetrieveSfMetadata,
-			alwaysAllowModeSwitch,
 		],
 	)
 
@@ -2502,7 +2468,11 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 												disabled={!enableButtons && !(isStreaming && !didClickCancel)}
 												className={isStreaming ? "flex-[2] ml-0" : "flex-1 ml-[6px]"}
 												onClick={() => handleSecondaryButtonClick(inputValue, selectedImages)}>
-												{isStreaming ? t("chat:cancel.title") : secondaryButtonText}
+												{isStreaming
+													? didClickCancel
+														? "Cancelling..."
+														: t("chat:cancel.title")
+													: secondaryButtonText}
 											</VSCodeButton>
 										</StandardTooltip>
 									)}

@@ -8,8 +8,12 @@ import { formatResponse } from "../prompts/responses"
 import { ClineSayTool } from "../../shared/ExtensionMessage"
 import { FileChangesService } from "../../services/file-changes"
 import type { DeploymentStatus } from "../../services/file-changes"
-import { getErrorCapture } from "../error-recovery/error-capture"
-import { normalizeSfMetadataParams } from "./sfMetadataParams"
+import type { SfDeployExecutionStatus } from "@siid-code/types"
+
+async function sendDeployStatus(cline: Task, executionId: string, status: SfDeployExecutionStatus): Promise<void> {
+	const provider = cline.providerRef.deref()
+	provider?.postMessageToWebview({ type: "sfDeployExecutionStatus", text: JSON.stringify(status) })
+}
 
 /**
  * Metadata type configuration for SF CLI commands
@@ -633,12 +637,8 @@ export async function deploySfMetadataTool(
 ) {
 	console.log(`[deploySfMetadata] ========== TOOL INVOKED ==========`)
 	console.log(`[deploySfMetadata] Parameters:`, block.params)
-	const normalizedParams = normalizeSfMetadataParams({
-		metadata_type: block.params.metadata_type,
-		metadata_name: block.params.metadata_name,
-	})
-	const metadataType: string | undefined = normalizedParams.metadata_type || undefined
-	const metadataName: string | undefined = normalizedParams.metadata_name || undefined
+	const metadataType: string | undefined = block.params.metadata_type
+	const metadataName: string | undefined = block.params.metadata_name
 	const sourceDir: string | undefined = block.params.source_dir
 	const testLevel: string | undefined = block.params.test_level
 	const tests: string | undefined = block.params.tests
@@ -742,9 +742,14 @@ export async function deploySfMetadataTool(
 			return
 		}
 
+		// Generate a stable ID for this deployment execution so the webview can correlate status messages
+		const executionId = `${cline.taskId}-${Date.now()}`
+
 		// PHASE 1: Execute DRY RUN for validation
 		console.log(`[deploySfMetadata] ===== PHASE 1: DRY RUN =====`)
 		console.log(`[deploySfMetadata] Executing dry run command...`)
+
+		await sendDeployStatus(cline, executionId, { executionId, status: "validating", metadataType, metadataName })
 
 		try {
 			// Execute dry run validation
@@ -757,6 +762,7 @@ export async function deploySfMetadataTool(
 			// If dry run failed, abort deployment
 			if (!dryRunResult.success) {
 				console.log(`[deploySfMetadata] ❌ Dry run FAILED - aborting deployment`)
+				await sendDeployStatus(cline, executionId, { executionId, status: "error", error: "Validation failed" })
 				pushToolResult(formatResponse.toolError(dryRunResult.message))
 				return
 			}
@@ -775,50 +781,13 @@ export async function deploySfMetadataTool(
 			}
 
 			// Update UI: Dry run passed
-			await cline.say("text", "✅ Validation passed! Proceeding with actual deployment...")
 		} catch (dryRunError: any) {
 			// Handle dry run execution errors
-
-			// NEW: ERROR RECOVERY SYSTEM
-			console.log(`[deploySfMetadata] Attempting error recovery for dry run failure...`)
-			const errorOutput = dryRunError.stdout || dryRunError.stderr || dryRunError.message || ""
-
-			if (errorOutput) {
-				try {
-					const globalStoragePath = cline.providerRef.deref()?.context.globalStorageUri.fsPath
-					const errorCapture = getErrorCapture(cline.cwd, globalStoragePath)
-					const matchedError = errorCapture.findMatchingError(errorOutput)
-
-					if (matchedError) {
-						// Error found in knowledge base - send to AI with solution
-						console.log(`[deploySfMetadata] ✅ Error matched: ${matchedError.errorId}`)
-
-						const aiMessage = errorCapture.buildAIMessage(matchedError)
-						await cline.say("text", aiMessage)
-
-						// Tell AI to apply the solution and indicate when to retry
-						pushToolResult(
-							formatResponse.toolResult(
-								`${aiMessage}\n` +
-									`Please review the error details above and apply the solution.\n` +
-									`After fixing the issue, indicate when you're ready to retry the deployment.`,
-							),
-						)
-						return
-					}
-				} catch (recoveryError) {
-					console.warn(`[deploySfMetadata] Error recovery system error: ${recoveryError}`)
-					// Fall through to standard error handling
-				}
-			}
-
-			// FALLBACK: Standard error handling (for unmatched errors)
-			console.log(`[deploySfMetadata] No knowledge base match found, using standard error handling`)
-
 			let errorMessage = "Failed to execute SF CLI dry run validation"
 
 			if (dryRunError.killed) {
 				errorMessage = "Dry run validation timed out after 5 minutes"
+				await sendDeployStatus(cline, executionId, { executionId, status: "error", error: errorMessage })
 			} else if (dryRunError.stdout) {
 				// Sometimes SF CLI returns error info in stdout with non-zero exit
 				const dryRunResult = formatDryRunResult(
@@ -827,6 +796,8 @@ export async function deploySfMetadataTool(
 					metadataName,
 					testLevel || "NoTestRun",
 				)
+
+				await sendDeployStatus(cline, executionId, { executionId, status: "error", error: "Validation failed" })
 
 				// Update UI: Show dry run error in deployment results
 				const errorResultMessage = JSON.stringify({
@@ -850,6 +821,8 @@ export async function deploySfMetadataTool(
 			// Check for common SF CLI issues
 			errorMessage = handleCommonSfCliErrors(errorMessage)
 
+			await sendDeployStatus(cline, executionId, { executionId, status: "error", error: errorMessage })
+
 			// Update UI: Show error in deployment results
 			const errorResultMessage = JSON.stringify({
 				...sharedMessageProps,
@@ -868,6 +841,8 @@ export async function deploySfMetadataTool(
 		// PHASE 2: Execute ACTUAL DEPLOYMENT
 		console.log(`[deploySfMetadata] ===== PHASE 2: ACTUAL DEPLOYMENT =====`)
 		console.log(`[deploySfMetadata] Executing deployment command...`)
+
+		await sendDeployStatus(cline, executionId, { executionId, status: "deploying", metadataType, metadataName })
 
 		// Mark all task files as "deploying" before starting
 		try {
@@ -902,6 +877,8 @@ export async function deploySfMetadataTool(
 				// Non-critical
 			}
 
+			await sendDeployStatus(cline, executionId, { executionId, status: "completed" })
+
 			// Update UI: Show deployment results in expandable section
 			const deployResultMessage = JSON.stringify({
 				...sharedMessageProps,
@@ -934,47 +911,12 @@ export async function deploySfMetadataTool(
 				// Non-critical
 			}
 
-			// NEW: ERROR RECOVERY SYSTEM
-			// Try to match error against knowledge base
-			console.log(`[deploySfMetadata] Attempting error recovery...`)
-			const errorOutput = deployError.stdout || deployError.stderr || deployError.message || ""
-
-			if (errorOutput) {
-				try {
-					const globalStoragePath = cline.providerRef.deref()?.context.globalStorageUri.fsPath
-					const errorCapture = getErrorCapture(cline.cwd, globalStoragePath)
-					const matchedError = errorCapture.findMatchingError(errorOutput)
-
-					if (matchedError) {
-						// Error found in knowledge base - send to AI with solution
-						console.log(`[deploySfMetadata] ✅ Error matched: ${matchedError.errorId}`)
-
-						const aiMessage = errorCapture.buildAIMessage(matchedError)
-						await cline.say("text", aiMessage)
-
-						// Tell AI to apply the solution and indicate when to retry
-						pushToolResult(
-							formatResponse.toolResult(
-								`${aiMessage}\n` +
-									`Please review the error details above and apply the solution.\n` +
-									`After fixing the issue, indicate when you're ready to retry the deployment.`,
-							),
-						)
-						return
-					}
-				} catch (recoveryError) {
-					console.warn(`[deploySfMetadata] Error recovery system error: ${recoveryError}`)
-					// Fall through to standard error handling
-				}
-			}
-
-			// FALLBACK: Standard error handling (for unmatched errors)
-			console.log(`[deploySfMetadata] No knowledge base match found, using standard error handling`)
-
+			// Handle deployment execution errors
 			let errorMessage = "Failed to execute SF CLI deployment"
 
 			if (deployError.killed) {
 				errorMessage = "Deployment timed out after 10 minutes"
+				await sendDeployStatus(cline, executionId, { executionId, status: "error", error: errorMessage })
 			} else if (deployError.stdout) {
 				// Sometimes SF CLI returns error info in stdout with non-zero exit
 				const formattedResult = formatDeployResult(deployError.stdout, metadataType, metadataName)
@@ -1000,6 +942,8 @@ export async function deploySfMetadataTool(
 
 			// Check for common SF CLI issues
 			errorMessage = handleCommonSfCliErrors(errorMessage)
+
+			await sendDeployStatus(cline, executionId, { executionId, status: "error", error: errorMessage })
 
 			// Update UI: Show error in deployment results
 			const errorResultMessage = JSON.stringify({
