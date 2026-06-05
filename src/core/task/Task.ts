@@ -663,6 +663,20 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 		}
 	}
 
+	private async updateApiRequestProgressStatus(text: string, icon?: string) {
+		const lastApiReqIndex = findLastIndex(this.clineMessages, (m) => m.say === "api_req_started")
+		if (lastApiReqIndex < 0) {
+			return
+		}
+
+		const apiReqMessage = this.clineMessages[lastApiReqIndex]
+		apiReqMessage.progressStatus = {
+			text,
+			icon,
+		}
+		await this.updateClineMessage(apiReqMessage)
+	}
+
 	private async saveClineMessages() {
 		try {
 			await saveTaskMessages({
@@ -1979,6 +1993,8 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 			}),
 		)
 
+		await this.updateApiRequestProgressStatus("Preparing request...", "sync")
+
 		const {
 			showRooIgnoredFiles = true,
 			includeDiagnosticMessages = true,
@@ -1986,6 +2002,7 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 			maxReadFileLine = -1,
 		} = (await this.providerRef.deref()?.getState()) ?? {}
 
+		await this.updateApiRequestProgressStatus("Loading workspace context...", "sync")
 		const parsedUserContent = await processUserContentMentions({
 			userContent,
 			cwd: this.cwd,
@@ -1998,6 +2015,7 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 			maxReadFileLine,
 		})
 
+		await this.updateApiRequestProgressStatus("Collecting environment details...", "server")
 		const environmentDetails = await getEnvironmentDetails(
 			this,
 			provider?.contextProxy.globalStorageUri,
@@ -2023,6 +2041,7 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 		]
 		console.log("Final user content:", finalUserContent)
 
+		await this.updateApiRequestProgressStatus("Finalizing request...", "sync")
 		await this.addToApiConversationHistory({ role: "user", content: finalUserContent })
 		TelemetryService.instance.captureConversationMessage(this.taskId, "user")
 
@@ -2040,6 +2059,7 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 		await this.saveClineMessages()
 		await provider?.postStateToWebview()
 
+		await this.updateApiRequestProgressStatus("Sending request to model...", "sync")
 		try {
 			let cacheWriteTokens = 0
 			let cacheReadTokens = 0
@@ -2743,8 +2763,9 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 			// Awaiting first chunk to see if it will throw an error.
 			this.isWaitingForFirstChunk = true
 			const firstChunk = await iterator.next()
-			yield firstChunk.value
 			this.isWaitingForFirstChunk = false
+			await this.updateApiRequestProgressStatus("Receiving response...", "sync")
+			yield firstChunk.value
 			// Don't reset on success - stay on fallback for 3 minutes
 			// Only the timeout check and 429 errors trigger model switches
 		} catch (error) {

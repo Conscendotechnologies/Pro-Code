@@ -547,6 +547,42 @@ input[cmdk-input]:focus {
 	}
 }
 
+.siid-chat-status-spinner {
+	display: inline-block;
+	animation: spin 1s linear infinite;
+	transform-origin: center;
+}
+
+.siid-chat-status-dots span {
+	display: inline-block;
+	animation: siid-chat-status-dot 1.2s ease-in-out infinite;
+	opacity: 0.25;
+}
+
+.siid-chat-status-dots span:nth-child(2) {
+	animation-delay: 0.2s;
+}
+
+.siid-chat-status-dots span:nth-child(3) {
+	animation-delay: 0.4s;
+}
+
+@keyframes siid-chat-status-dot {
+	0%,
+	20% {
+		opacity: 0.25;
+		transform: translateY(0);
+	}
+	50% {
+		opacity: 1;
+		transform: translateY(-1px);
+	}
+	100% {
+		opacity: 0.25;
+		transform: translateY(0);
+	}
+}
+
 /* Color classes for usage levels */
 .context-usage-low .context-usage-circle-progress {
 	stroke: var(--vscode-charts-green, #4caf50);
