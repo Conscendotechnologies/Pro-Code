@@ -46,6 +46,44 @@ import { AutoApprovedRequestLimitWarning } from "./AutoApprovedRequestLimitWarni
 import { CondenseContextErrorRow, CondensingContextRow, ContextCondenseRow } from "./ContextCondenseRow"
 import CodebaseSearchResultsDisplay from "./CodebaseSearchResultsDisplay"
 
+const STATUS_ACCENT_COLOR = "color-mix(in srgb, var(--vscode-button-background) 78%, white)"
+
+const AnimatedStatusIndicator = ({ icon }: { icon?: string }) => (
+	<span
+		className={`codicon codicon-${icon || "loading"} siid-chat-status-spinner`}
+		style={{ fontSize: "14px", color: STATUS_ACCENT_COLOR }}
+	/>
+)
+
+const AnimatedStatusText = ({
+	text,
+	fontSize = "12px",
+	fontWeight = 500,
+}: {
+	text: string
+	fontSize?: React.CSSProperties["fontSize"]
+	fontWeight?: React.CSSProperties["fontWeight"]
+}) => {
+	const trimmedText = text.trimEnd()
+	const baseText = trimmedText.replace(/\.+$/, "")
+
+	return (
+		<span
+			style={{
+				fontSize,
+				color: STATUS_ACCENT_COLOR,
+				fontWeight,
+			}}>
+			{baseText}
+			<span className="siid-chat-status-dots" aria-hidden="true">
+				<span>.</span>
+				<span>.</span>
+				<span>.</span>
+			</span>
+		</span>
+	)
+}
+
 interface ChatRowProps {
 	message: ClineMessage
 	lastModifiedMessage?: ClineMessage
@@ -314,6 +352,19 @@ export const ChatRowContent = ({
 						</span>,
 					]
 				}
+				if (message.progressStatus?.text) {
+					return [
+						message.progressStatus.icon ? (
+							<span
+								className={`codicon codicon-${message.progressStatus.icon}`}
+								style={{ color: STATUS_ACCENT_COLOR, fontSize: 16 }}
+							/>
+						) : (
+							<ProgressIndicator />
+						),
+						<AnimatedStatusText text={message.progressStatus.text} fontSize="inherit" fontWeight="bold" />,
+					]
+				}
 				// Default streaming indicator
 				return [
 					<ProgressIndicator />,
@@ -340,6 +391,8 @@ export const ChatRowContent = ({
 		isCommandExecuting,
 		isMcpServerResponding,
 		message.partial,
+		message.progressStatus?.icon,
+		message.progressStatus?.text,
 		cancelledColor,
 		normalColor,
 		errorColor,
@@ -1316,21 +1369,37 @@ export const ChatRowContent = ({
 						}
 					}
 
+					const isApiRequestActive =
+						isLast &&
+						(cost === null || cost === undefined) &&
+						apiReqCancelReason === undefined &&
+						!apiRequestFailedMessage &&
+						!apiReqStreamingFailedMessage
+					const hasReceivedResponse = isApiRequestActive ? isStreaming : cost !== null && cost !== undefined
+					const statusText =
+						message.progressStatus?.text ??
+						t(hasReceivedResponse ? "chat:apiRequest.receiving" : "chat:apiRequest.sending")
+					const statusIcon = message.progressStatus?.icon
+
 					return (
 						<>
 							<div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "2px" }}>
-								<span
-									className="codicon codicon-loading codicon-modifier-spin"
-									style={{ fontSize: "14px", color: "var(--vscode-descriptionForeground)" }}
-								/>
-								<span
-									style={{
-										fontSize: "12px",
-										color: "var(--vscode-descriptionForeground)",
-										fontWeight: 500,
-									}}>
-									API Request...
-								</span>
+								{isApiRequestActive ? <AnimatedStatusIndicator icon={statusIcon} /> : null}
+								{isApiRequestActive ? (
+									<AnimatedStatusText text={statusText} />
+								) : (
+									<>
+										{statusIcon ? <AnimatedStatusIndicator icon={statusIcon} /> : null}
+										<span
+											style={{
+												fontSize: "12px",
+												color: STATUS_ACCENT_COLOR,
+												fontWeight: 500,
+											}}>
+											{statusText}
+										</span>
+									</>
+								)}
 							</div>
 							{approvalSummary && (
 								<div

@@ -1105,8 +1105,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 		const startIndex = Math.max(0, currentMessageCount - 500)
 		const recentMessages = modifiedMessages.slice(startIndex)
 
-		// Find if there's a completion_result or if there are multiple api_req_started messages
-		const lastCompletionResult = findLast(modifiedMessages, (msg) => msg.say === "completion_result")
+		// Find if there are multiple api_req_started messages
 		const apiReqStartedMessages = modifiedMessages.filter((msg) => msg.say === "api_req_started")
 		const hasMultipleThinking = apiReqStartedMessages.length > 1
 		const latestApiReqStarted = apiReqStartedMessages.at(-1)
@@ -1149,10 +1148,6 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 					hasMultipleThinking &&
 					message.ts !== latestApiReqStarted?.ts
 				) {
-					return false
-				}
-				// Hide api_req_started when task is completed
-				if (message.say === "api_req_started" && lastCompletionResult) {
 					return false
 				}
 				// Hide text messages that come between thinking/ask messages (informational boxes)
@@ -1245,10 +1240,6 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 						} catch {
 							return false
 						}
-					}
-					// Hide api_req_started when task is completed
-					if (lastCompletionResult) {
-						return false
 					}
 					break
 			}
