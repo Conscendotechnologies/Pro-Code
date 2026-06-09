@@ -28,6 +28,8 @@ import { CodeIndexManager } from "../../../services/code-index/manager"
 import { getSfDeployMetadataDescription } from "./sf-deploy-metadata"
 import { getValidateSfMetadataDescription } from "./validate-sf-metadata"
 import { getGenerateCustomObjectDescription } from "./generate-custom-object"
+import { getGenerateCustomFieldDescription } from "./generate-custom-field"
+import { getAssignFieldPermissionsDescription } from "./assign-field-permissions"
 
 // Map of tool names to their description functions
 const toolDescriptionMap: Record<string, (args: ToolArgs) => string | undefined> = {
@@ -55,6 +57,8 @@ const toolDescriptionMap: Record<string, (args: ToolArgs) => string | undefined>
 	sf_deploy_metadata: (args) => getSfDeployMetadataDescription(args),
 	validate_sf_metadata: (args) => getValidateSfMetadataDescription(args),
 	generate_custom_object: (args) => getGenerateCustomObjectDescription(args),
+	generate_custom_field: (args) => getGenerateCustomFieldDescription(args),
+	assign_field_permissions: (args) => getAssignFieldPermissionsDescription(args),
 }
 
 export function getToolDescriptionsForMode(
@@ -163,4 +167,6 @@ export {
 	getSfDeployMetadataDescription,
 	getValidateSfMetadataDescription,
 	getGenerateCustomObjectDescription,
+	getGenerateCustomFieldDescription,
+	getAssignFieldPermissionsDescription,
 }

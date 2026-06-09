@@ -85,6 +85,21 @@ export const toolParamNames = [
 	"name_field_label",
 	"create_tab",
 	"fields_json",
+	"object_name",
+	"picklist_values",
+	"reference_to",
+	"delete_constraint",
+	"relationship_label",
+	"relationship_name",
+	"formula",
+	"external_id",
+	"profile_name",
+	"type",
+	"length",
+	"precision",
+	"scale",
+	"required",
+	"unique",
 ] as const
 
 export type ToolParamName = (typeof toolParamNames)[number]
@@ -256,6 +271,8 @@ export const TOOL_DISPLAY_NAMES: Record<ToolName, string> = {
 	sf_deploy_metadata: "deploy salesforce metadata",
 	validate_sf_metadata: "validate salesforce metadata",
 	generate_custom_object: "generate custom objects",
+	generate_custom_field: "generate custom fields",
+	assign_field_permissions: "assign field permissions",
 } as const
 
 // Define available tool groups.

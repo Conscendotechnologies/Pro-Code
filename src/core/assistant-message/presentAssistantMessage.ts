@@ -39,6 +39,8 @@ import { retrieveSfMetadataTool } from "../tools/retrieveSfMetadataTool"
 import { deploySfMetadataTool } from "../tools/sfDeployMetadataTool"
 import { validateSfMetadataTool } from "../tools/validateSfMetadataTool"
 import { generateCustomObjectTool } from "../tools/generateCustomObjectTool"
+import { generateCustomFieldTool } from "../tools/generateCustomFieldTool"
+import { assignFieldPermissionsTool } from "../tools/assignFieldPermissionsTool"
 
 /**
  * Processes and presents assistant message content to the user interface.
@@ -592,6 +594,26 @@ export async function presentAssistantMessage(cline: Task) {
 					break
 				case "generate_custom_object":
 					await generateCustomObjectTool(
+						cline,
+						block,
+						askApproval,
+						handleError,
+						pushToolResult,
+						removeClosingTag,
+					)
+					break
+				case "generate_custom_field":
+					await generateCustomFieldTool(
+						cline,
+						block,
+						askApproval,
+						handleError,
+						pushToolResult,
+						removeClosingTag,
+					)
+					break
+				case "assign_field_permissions":
+					await assignFieldPermissionsTool(
 						cline,
 						block,
 						askApproval,
