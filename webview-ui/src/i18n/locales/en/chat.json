@@ -144,6 +144,8 @@
 		"title": "API Request",
 		"failed": "API Request Failed",
 		"streaming": "API Request...",
+		"sending": "Sending request to model...",
+		"receiving": "Receiving response...",
 		"cancelled": "API Request Cancelled",
 		"streamingFailed": "API Streaming Failed"
 	},
