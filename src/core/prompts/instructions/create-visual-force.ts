@@ -24,7 +24,7 @@ export async function createVisualForceInstructions(
 			`[VISUAL FORCE] Successfully loaded Visual Force instructions (${customInstructions.length} characters)`,
 		)
 		if (!customInstructions.trim()) {
-			throw new Error(`Visual Force instructions file at '${visualForceInstructionsPath}' is empty.`)
+			return ""
 		}
 
 		// If no section specified, return full guide with XML and deployment instructions
@@ -52,6 +52,6 @@ export async function createVisualForceInstructions(
 		if (error instanceof Error && error.message.includes("is empty")) {
 			throw error
 		}
-		throw new Error(`Visual Force instructions file not found at '${visualForceInstructionsPath}'.`)
+		return ""
 	}
 }

@@ -40,6 +40,8 @@ export const toolNames = [
 	"generate_custom_object",
 	"generate_custom_field",
 	"assign_field_permissions",
+	"generate_apex_class",
+	"generate_apex_trigger",
 ] as const
 
 export const toolNamesSchema = z.enum(toolNames)

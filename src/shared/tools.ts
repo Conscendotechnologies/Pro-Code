@@ -100,6 +100,10 @@ export const toolParamNames = [
 	"scale",
 	"required",
 	"unique",
+	"name",
+	"is_test",
+	"api_version",
+	"sharing",
 ] as const
 
 export type ToolParamName = (typeof toolParamNames)[number]
@@ -273,6 +277,8 @@ export const TOOL_DISPLAY_NAMES: Record<ToolName, string> = {
 	generate_custom_object: "generate custom objects",
 	generate_custom_field: "generate custom fields",
 	assign_field_permissions: "assign field permissions",
+	generate_apex_class: "generate apex classes",
+	generate_apex_trigger: "generate apex triggers",
 } as const
 
 // Define available tool groups.
