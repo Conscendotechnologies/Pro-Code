@@ -41,6 +41,8 @@ import { BatchDiffApproval } from "./BatchDiffApproval"
 import { ProgressIndicator } from "./ProgressIndicator"
 import { Markdown } from "./Markdown"
 import { CommandExecution } from "./CommandExecution"
+import { SfDeployExecution } from "./SfDeployExecution"
+import { SfRetrieveExecution } from "./SfRetrieveExecution"
 import { CommandExecutionError } from "./CommandExecutionError"
 import { AutoApprovedRequestLimitWarning } from "./AutoApprovedRequestLimitWarning"
 import { CondenseContextErrorRow, CondensingContextRow, ContextCondenseRow } from "./ContextCondenseRow"
@@ -1072,7 +1074,18 @@ export const ChatRowContent = ({
 						</div>
 					</>
 				)
-			case "deploySfMetadata":
+			case "deploySfMetadata": {
+				// say "tool" result message — suppress it; content is rendered inside the ask block below
+				if (message.type === "say") return null
+
+				// Find the result say message that follows this approval ask
+				const deployResultMsg = followingMessages?.find((m) => {
+					if (m.say !== "tool") return false
+					const t = safeJsonParse<ClineSayTool>(m.text)
+					return t?.tool === "deploySfMetadata"
+				})
+				const deployResult = deployResultMsg ? safeJsonParse<ClineSayTool>(deployResultMsg.text) : null
+
 				return (
 					<>
 						<div style={headerStyle}>
@@ -1086,6 +1099,22 @@ export const ChatRowContent = ({
 							<div
 								style={{
 									marginTop: "4px",
+									padding: "8px 12px",
+									fontSize: "var(--vscode-font-size)",
+									color: "var(--vscode-descriptionForeground)",
+								}}>
+								<MarkdownBlock markdown={tool.content} />
+							</div>
+						)}
+						<SfDeployExecution
+							metadataType={tool.metadataType ?? ""}
+							metadataName={tool.metadataName ?? ""}
+							isLast={isLast}
+						/>
+						{deployResult?.content && (
+							<div
+								style={{
+									marginTop: "4px",
 									backgroundColor: "var(--vscode-editor-background)",
 									border: "1px solid var(--vscode-badge-background)",
 									borderRadius: "4px",
@@ -1093,12 +1122,13 @@ export const ChatRowContent = ({
 									marginBottom: "8px",
 								}}>
 								<div style={{ padding: "12px 16px" }}>
-									<MarkdownBlock markdown={tool.content} />
+									<MarkdownBlock markdown={deployResult.content} />
 								</div>
 							</div>
 						)}
 					</>
 				)
+			}
 			case "retrieveSfMetadata":
 				return (
 					<>
@@ -1109,6 +1139,11 @@ export const ChatRowContent = ({
 								{tool.metadataName && ` - ${tool.metadataName}`}
 							</span>
 						</div>
+						<SfRetrieveExecution
+							metadataType={tool.metadataType ?? ""}
+							metadataName={tool.metadataName}
+							isLast={isLast}
+						/>
 						{tool.content && (
 							<div
 								style={{
