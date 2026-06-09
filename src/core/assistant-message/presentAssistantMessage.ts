@@ -38,6 +38,7 @@ import { applyDiffToolLegacy } from "../tools/applyDiffTool"
 import { retrieveSfMetadataTool } from "../tools/retrieveSfMetadataTool"
 import { deploySfMetadataTool } from "../tools/sfDeployMetadataTool"
 import { validateSfMetadataTool } from "../tools/validateSfMetadataTool"
+import { generateCustomObjectTool } from "../tools/generateCustomObjectTool"
 
 /**
  * Processes and presents assistant message content to the user interface.
@@ -581,6 +582,16 @@ export async function presentAssistantMessage(cline: Task) {
 					break
 				case "validate_sf_metadata":
 					await validateSfMetadataTool(
+						cline,
+						block,
+						askApproval,
+						handleError,
+						pushToolResult,
+						removeClosingTag,
+					)
+					break
+				case "generate_custom_object":
+					await generateCustomObjectTool(
 						cline,
 						block,
 						askApproval,
