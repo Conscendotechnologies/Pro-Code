@@ -20,20 +20,20 @@ let schemaLoaded = false
 async function ensureSchemaLoaded(): Promise<void> {
 	if (schemaLoaded) return
 
-	// Locate the XSD file bundled with the extension
-	const possiblePaths = [
-		path.join(__dirname, "..", "..", "Validator_Xsds", "MedataXsd.xml"), // from dist/src/core/tools → ../../Validator_Xsds
-		path.join(__dirname, "..", "..", "..", "Validator_Xsds", "MedataXsd.xml"), // from src/core/tools → ../../Validator_Xsds
+	// Try bundled path first (dist/Validator_Xsds/), then dev path
+	const tryPaths = [
+		path.join(__dirname, "Validator_Xsds", "MedataXsd.xml"),
+		path.join(__dirname, "..", "..", "Validator_Xsds", "MedataXsd.xml"),
 	]
 
-	for (const schemaPath of possiblePaths) {
+	for (const p of tryPaths) {
 		try {
-			await fs.access(schemaPath)
-			await loadSchema(schemaPath)
+			await fs.access(p)
+			await loadSchema(p)
 			schemaLoaded = true
 			return
 		} catch {
-			// Try next path
+			// try next
 		}
 	}
 
@@ -67,22 +67,17 @@ export async function validateSfMetadataTool(
 
 		task.consecutiveMistakeCount = 0
 
-		// Resolve path — handle relative and absolute
 		const workspaceRoot = getWorkspacePath(task.cwd)
 		const resolvedPath = path.isAbsolute(metadataPath) ? metadataPath : path.resolve(workspaceRoot, metadataPath)
 
 		await task.say("tool", `Validating Salesforce metadata at: ${metadataPath}`)
 
-		// Load XSD schema (cached after first load)
 		await ensureSchemaLoaded()
 
-		// Check if it's a file or directory
 		const stat = await fs.stat(resolvedPath)
-
 		const filesToValidate: string[] = []
 
 		if (stat.isDirectory()) {
-			// Walk directory for known metadata files
 			const entries = await fs.readdir(resolvedPath, { recursive: true, withFileTypes: true })
 			for (const entry of entries) {
 				if (entry.isFile()) {
@@ -106,7 +101,6 @@ export async function validateSfMetadataTool(
 			return
 		}
 
-		// Validate each file
 		const lines: string[] = []
 		lines.push(`📋 Validation Report for: ${metadataPath}`)
 		lines.push(`   Files to check: ${filesToValidate.length}`)
@@ -160,21 +154,12 @@ export async function validateSfMetadataTool(
 			lines.push("")
 			lines.push("⚠️  Errors found against Salesforce Metadata API XSD (v66.0).")
 			lines.push("   Fix these before deploying with sf_deploy_metadata.")
-			lines.push("   Common root causes:")
-			lines.push("   • Missing required elements — check the <element> listed in error messages")
-			lines.push("   • Invalid enum values — use one of the allowed values shown")
-			lines.push("   • Double underscores (__c_): remove __c from custom names before combining")
-			lines.push("   • Missing metadata companion: every .cls needs .cls-meta.xml")
-		} else if (totalWarnings > 0) {
-			lines.push("")
-			lines.push("✅ XSD validation passed. Warnings noted above — address if relevant, then deploy.")
 		} else {
 			lines.push("")
 			lines.push("✅ All files passed XSD validation against Salesforce Metadata API v66.0.")
 			lines.push("   Ready for deployment with sf_deploy_metadata.")
 		}
 
-		// Structured JSON
 		lines.push("")
 		lines.push("```json")
 		lines.push(JSON.stringify(allResults, null, 2))
