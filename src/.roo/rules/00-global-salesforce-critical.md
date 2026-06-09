@@ -1,13 +1,15 @@
-# Global Critical Salesforce Instructions
+# Global Salesforce Instructions
 
-These global instructions apply to ALL modes, but are especially critical in `salesforce` mode:
+These apply to ALL modes:
 
-1. Metadata Pairing (CRITICAL): Any new Apex class, trigger, or LWC MUST include its companion `*-meta.xml` (correct `<apiVersion>` & `<status>`).
-2. Schema Verification: NEVER invent fields or objects. Search the workspace first. If not found, ask before creating metadata.
-3. Tests & Coverage: For any changed production class, create/update a corresponding test class targeting ≥85% coverage with bulk, positive, negative cases.
-4. Governor Limits: Bulkify logic; no SOQL or DML inside loops; minimize heap and query counts.
-5. Security: Apply CRUD/FLS checks in service/controller layers; default to `with sharing`.
-6. Minimal Diff Principle: Change only necessary lines. Do not reformat entire files unless explicitly requested.
-7. Clarify Ambiguity: If any specification (field name, object, behavior) is ambiguous, ask before proceeding.
+1. **Use generators for metadata**: Always use the generate\_\* tools (generate_custom_object, generate_custom_field, generate_apex_class, etc.) for creating Salesforce metadata. Never generate raw XML manually.
 
-Always follow these prior to finalizing tool usage (apply_diff/write_to_file).
+2. **Validate before deploy**: Run validate_sf_metadata before sf_deploy_metadata. Fix errors before deploying.
+
+3. **Governor Limits**: Bulkify all Apex logic; no SOQL or DML inside loops.
+
+4. **Security**: Use `with sharing` on Apex classes. Use `WITH USER_MODE` in SOQL. Apply CRUD/FLS checks.
+
+5. **Tests**: For any production Apex change, create/update a test class targeting >=85% coverage.
+
+6. **Clarify ambiguity**: Ask before inventing fields, objects, or schema.

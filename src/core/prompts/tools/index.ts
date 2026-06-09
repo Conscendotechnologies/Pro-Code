@@ -30,6 +30,8 @@ import { getValidateSfMetadataDescription } from "./validate-sf-metadata"
 import { getGenerateCustomObjectDescription } from "./generate-custom-object"
 import { getGenerateCustomFieldDescription } from "./generate-custom-field"
 import { getAssignFieldPermissionsDescription } from "./assign-field-permissions"
+import { getGenerateApexClassDescription } from "./generate-apex-class"
+import { getGenerateApexTriggerDescription } from "./generate-apex-trigger"
 
 // Map of tool names to their description functions
 const toolDescriptionMap: Record<string, (args: ToolArgs) => string | undefined> = {
@@ -169,4 +171,6 @@ export {
 	getGenerateCustomObjectDescription,
 	getGenerateCustomFieldDescription,
 	getAssignFieldPermissionsDescription,
+	getGenerateApexClassDescription,
+	getGenerateApexTriggerDescription,
 }

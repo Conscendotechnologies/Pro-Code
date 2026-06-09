@@ -75,3 +75,5 @@ export interface GeneratedFile {
 	path: string // Relative to workspace root
 	content: string
 }
+
+export const DEFAULT_API_VERSION = "60.0"

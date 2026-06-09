@@ -41,6 +41,8 @@ import { validateSfMetadataTool } from "../tools/validateSfMetadataTool"
 import { generateCustomObjectTool } from "../tools/generateCustomObjectTool"
 import { generateCustomFieldTool } from "../tools/generateCustomFieldTool"
 import { assignFieldPermissionsTool } from "../tools/assignFieldPermissionsTool"
+import { generateApexClassTool } from "../tools/generateApexClassTool"
+import { generateApexTriggerTool } from "../tools/generateApexTriggerTool"
 
 /**
  * Processes and presents assistant message content to the user interface.
