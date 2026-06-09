@@ -2,13 +2,15 @@ name: Siid-Code Auto-Version & Release
 
 on:
   push:
-    branches: 
+    branches:
       - main
       - main-stable-agent
+      - KODE-2.o
   pull_request:
     branches:
       - main
       - main-stable-agent
+      - KODE-2.o
     types: [opened, synchronize, reopened]
   workflow_dispatch:
     inputs:
@@ -141,7 +143,7 @@ jobs:
   # Job 2: Auto-Version and Release (runs on push to main branches)
   auto-version-and-release:
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/main-stable-agent')
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/main-stable-agent' || github.ref == 'refs/heads/KODE-2.o')
     
     steps:
       - name: Checkout repository
