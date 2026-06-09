@@ -3,102 +3,46 @@ import * as path from "path"
 import * as fs from "fs/promises"
 import { GlobalFileNames } from "../../../shared/globalFileNames"
 
-/**
- * Loads Salesforce-specific instructions from the global storage
- * @param context - VSCode extension context
- * @param instructionFilePath - Path to the instruction file (from GlobalFileNames)
- * @returns The instruction content or throws an error
- */
 async function loadSalesforceInstruction(
 	context: vscode.ExtensionContext | undefined,
 	instructionFilePath: string,
 ): Promise<string> {
-	if (!context) {
-		throw new Error("Extension context is not available.")
-	}
-
-	const instructionPath = path.join(context.globalStorageUri.fsPath, "instructions/modes/", instructionFilePath)
-
+	if (!context) return ""
+	const p = path.join(context.globalStorageUri.fsPath, "instructions/modes/", instructionFilePath)
 	try {
-		const content = await fs.readFile(instructionPath, "utf-8")
-		if (content.trim()) {
-			return content.trim()
-		}
-		throw new Error(`Instruction file at '${instructionPath}' is empty.`)
-	} catch (error) {
-		console.error(`Error reading instruction file ${instructionFilePath}:`, error)
-		throw new Error(
-			`Could not load instructions from '${instructionPath}'. Please ensure the instruction files are properly installed.`,
-		)
+		const c = await fs.readFile(p, "utf-8")
+		return c.trim() || ""
+	} catch {
+		return ""
 	}
 }
-
-/**
- * Loads Assignment Rules instructions
- */
-export async function assignmentRulesInstructions(context: vscode.ExtensionContext | undefined): Promise<string> {
-	return loadSalesforceInstruction(context, GlobalFileNames.assignmentRulesInstructions)
+export async function assignmentRulesInstructions(c: vscode.ExtensionContext | undefined) {
+	return loadSalesforceInstruction(c, GlobalFileNames.assignmentRulesInstructions)
 }
-
-/**
- * Loads Custom Field instructions
- */
-export async function customFieldInstructions(context: vscode.ExtensionContext | undefined): Promise<string> {
-	return loadSalesforceInstruction(context, GlobalFileNames.customFieldInstructions)
+export async function customFieldInstructions(c: vscode.ExtensionContext | undefined) {
+	return loadSalesforceInstruction(c, GlobalFileNames.customFieldInstructions)
 }
-
-/**
- * Loads Custom Object instructions
- */
-export async function customObjectInstructions(context: vscode.ExtensionContext | undefined): Promise<string> {
-	return loadSalesforceInstruction(context, GlobalFileNames.customObjectInstructions)
+export async function customObjectInstructions(c: vscode.ExtensionContext | undefined) {
+	return loadSalesforceInstruction(c, GlobalFileNames.customObjectInstructions)
 }
-
-/**
- * Loads Field Permissions instructions
- */
-export async function fieldPermissionsInstructions(context: vscode.ExtensionContext | undefined): Promise<string> {
-	return loadSalesforceInstruction(context, GlobalFileNames.fieldPermissionsInstructions)
+export async function fieldPermissionsInstructions(c: vscode.ExtensionContext | undefined) {
+	return loadSalesforceInstruction(c, GlobalFileNames.fieldPermissionsInstructions)
 }
-
-/**
- * Loads Object Permissions instructions
- */
-export async function objectPermissionsInstructions(context: vscode.ExtensionContext | undefined): Promise<string> {
-	return loadSalesforceInstruction(context, GlobalFileNames.objectPermissionsInstructions)
+export async function objectPermissionsInstructions(c: vscode.ExtensionContext | undefined) {
+	return loadSalesforceInstruction(c, GlobalFileNames.objectPermissionsInstructions)
 }
-
-/**
- * Loads Path Creation instructions
- */
-export async function pathCreationInstructions(context: vscode.ExtensionContext | undefined): Promise<string> {
-	return loadSalesforceInstruction(context, GlobalFileNames.pathCreationInstructions)
+export async function pathCreationInstructions(c: vscode.ExtensionContext | undefined) {
+	return loadSalesforceInstruction(c, GlobalFileNames.pathCreationInstructions)
 }
-
-/**
- * Loads Profile instructions
- */
-export async function profileInstructions(context: vscode.ExtensionContext | undefined): Promise<string> {
-	return loadSalesforceInstruction(context, GlobalFileNames.profileInstructions)
+export async function profileInstructions(c: vscode.ExtensionContext | undefined) {
+	return loadSalesforceInstruction(c, GlobalFileNames.profileInstructions)
 }
-
-/**
- * Loads Record Types instructions
- */
-export async function recordTypesInstructions(context: vscode.ExtensionContext | undefined): Promise<string> {
-	return loadSalesforceInstruction(context, GlobalFileNames.recordTypesInstructions)
+export async function recordTypesInstructions(c: vscode.ExtensionContext | undefined) {
+	return loadSalesforceInstruction(c, GlobalFileNames.recordTypesInstructions)
 }
-
-/**
- * Loads Role Creation instructions
- */
-export async function roleCreationInstructions(context: vscode.ExtensionContext | undefined): Promise<string> {
-	return loadSalesforceInstruction(context, GlobalFileNames.roleCreationInstructions)
+export async function roleCreationInstructions(c: vscode.ExtensionContext | undefined) {
+	return loadSalesforceInstruction(c, GlobalFileNames.roleCreationInstructions)
 }
-
-/**
- * Loads Validation Rules instructions
- */
-export async function validationRulesInstructions(context: vscode.ExtensionContext | undefined): Promise<string> {
-	return loadSalesforceInstruction(context, GlobalFileNames.validationRulesInstructions)
+export async function validationRulesInstructions(c: vscode.ExtensionContext | undefined) {
+	return loadSalesforceInstruction(c, GlobalFileNames.validationRulesInstructions)
 }

@@ -19,7 +19,7 @@ export async function createAsyncApexInstructions(
 	try {
 		const customInstructions = await fs.readFile(asyncApexInstructionsPath, "utf-8")
 		if (!customInstructions.trim()) {
-			throw new Error(`Asynchronous Apex instructions file at '${asyncApexInstructionsPath}' is empty.`)
+			return ""
 		}
 
 		// If no section specified, return full guide
@@ -42,6 +42,6 @@ export async function createAsyncApexInstructions(
 		if (error instanceof Error && error.message.includes("is empty")) {
 			throw error
 		}
-		throw new Error(`Asynchronous Apex instructions file not found at '${asyncApexInstructionsPath}'.`)
+		return ""
 	}
 }

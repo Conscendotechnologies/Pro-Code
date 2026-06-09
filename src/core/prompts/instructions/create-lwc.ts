@@ -19,7 +19,7 @@ export async function createLWCInstructions(
 	try {
 		const customInstructions = await fs.readFile(lwcInstructionsPath, "utf-8")
 		if (!customInstructions.trim()) {
-			throw new Error(`LWC instructions file at '${lwcInstructionsPath}' is empty.`)
+			return ""
 		}
 
 		// If no section specified, return full guide with XML meta and deployment instructions
@@ -42,6 +42,6 @@ export async function createLWCInstructions(
 		if (error instanceof Error && error.message.includes("is empty")) {
 			throw error
 		}
-		throw new Error(`LWC instructions file not found at '${lwcInstructionsPath}'.`)
+		return ""
 	}
 }

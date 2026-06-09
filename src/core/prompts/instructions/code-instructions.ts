@@ -24,7 +24,7 @@ async function loadCodeInstruction(
 		if (content.trim()) {
 			return content.trim()
 		}
-		throw new Error(`Instruction file at '${instructionPath}' is empty.`)
+		return ""
 	} catch (error) {
 		console.error(`Error reading instruction file ${instructionFilePath}:`, error)
 		throw new Error(

@@ -58,7 +58,8 @@ async function loadGuide(type: "apex" | "lwc"): Promise<{ content: string; path:
 		return { content, path: guidePath }
 	} catch (error) {
 		log("red", `Error loading guide from ${guidePath}:`, error)
-		throw error
+		console.error("Guides no longer bundled")
+		process.exit(0)
 	}
 }
 

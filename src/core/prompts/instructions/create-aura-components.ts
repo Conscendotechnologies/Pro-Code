@@ -24,7 +24,7 @@ export async function createAuraComponentsInstructions(
 			`[AURA COMPONENTS] Successfully loaded Aura Components instructions (${customInstructions.length} characters)`,
 		)
 		if (!customInstructions.trim()) {
-			throw new Error(`Aura Components instructions file at '${auraComponentsInstructionsPath}' is empty.`)
+			return ""
 		}
 
 		// If no section specified, return full guide with XML and deployment instructions
