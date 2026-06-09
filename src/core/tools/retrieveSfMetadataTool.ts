@@ -1,9 +1,34 @@
 import * as path from "path"
-import { execSync } from "child_process"
+import { exec } from "child_process"
 
 import { Task } from "../task/Task"
 import { ToolUse, AskApproval, HandleError, PushToolResult, RemoveClosingTag } from "../../shared/tools"
 import { formatResponse } from "../prompts/responses"
+import type { SfRetrieveExecutionStatus } from "@siid-code/types"
+
+function runSfCliRetrieve(command: string, cwd: string): Promise<string> {
+	return new Promise((resolve, reject) => {
+		exec(
+			command,
+			{ cwd, encoding: "utf-8", timeout: 120000, maxBuffer: 10 * 1024 * 1024, windowsHide: true },
+			(error, stdout, stderr) => {
+				if (error) {
+					const wrapped = error as Error & { stdout?: string; stderr?: string; killed?: boolean }
+					wrapped.stdout = stdout
+					wrapped.stderr = stderr
+					reject(wrapped)
+					return
+				}
+				resolve(stdout)
+			},
+		)
+	})
+}
+
+async function sendRetrieveStatus(cline: Task, status: SfRetrieveExecutionStatus): Promise<void> {
+	const provider = cline.providerRef.deref()
+	provider?.postMessageToWebview({ type: "sfRetrieveExecutionStatus", text: JSON.stringify(status) })
+}
 
 /**
  * Metadata type configuration for SF CLI commands
@@ -197,7 +222,7 @@ export function formatSfOutput(output: string, metadataType: string, metadataNam
 				if (!metadataName) {
 					return `No ${metadataType} metadata found in the org.`
 				}
-				return `No files were retrieved for ${metadataType} '${metadataName}'. The component may not exist in the org.`
+				return `${metadataType} '${metadataName}' does not exist in the org. No files were retrieved.`
 			}
 
 			// Build a map of unique components with their status
@@ -229,18 +254,18 @@ export function formatSfOutput(output: string, metadataType: string, metadataNam
 					.map(([name, status]) => `${name}: ${status}`)
 					.join("\n")
 
-				return `Retrieved ${totalCount} ${metadataType} component(s) from the org (${statusSummary}):\n${first10}\n... and ${totalCount - 10} more`
+				return `Found ${totalCount} ${metadataType} component(s) (${statusSummary}):\n${first10}\n... and ${totalCount - 10} more`
 			}
 
 			// 10 or fewer - show full list
 			const componentList = entries.map(([name, status]) => `${name}: ${status}`).join("\n")
 
 			if (!metadataName) {
-				return `Retrieved ${totalCount} ${metadataType} component(s) from the org:\n${componentList}`
+				return `Found ${totalCount} ${metadataType} component(s):\n${componentList}`
 			}
 
 			// Specific component retrieval
-			return `Retrieved ${metadataType} '${metadataName}' from the org:\n${componentList}`
+			return `Successfully retrieved ${metadataType} '${metadataName}':\n${componentList}`
 		} else {
 			// Error in SF CLI response
 			const errorMessage = jsonOutput.message || jsonOutput.result?.message || "Unknown error occurred"
@@ -333,20 +358,17 @@ export async function retrieveSfMetadataTool(
 		}
 
 		// Execute the SF CLI command
+		const executionId = `${cline.taskId}-${Date.now()}`
+		await sendRetrieveStatus(cline, { executionId, status: "retrieving", metadataType, metadataName })
+
 		try {
-			// Execute command synchronously with timeout
-			const output = execSync(command, {
-				cwd: cline.cwd,
-				encoding: "utf-8",
-				timeout: 120000, // 2 minute timeout
-				maxBuffer: 10 * 1024 * 1024, // 10MB buffer
-				stdio: ["pipe", "pipe", "pipe"],
-			})
+			const output = await runSfCliRetrieve(command, cline.cwd)
+
+			await sendRetrieveStatus(cline, { executionId, status: "completed" })
 
 			// Format and return the result
-			// const formattedResult = formatSfOutput(output, metadataType, metadataName)
-			cline.say("completion_result", `Retrieved ${metadataType} metadata successfully.`)
-			pushToolResult(output)
+			const formattedResult = formatSfOutput(output, metadataType, metadataName)
+			pushToolResult(formattedResult)
 		} catch (execError: any) {
 			// Handle execution errors
 			let errorMessage = "Failed to execute SF CLI command"
@@ -358,6 +380,7 @@ export async function retrieveSfMetadataTool(
 			} else if (execError.stdout) {
 				// Sometimes SF CLI returns error info in stdout with non-zero exit
 				const formattedResult = formatSfOutput(execError.stdout, metadataType, metadataName)
+				await sendRetrieveStatus(cline, { executionId, status: "error", error: "SF CLI command failed" })
 				cline.say("error", `SF CLI command failed.`)
 				pushToolResult(formattedResult)
 				return
@@ -376,6 +399,7 @@ export async function retrieveSfMetadataTool(
 				errorMessage =
 					"Salesforce CLI (sf) is not installed. Please install it from https://developer.salesforce.com/tools/salesforcecli"
 			}
+			await sendRetrieveStatus(cline, { executionId, status: "error", error: errorMessage })
 			cline.say("error", formatResponse.toolError(`SF CLI Error: ${errorMessage}`))
 			pushToolResult(formatResponse.toolError(`SF CLI Error: ${errorMessage}`))
 		}

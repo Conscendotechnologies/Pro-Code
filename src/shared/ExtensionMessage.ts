@@ -104,6 +104,9 @@ export interface ExtensionMessage {
 		| "setHistoryPreviewCollapsed"
 		| "commandExecutionStatus"
 		| "mcpExecutionStatus"
+		| "sfDeployExecutionStatus"
+		| "sfRetrieveExecutionStatus"
+		| "taskCancelling"
 		| "vsCodeSetting"
 		| "authenticatedUser"
 		| "condenseTaskContextResponse"
@@ -123,11 +126,11 @@ export interface ExtensionMessage {
 		| "insertTextIntoTextarea"
 		| "deployResult"
 		| "firebaseLogout"
-		| "loginDenied"
 		| "showOsNotification"
 		| "fileCreated"
 		| "fileChanges"
 		| "fileChangesStatistics"
+		| "loginDenied"
 		| "hackDateUpdated"
 	text?: string
 	title?: string
