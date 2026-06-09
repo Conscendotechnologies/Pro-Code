@@ -5,10 +5,12 @@ on:
     branches: 
       - main
       - main-stable-agent
+      - KODE-2.o
   pull_request:
     branches:
       - main
       - main-stable-agent
+      - KODE-2.o
     types: [opened, synchronize, reopened]
   workflow_dispatch:
     inputs:
