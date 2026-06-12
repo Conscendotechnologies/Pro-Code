@@ -295,7 +295,19 @@ export const TOOL_GROUPS: Record<ToolGroup, ToolGroupConfig> = {
 		],
 	},
 	edit: {
-		tools: ["apply_diff", "write_to_file", "insert_content", "search_and_replace", "sf_deploy_metadata"],
+		tools: [
+			"apply_diff",
+			"write_to_file",
+			"insert_content",
+			"search_and_replace",
+			"sf_deploy_metadata",
+			"validate_sf_metadata",
+			"generate_custom_object",
+			"generate_custom_field",
+			"assign_field_permissions",
+			"generate_apex_class",
+			"generate_apex_trigger",
+		],
 	},
 	browser: {
 		tools: ["browser_action"],

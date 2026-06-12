@@ -8,9 +8,8 @@ Parameters:
 - metadata_path: (required) Path to the metadata file or folder to validate. Examples: "force-app/main/default/objects/Invoice__c" (validates entire object + all fields within), "force-app/main/default/classes/InvoiceService.cls" (validates the .cls file)
 
 When to use this tool:
-- After writing any Salesforce metadata XML with write_to_file
-- Before calling sf_deploy_metadata
-- When unsure if XML is correctly structured
+- After manually writing or editing XML with write_to_file or search_and_replace
+- When a deploy fails and you want to catch structural errors before retrying
 
 What it validates:
 - XSD structure: every element exists in the schema, required elements present, enum values valid, boolean types correct

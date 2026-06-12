@@ -19,7 +19,7 @@ Parameters:
 
 Supported field types (for fields_json): Text, Number, Currency, Picklist, MultiselectPicklist, Lookup, Formula, AutoNumber, Checkbox, Date, DateTime, Email, Phone, Url, Percent, TextArea, LongTextArea, RichTextArea, Location
 
-After generation, use validate_sf_metadata to verify the output, then sf_deploy_metadata to deploy.
+XML is generated and XSD-validated automatically. Use sf_deploy_metadata to deploy.
 
 Usage:
 <generate_custom_object>
