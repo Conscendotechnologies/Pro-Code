@@ -61,6 +61,8 @@ const toolDescriptionMap: Record<string, (args: ToolArgs) => string | undefined>
 	generate_custom_object: (args) => getGenerateCustomObjectDescription(args),
 	generate_custom_field: (args) => getGenerateCustomFieldDescription(args),
 	assign_field_permissions: (args) => getAssignFieldPermissionsDescription(args),
+	generate_apex_class: (args) => getGenerateApexClassDescription(args),
+	generate_apex_trigger: (args) => getGenerateApexTriggerDescription(args),
 }
 
 export function getToolDescriptionsForMode(

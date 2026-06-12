@@ -20,7 +20,7 @@ What it validates:
 - Missing 'with sharing' on non-test classes
 - Missing 'WITH USER_MODE' on SOQL queries
 
-The tool generates both the .cls file AND its .cls-meta.xml companion automatically. After generation, use validate_sf_metadata to verify, then sf_deploy_metadata to deploy.
+The tool generates both the .cls file AND its .cls-meta.xml companion automatically. Use sf_deploy_metadata to deploy.
 
 Usage:
 <generate_apex_class>

@@ -16,7 +16,7 @@ What it validates:
 - No DML operations inside loops
 - Balanced braces
 
-The tool generates both the .trigger file AND its .trigger-meta.xml companion automatically.
+The tool generates both the .trigger file AND its .trigger-meta.xml companion automatically. Use sf_deploy_metadata to deploy.
 
 Usage:
 <generate_apex_trigger>

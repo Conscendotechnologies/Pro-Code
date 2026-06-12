@@ -22,7 +22,7 @@ Parameters:
 - unique: (optional) "true" or "false"
 - external_id: (optional) "true" or "false"
 
-After generation, use validate_sf_metadata to verify, then sf_deploy_metadata to deploy.
+XML is generated and XSD-validated automatically. Use sf_deploy_metadata to deploy.
 
 Usage:
 <generate_custom_field>
