@@ -178,7 +178,7 @@ export const DEFAULT_MODES: readonly ModeConfig[] = [
 		whenToUse:
 			"Use this mode for ANY task that needs coordination, whether simple or complex. The orchestrator will analyze the request and delegate to salesforce-agent mode for admin/config work, code mode for development work, or both for hybrid tasks. Perfect for multi-step projects, complex workflows, or when you want intelligent task routing.",
 		description: "Analyze requests and coordinate work across salesforce-agent and code modes",
-		groups: ["read", "edit", "browser", "command", "mcp"],
+		groups: ["read"],
 		customInstructions: `
             ${getCustomInstructionsForMode("orchestrator")}
         `,

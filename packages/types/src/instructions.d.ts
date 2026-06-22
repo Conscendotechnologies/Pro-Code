@@ -4,9 +4,9 @@
 export const SALESFORCE_AGENT_INSTRUCTIONS: string
 
 /**
- * Salesforce LWC instructions
+ * Shared subtask completion protocol (used by salesforce-agent and code modes)
  */
-export const SALESFORCE_LWC_INSTRUCTIONS: string
+export const SUBTASK_COMPLETION_PROTOCOL: string
 
 /**
  * Orchestrator instructions

@@ -134,11 +134,6 @@ function formatInstructionTitle(key: string): string {
 		create_apex: "Apex Class/Trigger",
 		create_async_apex: "Asynchronous Apex",
 
-		// Agentforce
-		agentforce_agent_create: "Agentforce Agent Creation Workflow",
-		agentforce_agent_analyse: "Agentforce Agent Analysis",
-		agentforce_topic_analyse: "Agentforce Topic Analysis",
-
 		// Salesforce Metadata
 		assignment_rules: "Assignment Rules",
 		custom_field: "Custom Fields",
@@ -150,11 +145,6 @@ function formatInstructionTitle(key: string): string {
 		record_types: "Record Types",
 		role_creation: "Role Hierarchy",
 		validation_rules: "Validation Rules",
-
-		// Code
-		invocable_apex: "Invocable Apex",
-		adaptive_response_agent: "Adaptive Response Agent",
-		adaptive_response_agent_workflow: "Adaptive Response Agent Workflow",
 	}
 
 	return titles[key] || key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
