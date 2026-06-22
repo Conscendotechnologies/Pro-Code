@@ -64,14 +64,14 @@ export const TaskTypeMapping: Record<string, TaskTypeConfig> = {
 		mode: "code",
 	},
 	"create-invocable-apex": {
-		instructions: ["invocable_apex", "create_apex"],
+		instructions: ["create_apex"],
 		description: "Create Invocable Apex for Agentforce or Flows",
 		mode: "code",
 	},
 
 	// Admin/Metadata Tasks
 	"create-custom-object": {
-		instructions: ["custom_object", "custom_field", "page-layout", "field_permissions", "object_permissions"],
+		instructions: ["custom_object", "custom_field", "field_permissions", "object_permissions"],
 		description: "Create custom object with fields and validations",
 		mode: "salesforce-agent",
 	},

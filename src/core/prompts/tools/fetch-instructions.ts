@@ -16,7 +16,6 @@ export function getFetchInstructionsDescription(enableMcpServerCreation?: boolea
   create_visual_force
   create_aura_components
   assignment_rules
-  invocable_apex
   custom_field
   custom_object
   field_permissions
@@ -25,9 +24,7 @@ export function getFetchInstructionsDescription(enableMcpServerCreation?: boolea
   profile
   record_types
   role_creation
-  validation_rules
-  workflow_field_update_creation
-  workflow_email_alert_creation`
+  validation_rules`
 			: `  create_mode
   create_lwc
   create_apex
@@ -35,7 +32,6 @@ export function getFetchInstructionsDescription(enableMcpServerCreation?: boolea
   create_visual_force
   create_aura_components
   assignment_rules
-  invocable_apex
   custom_field
   custom_object
   field_permissions
@@ -44,9 +40,7 @@ export function getFetchInstructionsDescription(enableMcpServerCreation?: boolea
   profile
   record_types
   role_creation
-  validation_rules
-  workflow_field_update_creation
-  workflow_email_alert_creation`
+  validation_rules`
 
 	const pmdTasks =
 		enablePmdRules !== false
