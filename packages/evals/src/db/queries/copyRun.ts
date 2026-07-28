@@ -6,15 +6,7 @@ import { schema } from "../schema.js"
 
 import { RecordNotFoundError, RecordNotCreatedError } from "./errors.js"
 
-export const copyRun = async ({
-	sourceDb,
-	targetDb,
-	runId,
-}: {
-	sourceDb: NodePgDatabase<typeof schema>
-	targetDb: NodePgDatabase<typeof schema>
-	runId: number
-}) => {
+export const copyRun = async ({ sourceDb, targetDb, runId }: { sourceDb: any; targetDb: any; runId: number }) => {
 	const sourceRun = await sourceDb.query.runs.findFirst({
 		where: eq(schema.runs.id, runId),
 		with: { taskMetrics: true },

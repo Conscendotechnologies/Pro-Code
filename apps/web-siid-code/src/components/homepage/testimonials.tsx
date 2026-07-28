@@ -59,7 +59,7 @@ export function Testimonials() {
 		},
 	}
 
-	const itemVariants = {
+	const itemVariants: any = {
 		hidden: {
 			opacity: 0,
 			y: 20,
@@ -74,7 +74,7 @@ export function Testimonials() {
 		},
 	}
 
-	const backgroundVariants = {
+	const backgroundVariants: any = {
 		hidden: {
 			opacity: 0,
 		},
