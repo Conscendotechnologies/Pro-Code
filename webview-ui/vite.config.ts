@@ -99,6 +99,7 @@ export default defineConfig(({ mode }) => {
 			sourcemap: true,
 			// Ensure source maps are properly included in the build
 			minify: mode === "production" ? "esbuild" : false,
+			target: "es2022", // Fix esbuild destructuring error
 			rollupOptions: {
 				output: {
 					entryFileNames: `assets/[name].js`,

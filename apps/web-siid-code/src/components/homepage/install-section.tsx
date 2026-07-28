@@ -9,7 +9,7 @@ interface InstallSectionProps {
 }
 
 export function InstallSection({ downloads }: InstallSectionProps) {
-	const backgroundVariants = {
+	const backgroundVariants: any = {
 		hidden: {
 			opacity: 0,
 		},
