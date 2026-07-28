@@ -427,6 +427,8 @@
     "@anthropic-ai/vertex-sdk": "^0.7.0",
     "@aws-sdk/client-bedrock-runtime": "^3.848.0",
     "@aws-sdk/credential-providers": "^3.848.0",
+    "@conscendotech/siid-compression-api": "github:Conscendotechnologies/siid-compression-api#v0.1.0",
+    "@conscendotech/siid-forge-api": "github:Conscendotechnologies/siid-forge-api#v2.14.0",
     "@google/genai": "^1.0.0",
     "@lmstudio/sdk": "^1.1.1",
     "@mistralai/mistralai": "^1.3.6",
