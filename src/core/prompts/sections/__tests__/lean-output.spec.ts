@@ -17,4 +17,16 @@ describe("getLeanOutputSection", () => {
 		expect(getLeanOutputSection("salesforce-agent")).toContain("terse")
 		expect(getLeanOutputSection("orchestrator")).toContain("terse")
 	})
+
+	it("returns nothing when SIID_LEAN_OFF=1 (A/B off side)", () => {
+		const prev = process.env.SIID_LEAN_OFF
+		process.env.SIID_LEAN_OFF = "1"
+		try {
+			for (const mode of ["code", "salesforce-agent", "orchestrator"]) {
+				expect(getLeanOutputSection(mode)).toBe("")
+			}
+		} finally {
+			process.env.SIID_LEAN_OFF = prev
+		}
+	})
 })
