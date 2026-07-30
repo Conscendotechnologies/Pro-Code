@@ -15,8 +15,14 @@ Keep prose replies terse: lead with the answer, drop filler and preamble. This a
  *
  * PONYTAIL (don't over-build) is safe in every mode. CAVEMAN (terse prose) is withheld from `code`
  * mode, which emits full Apex/LWC artifacts that must never be abbreviated — terseness there risks
- * truncating a deployable .cls. Mode scope is the control; no separate toggle (add one if asked).
+ * truncating a deployable .cls. Mode scope is the control.
+ *
+ * Set SIID_LEAN_OFF=1 to return nothing — the OFF side of the A/B, so the feature can be toggled
+ * without rebuilding. ponytail: env kill-switch; remove once the A/B is done.
  */
 export function getLeanOutputSection(mode: Mode): string {
+	if (process.env.SIID_LEAN_OFF === "1") {
+		return ""
+	}
 	return PONYTAIL + (mode === "code" ? "" : CAVEMAN)
 }
