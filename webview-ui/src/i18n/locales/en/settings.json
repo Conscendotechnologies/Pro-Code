@@ -191,12 +191,20 @@
 			"description": "Automatically update the to-do list without requiring approval"
 		},
 		"deploySfMetadata": {
-			"label": "Deploy Salesforce Metadata",
+			"label": "Deploy Metadata",
 			"description": "Automatically deploy Salesforce metadata to orgs without requiring approval (dry-run validation still runs)"
 		},
 		"retrieveSfMetadata": {
-			"label": "Retrieve Salesforce Metadata",
+			"label": "Retrieve Metadata",
 			"description": "Automatically retrieve Salesforce metadata without requiring approval"
+		},
+		"siidForgeRead": {
+			"label": "SIID Forge (read)",
+			"description": "Automatically run read-only SIID Forge features (query, describe, list, coverage, tests) without requiring approval"
+		},
+		"siidForgeWrite": {
+			"label": "SIID Forge (write)",
+			"description": "Automatically run mutating SIID Forge features (sfRun, deploy, update records, authorize org) without requiring approval"
 		},
 		"apiRequestLimit": {
 			"title": "Max Requests",

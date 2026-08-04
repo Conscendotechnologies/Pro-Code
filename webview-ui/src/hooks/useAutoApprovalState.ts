@@ -9,9 +9,11 @@ interface AutoApprovalToggles {
 	alwaysAllowModeSwitch?: boolean
 	alwaysAllowSubtasks?: boolean
 	alwaysApproveResubmit?: boolean
-	
+
 	alwaysAllowDeploySfMetadata?: boolean
 	alwaysAllowRetrieveSfMetadata?: boolean
+	alwaysAllowSiidForgeRead?: boolean
+	alwaysAllowSiidForgeWrite?: boolean
 }
 
 export function useAutoApprovalState(toggles: AutoApprovalToggles, autoApprovalEnabled?: boolean) {

@@ -28,10 +28,12 @@ type AutoApproveSettingsProps = HTMLAttributes<HTMLDivElement> & {
 	alwaysAllowModeSwitch?: boolean
 	alwaysAllowSubtasks?: boolean
 	alwaysAllowExecute?: boolean
-	
+
 	alwaysAllowDeploySfMetadata?: boolean
 	alwaysAllowRetrieveSfMetadata?: boolean
-	
+	alwaysAllowSiidForgeRead?: boolean
+	alwaysAllowSiidForgeWrite?: boolean
+
 	allowedCommands?: string[]
 	allowedMaxRequests?: number | undefined
 	allowedMaxCost?: number | undefined
@@ -49,15 +51,14 @@ type AutoApproveSettingsProps = HTMLAttributes<HTMLDivElement> & {
 		| "alwaysAllowModeSwitch"
 		| "alwaysAllowSubtasks"
 		| "alwaysAllowExecute"
-		
-		
 		| "allowedCommands"
 		| "allowedMaxRequests"
 		| "allowedMaxCost"
 		| "deniedCommands"
-		
 		| "alwaysAllowDeploySfMetadata"
 		| "alwaysAllowRetrieveSfMetadata"
+		| "alwaysAllowSiidForgeRead"
+		| "alwaysAllowSiidForgeWrite"
 	>
 }
 
@@ -74,11 +75,11 @@ export const AutoApproveSettings = ({
 	alwaysAllowModeSwitch,
 	alwaysAllowSubtasks,
 	alwaysAllowExecute,
-	
-	
-	
+
 	alwaysAllowDeploySfMetadata,
 	alwaysAllowRetrieveSfMetadata,
+	alwaysAllowSiidForgeRead,
+	alwaysAllowSiidForgeWrite,
 	allowedCommands,
 	allowedMaxRequests,
 	allowedMaxCost,
@@ -169,9 +170,10 @@ export const AutoApproveSettings = ({
 						alwaysAllowModeSwitch={alwaysAllowModeSwitch}
 						alwaysAllowSubtasks={alwaysAllowSubtasks}
 						alwaysAllowExecute={alwaysAllowExecute}
-						
 						alwaysAllowDeploySfMetadata={alwaysAllowDeploySfMetadata}
 						alwaysAllowRetrieveSfMetadata={alwaysAllowRetrieveSfMetadata}
+						alwaysAllowSiidForgeRead={alwaysAllowSiidForgeRead}
+						alwaysAllowSiidForgeWrite={alwaysAllowSiidForgeWrite}
 						onToggle={(key, value) => setCachedStateField(key, value)}
 					/>
 					<MaxLimitInputs
@@ -269,8 +271,6 @@ export const AutoApproveSettings = ({
 						</div>
 					</div>
 				)}
-
-				
 
 				{alwaysAllowExecute && (
 					<div className="flex flex-col gap-3 pl-3 border-l-2 border-vscode-button-background">

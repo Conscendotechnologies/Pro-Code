@@ -15,9 +15,11 @@ export function useAutoApprovalToggles() {
 		alwaysAllowModeSwitch,
 		alwaysAllowSubtasks,
 		alwaysApproveResubmit,
-		
+
 		alwaysAllowDeploySfMetadata,
 		alwaysAllowRetrieveSfMetadata,
+		alwaysAllowSiidForgeRead,
+		alwaysAllowSiidForgeWrite,
 	} = useExtensionState()
 
 	const toggles = useMemo(
@@ -30,9 +32,11 @@ export function useAutoApprovalToggles() {
 			alwaysAllowModeSwitch,
 			alwaysAllowSubtasks,
 			alwaysApproveResubmit,
-			
+
 			alwaysAllowDeploySfMetadata,
 			alwaysAllowRetrieveSfMetadata,
+			alwaysAllowSiidForgeRead,
+			alwaysAllowSiidForgeWrite,
 		}),
 		[
 			alwaysAllowReadOnly,
@@ -43,9 +47,11 @@ export function useAutoApprovalToggles() {
 			alwaysAllowModeSwitch,
 			alwaysAllowSubtasks,
 			alwaysApproveResubmit,
-		
+
 			alwaysAllowDeploySfMetadata,
 			alwaysAllowRetrieveSfMetadata,
+			alwaysAllowSiidForgeRead,
+			alwaysAllowSiidForgeWrite,
 		],
 	)
 

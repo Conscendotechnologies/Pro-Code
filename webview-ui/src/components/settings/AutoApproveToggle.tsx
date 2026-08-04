@@ -14,9 +14,10 @@ type AutoApproveToggles = Pick<
 	| "alwaysAllowModeSwitch"
 	| "alwaysAllowSubtasks"
 	| "alwaysAllowExecute"
-	
 	| "alwaysAllowDeploySfMetadata"
 	| "alwaysAllowRetrieveSfMetadata"
+	| "alwaysAllowSiidForgeRead"
+	| "alwaysAllowSiidForgeWrite"
 >
 
 export type AutoApproveSetting = keyof AutoApproveToggles
@@ -86,7 +87,7 @@ export const autoApproveSettingsConfig: Record<AutoApproveSetting, AutoApproveCo
 		icon: "terminal",
 		testId: "always-allow-execute-toggle",
 	},
-	
+
 	alwaysAllowDeploySfMetadata: {
 		key: "alwaysAllowDeploySfMetadata",
 		labelKey: "settings:autoApprove.deploySfMetadata.label",
@@ -100,6 +101,20 @@ export const autoApproveSettingsConfig: Record<AutoApproveSetting, AutoApproveCo
 		descriptionKey: "settings:autoApprove.retrieveSfMetadata.description",
 		icon: "cloud-download",
 		testId: "always-allow-retrieve-sf-metadata-toggle",
+	},
+	alwaysAllowSiidForgeRead: {
+		key: "alwaysAllowSiidForgeRead",
+		labelKey: "settings:autoApprove.siidForgeRead.label",
+		descriptionKey: "settings:autoApprove.siidForgeRead.description",
+		icon: "search",
+		testId: "always-allow-siid-forge-read-toggle",
+	},
+	alwaysAllowSiidForgeWrite: {
+		key: "alwaysAllowSiidForgeWrite",
+		labelKey: "settings:autoApprove.siidForgeWrite.label",
+		descriptionKey: "settings:autoApprove.siidForgeWrite.description",
+		icon: "server-process",
+		testId: "always-allow-siid-forge-write-toggle",
 	},
 }
 
