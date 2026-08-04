@@ -1244,6 +1244,7 @@ export const ChatRowContent = ({
 				const forgeDone = !!forgeResult
 				const forgeOk = forgeResult?.success
 				const forgeElapsedMs = forgeResult?.elapsedMs ?? lastProgress?.elapsedMs
+				const forgeRunning = !forgeDone && (!!lastProgress || (isLast && isStreaming))
 				const forgeIcon = !forgeDone ? "server-process" : forgeOk ? "pass-filled" : "error"
 				const forgeIconColor = !forgeDone
 					? undefined
@@ -1258,8 +1259,8 @@ export const ChatRowContent = ({
 								style={{ marginRight: 6, color: forgeIconColor }}></span>
 							<span style={{ fontWeight: "bold" }}>
 								SIID Forge: {tool.feature}
-								{tool.mutating && message.type === "ask" && !forgeDone && " (requires approval)"}
-								{message.type === "say" && !forgeDone && " — running"}
+								{forgeRunning && " — running"}
+								{tool.mutating && !forgeRunning && !forgeDone && " (requires approval)"}
 								{forgeDone && (forgeOk ? " — success" : " — failed")}
 								{forgeDone &&
 									forgeElapsedMs !== undefined &&
@@ -1280,22 +1281,27 @@ export const ChatRowContent = ({
 								</div>
 							</div>
 						)}
-						{/* While this row is still an ASK (approval buttons showing), the command hasn't run
-						    yet — show "Awaiting approval", no timer. Once approved it becomes a SAY: the timer
-						    runs until the result arrives (prefers Forge's real elapsed once a heartbeat lands). */}
+						{/* The anchor row is permanently an "ask" (cline.ask never flips to say), so we can't
+						    use message.type to tell running from pending. Signals we DO have:
+						      - lastProgress: a real Forge onStatus heartbeat arrived => the command is running.
+						      - isLast && isStreaming: the task is actively working on this row.
+						    Show the timer when either holds (heartbeats only fire post-approval, so this never
+						    ticks during approval-pending). Otherwise, on the active edge, show a static note. */}
 						{!forgeDone &&
-							(message.type === "ask" ? (
-								<div
-									style={{
-										marginTop: "4px",
-										padding: "8px 12px",
-										color: "var(--vscode-descriptionForeground)",
-										fontSize: "var(--vscode-font-size)",
-									}}>
-									Awaiting approval…
-								</div>
-							) : (
+							(forgeRunning ? (
 								<SiidForgeRunning feature={tool.feature} elapsedMs={lastProgress?.elapsedMs} />
+							) : (
+								isLast && (
+									<div
+										style={{
+											marginTop: "4px",
+											padding: "8px 12px",
+											color: "var(--vscode-descriptionForeground)",
+											fontSize: "var(--vscode-font-size)",
+										}}>
+										Awaiting approval…
+									</div>
+								)
 							))}
 						{forgeDone && forgeResult?.content && (
 							<details
