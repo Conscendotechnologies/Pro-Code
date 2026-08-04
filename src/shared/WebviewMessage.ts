@@ -43,11 +43,11 @@ export interface WebviewMessage {
 		| "alwaysAllowWriteOutsideWorkspace"
 		| "alwaysAllowWriteProtected"
 		| "alwaysAllowExecute"
-		
 		| "alwaysAllowDeploySfMetadata"
 		| "alwaysAllowRetrieveSfMetadata"
+		| "alwaysAllowSiidForgeRead"
+		| "alwaysAllowSiidForgeWrite"
 		| "useFreeModels"
-		
 		| "webviewDidLaunch"
 		| "debugStopTimer"
 		| "newTask"
@@ -87,9 +87,10 @@ export interface WebviewMessage {
 		| "allowedMaxRequests"
 		| "allowedMaxCost"
 		| "alwaysAllowSubtasks"
-	
 		| "alwaysAllowDeploySfMetadata"
 		| "alwaysAllowRetrieveSfMetadata"
+		| "alwaysAllowSiidForgeRead"
+		| "alwaysAllowSiidForgeWrite"
 		| "autoCondenseContext"
 		| "autoCondenseContextPercent"
 		| "condensingApiConfigId"

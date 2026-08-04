@@ -1,4 +1,7 @@
-import type { SiidForgeApi } from "@conscendotech/siid-forge-api"
+import type { SiidForgeApi, SfCommandStatus } from "@conscendotech/siid-forge-api"
+
+/** Real-time lifecycle callback for `sf` commands (forwarded to Forge's onStatus). */
+export type ForgeStatusCallback = (status: SfCommandStatus) => void
 
 /**
  * Feature registry for the single `siid_forge` tool.
@@ -33,12 +36,14 @@ export interface ForgeFeature {
 	/**
 	 * Dispatch to the forge API. `args` has already been shape-validated against `args` above.
 	 * Return any JSON-serializable result; it becomes the tool result the model sees.
+	 * `onStatus` (optional) receives real `sf` command lifecycle updates for features that run
+	 * commands (deploy, sfRun, …), so the UI can show Forge's real elapsed time + terminal phase.
 	 */
-	run(forge: SiidForgeApi, args: Record<string, unknown>): Promise<unknown>
+	run(forge: SiidForgeApi, args: Record<string, unknown>, onStatus?: ForgeStatusCallback): Promise<unknown>
 }
 
 /** Minimum forge API version this tool relies on. */
-export const REQUIRED_FORGE_VERSION = "2.11.0" // needs the `data` namespace (query/updateRecords)
+export const REQUIRED_FORGE_VERSION = "2.14.0" // needs data/formula/diff/stdlib/batch-log namespaces
 
 const str = (a: Record<string, unknown>, k: string) => a[k] as string
 const opt = <T>(a: Record<string, unknown>, k: string) => a[k] as T | undefined
@@ -134,23 +139,246 @@ export const FORGE_FEATURES: ForgeFeature[] = [
 			forge.apexTests.run(str(a, "className"), { projectRoot: opt<string>(a, "projectRoot") }),
 	},
 	{
-		name: "sfCliAvailable",
-		summary: "Check whether the Salesforce CLI (sf) is installed/resolvable.",
+		name: "getUsername",
+		summary: "Get the resolved username of the default org.",
 		mutating: false,
 		args: [],
-		run: async (forge) => ({ available: await forge.cli.isAvailable(), version: await forge.cli.getVersion() }),
+		run: async (forge) => (await forge.orgs.getUsername()) ?? null,
+	},
+	{
+		name: "getUserId",
+		summary: "Get the user Id of the default org's user.",
+		mutating: false,
+		args: [],
+		run: async (forge) => (await forge.orgs.getUserId()) ?? null,
+	},
+	{
+		name: "listApexClasses",
+		summary: "List the Apex class names in the project.",
+		mutating: false,
+		args: [
+			{ name: "projectRoot", type: "string", required: false, description: "Optional project root override." },
+		],
+		run: async (forge, a) => forge.schema.apexClassNames(opt<string>(a, "projectRoot")),
+	},
+	{
+		name: "objectOf",
+		summary: "Return the SObject a SOQL query targets (its FROM object).",
+		mutating: false,
+		args: [{ name: "soql", type: "string", required: true, description: "The SOQL query string." }],
+		run: async (forge, a) => forge.data.objectOf(str(a, "soql")) ?? null,
+	},
+	{
+		name: "stdlibLookup",
+		summary: "Look up a Salesforce StandardApexLibrary class (System.*, ConnectApi.*) by name.",
+		mutating: false,
+		args: [
+			{
+				name: "name",
+				type: "string",
+				required: true,
+				description: "Qualified (System.Database) or bare class name.",
+			},
+		],
+		run: async (forge, a) => {
+			await forge.schema.stdlib.ensure()
+			return forge.schema.stdlib.lookup(str(a, "name")) ?? null
+		},
+	},
+	{
+		name: "stdlibNamespaces",
+		summary: "List StandardApexLibrary namespaces → class names.",
+		mutating: false,
+		args: [],
+		run: async (forge) => {
+			await forge.schema.stdlib.ensure()
+			return forge.schema.stdlib.namespaces() ?? null
+		},
+	},
+	{
+		name: "scaffoldTest",
+		summary: "Scaffold an empty Apex test class + meta for a class-under-test (no deploy).",
+		mutating: false,
+		args: [
+			{ name: "clsPath", type: "string", required: true, description: "Absolute path of the .cls under test." },
+			{ name: "apiVersion", type: "string", required: false, description: "Optional API version for the meta." },
+			{ name: "projectRoot", type: "string", required: false, description: "Optional project root override." },
+		],
+		run: async (forge, a) =>
+			forge.apexTests.scaffold(str(a, "clsPath"), opt<string>(a, "apiVersion"), opt<string>(a, "projectRoot")) ??
+			null,
+	},
+	{
+		name: "collectApexContext",
+		summary: "Collect the static context (related classes, objects, flows, triggers) for an Apex class.",
+		mutating: false,
+		args: [
+			{ name: "className", type: "string", required: true, description: "Apex class name." },
+			{ name: "projectRoot", type: "string", required: false, description: "Optional project root override." },
+		],
+		run: async (forge, a) => forge.apexTests.collectContext(str(a, "className"), opt<string>(a, "projectRoot")),
+	},
+	{
+		name: "evaluateFormula",
+		summary: "Evaluate a Salesforce formula against the org (via FormulaEval) and return the value.",
+		mutating: false,
+		args: [
+			{ name: "formula", type: "string", required: true, description: "The formula expression." },
+			{
+				name: "objectName",
+				type: "string",
+				required: true,
+				description: "SObject the formula is defined against.",
+			},
+			{
+				name: "returnType",
+				type: "string",
+				required: true,
+				description: "STRING|BOOLEAN|INTEGER|LONG|DECIMAL|DOUBLE|DATE|DATETIME|TIME.",
+			},
+			{
+				name: "recordId",
+				type: "string",
+				required: false,
+				description: "Specific record Id to evaluate against.",
+			},
+			{ name: "projectRoot", type: "string", required: false, description: "Optional project root override." },
+		],
+		run: async (forge, a) =>
+			forge.formula.evaluate({
+				formula: str(a, "formula"),
+				objectName: str(a, "objectName"),
+				returnType: str(a, "returnType") as never,
+				recordId: opt<string>(a, "recordId"),
+				projectRoot: opt<string>(a, "projectRoot"),
+			}),
+	},
+	{
+		name: "sampleRecords",
+		summary: "List a few records (Id + label) of an object, e.g. to pick one to evaluate a formula against.",
+		mutating: false,
+		args: [
+			{ name: "objectName", type: "string", required: true, description: "SObject API name." },
+			{ name: "limit", type: "number", required: false, description: "Max records (default a few)." },
+			{ name: "projectRoot", type: "string", required: false, description: "Optional project root override." },
+		],
+		run: async (forge, a) =>
+			forge.formula.sampleRecords(str(a, "objectName"), {
+				limit: opt<number>(a, "limit"),
+				projectRoot: opt<string>(a, "projectRoot"),
+			}),
+	},
+	{
+		name: "analyzeLogFile",
+		summary: "Analyze a saved Apex debug log FILE (.siid/logs/*.log) into limits/timings/SOQL-DML/errors.",
+		mutating: false,
+		args: [{ name: "logFilePath", type: "string", required: true, description: "Path to the saved .log file." }],
+		run: async (forge, a) => forge.logs.analyzeFile(str(a, "logFilePath")),
+	},
+	{
+		name: "analyzeBatchJob",
+		summary: "Collect + analyze EVERY log of an async Apex job (Batchable/Queueable) by job Id.",
+		mutating: false,
+		args: [
+			{ name: "jobId", type: "string", required: true, description: "The AsyncApexJob Id." },
+			{ name: "projectRoot", type: "string", required: false, description: "Optional project root override." },
+		],
+		run: async (forge, a) =>
+			forge.logs.analyzeBatchJobById(str(a, "jobId"), undefined, opt<string>(a, "projectRoot")),
+	},
+	{
+		name: "diffTypes",
+		summary: "Diff whole metadata TYPES between the org and the local project (per-member status).",
+		mutating: false,
+		args: [
+			{
+				name: "types",
+				type: "string[]",
+				required: true,
+				description: 'Metadata type names, e.g. ["ApexClass"].',
+			},
+			{ name: "projectRoot", type: "string", required: false, description: "Optional project root override." },
+		],
+		run: async (forge, a) => {
+			const groups = await forge.diff.byMetadataTypes(a["types"] as string[], {
+				projectRoot: opt<string>(a, "projectRoot"),
+			})
+			// Return a plain, serializable summary; release temp org files.
+			const out = groups.map((g) => ({
+				type: g.type,
+				comparedByContent: g.comparedByContent,
+				rows: g.rows.map((r) => ({ fullName: r.fullName, status: r.status })),
+			}))
+			try {
+				forge.diff.dispose(groups)
+			} catch {
+				/* best-effort cleanup */
+			}
+			return out
+		},
+	},
+	{
+		name: "findOrphanedMeta",
+		summary: "List orphaned -meta.xml sidecar files (a .cls-meta.xml with no .cls) in the project.",
+		mutating: false,
+		args: [
+			{ name: "projectRoot", type: "string", required: false, description: "Optional project root override." },
+		],
+		run: async (forge, a) => forge.diff.findOrphanedMeta(opt<string>(a, "projectRoot")),
 	},
 
 	// ─────────────── powerful / mutating (approval-gated) ───────────────
 	{
+		name: "applyToLocal",
+		summary: "Pull specific components from the org INTO the local project (writes files). Requires approval.",
+		mutating: true,
+		args: [
+			{
+				name: "refs",
+				type: "object[]",
+				required: true,
+				description: 'Components to pull, each {type, fullName}, e.g. [{"type":"ApexClass","fullName":"Foo"}].',
+			},
+			{ name: "projectRoot", type: "string", required: false, description: "Optional project root override." },
+		],
+		run: async (forge, a) =>
+			forge.diff.applyToLocal(a["refs"] as never, { projectRoot: opt<string>(a, "projectRoot") }),
+	},
+	{
+		name: "deploy",
+		summary:
+			"Deploy NAMED metadata to the org (e.g. specific Apex classes). PREFER this over sfRun for deploys — it targets named components, so it won't scan/parse unrelated managed-package classes. Requires approval.",
+		mutating: true,
+		args: [
+			{
+				name: "metadata",
+				type: "string[]",
+				required: true,
+				description:
+					'Metadata to deploy as Type:Name, e.g. ["ApexClass:LeadService","ApexClass:LeadServiceTest"].',
+			},
+			{ name: "projectRoot", type: "string", required: false, description: "Working directory override." },
+		],
+		run: async (forge, a, onStatus) => {
+			const md = a["metadata"] as string[]
+			const args = ["project", "deploy", "start", "--json"]
+			for (const m of md) {
+				args.push("--metadata", m)
+			}
+			return forge.sf.run(args, { cwd: opt<string>(a, "projectRoot"), onStatus })
+		},
+	},
+	{
 		name: "sfRun",
-		summary: "Run an arbitrary `sf` CLI command (JSON output). Powerful — can deploy/modify. Requires approval.",
+		summary:
+			"Escape hatch: run an arbitrary `sf` CLI command (JSON output). Use ONLY when no dedicated feature fits — prefer query/runApexTests/deploy/retrieveTypes/updateRecords etc. Requires approval.",
 		mutating: true,
 		args: [
 			{ name: "args", type: "string[]", required: true, description: 'sf CLI args, e.g. ["org","list"].' },
 			{ name: "projectRoot", type: "string", required: false, description: "Working directory override." },
 		],
-		run: async (forge, a) => forge.sf.run(a["args"] as string[], { cwd: opt<string>(a, "projectRoot") }),
+		run: async (forge, a, onStatus) =>
+			forge.sf.run(a["args"] as string[], { cwd: opt<string>(a, "projectRoot"), onStatus }),
 	},
 	{
 		name: "updateRecords",
