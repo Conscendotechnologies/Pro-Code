@@ -4,10 +4,24 @@ import type { SiidForgeApi } from "@conscendotech/siid-forge-api"
 
 import { Task } from "../task/Task"
 import { ToolUse, AskApproval, HandleError, PushToolResult, RemoveClosingTag } from "../../shared/tools"
+import { ClineSayTool } from "../../shared/ExtensionMessage"
 import { formatResponse } from "../prompts/responses"
 import { getForgeFeature, validateForgeArgs, REQUIRED_FORGE_VERSION, FORGE_FEATURES } from "./forgeFeatureRegistry"
 
 const FORGE_EXT_ID = "ConscendoTechInc.siid-forge"
+
+/** A short one-line summary of a feature's args for the chat row (never dumps huge blobs). */
+function summarizeArgs(feature: string, args: Record<string, unknown>): string {
+	// sfRun's array of CLI args reads best as a command line.
+	if (feature === "sfRun" && Array.isArray(args.args)) {
+		return `sf ${(args.args as string[]).join(" ")}`
+	}
+	const parts = Object.entries(args)
+		.filter(([k]) => k !== "projectRoot") // internal default, not interesting to show
+		.map(([k, v]) => `${k}: ${typeof v === "string" ? v : JSON.stringify(v)}`)
+	const line = parts.join(", ")
+	return line.length > 200 ? line.slice(0, 197) + "…" : line
+}
 
 /** Bind the SIID Forge public API at runtime, or return undefined if unavailable. Never throws. */
 async function resolveForge(): Promise<SiidForgeApi | undefined> {
@@ -102,6 +116,14 @@ export async function siidForgeTool(
 
 		task.consecutiveMistakeCount = 0
 
+		// Default the project directory to the OPEN WORKSPACE (task.cwd) when the model omits it.
+		// Forge otherwise falls back to process.cwd() = the IDE install dir, which is not a Salesforce
+		// DX project, so `sfRun` deploys and any projectRoot-based feature fail. One place covers every
+		// feature that takes projectRoot.
+		if (args.projectRoot === undefined && task.cwd) {
+			args.projectRoot = task.cwd
+		}
+
 		// Bind forge.
 		const forge = await resolveForge()
 		if (!forge) {
@@ -121,21 +143,89 @@ export async function siidForgeTool(
 			return
 		}
 
-		// Approval gate for mutating features.
-		if (feature.mutating) {
-			const didApprove = await askApproval(
-				"tool",
-				JSON.stringify({ tool: "siid_forge", feature: feature.name, mutating: true, args }),
-			)
-			if (!didApprove) {
-				return
-			}
+		// A one-line, human-readable summary of the args for the UI row.
+		const argSummary = summarizeArgs(feature.name, args)
+
+		// Auto-approval: mutating features gate on the "SIID Forge (write)" toggle, read features on
+		// the "SIID Forge (read)" toggle. When the toggle is ON, forceApproval=false → the row shows
+		// but auto-accepts; when OFF, the user is asked. Every feature routes through askApproval so a
+		// structured tool row always renders (icon, feature, args, buttons/status).
+		const providerState = await task.providerRef.deref()?.getState()
+		const autoApproved = feature.mutating
+			? !!providerState?.alwaysAllowSiidForgeWrite
+			: !!providerState?.alwaysAllowSiidForgeRead
+		const approvalMessage = JSON.stringify({
+			tool: "siidForge",
+			feature: feature.name,
+			mutating: feature.mutating,
+			content: argSummary,
+		} satisfies ClineSayTool)
+		const didApprove = await askApproval("tool", approvalMessage, undefined, !autoApproved)
+		if (!didApprove) {
+			return
 		}
 
-		// Dispatch.
-		const result = await feature.run(forge, args)
-		const text = typeof result === "string" ? result : JSON.stringify(result ?? null, null, 2)
-		pushToolResult(`siid_forge(${feature.name}) result:\n${text}`)
+		// Capture Forge's real command lifecycle so the result row reports the ACTUAL elapsed time
+		// and terminal phase (not a client guess). Throttled progress rows drive a live timer while
+		// the command runs; the terminal phase carries the final elapsedMs.
+		let lastElapsedMs: number | undefined
+		let lastProgressAt = 0
+		const onStatus = (s: { phase: string; elapsedMs: number }) => {
+			lastElapsedMs = s.elapsedMs
+			const now = Date.now()
+			// Throttle "running" heartbeats to ~1/s; always emit terminal phases.
+			const terminal = s.phase !== "started" && s.phase !== "running"
+			if (!terminal && now - lastProgressAt < 900) {
+				return
+			}
+			lastProgressAt = now
+			task.say(
+				"tool",
+				JSON.stringify({
+					tool: "siidForge",
+					feature: feature.name,
+					mutating: feature.mutating,
+					phase: s.phase,
+					elapsedMs: s.elapsedMs,
+				} satisfies ClineSayTool),
+			).catch(() => {})
+		}
+
+		// Dispatch, then emit a success/failure result row.
+		try {
+			const result = await feature.run(forge, args, onStatus)
+			const text = typeof result === "string" ? result : JSON.stringify(result ?? null, null, 2)
+			await task
+				.say(
+					"tool",
+					JSON.stringify({
+						tool: "siidForge",
+						feature: feature.name,
+						mutating: feature.mutating,
+						success: true,
+						elapsedMs: lastElapsedMs,
+						content: text,
+					} satisfies ClineSayTool),
+				)
+				.catch(() => {})
+			pushToolResult(`siid_forge(${feature.name}) result:\n${text}`)
+		} catch (runErr) {
+			const msg = (runErr as Error)?.message ?? String(runErr)
+			await task
+				.say(
+					"tool",
+					JSON.stringify({
+						tool: "siidForge",
+						feature: feature.name,
+						mutating: feature.mutating,
+						success: false,
+						elapsedMs: lastElapsedMs,
+						content: msg,
+					} satisfies ClineSayTool),
+				)
+				.catch(() => {})
+			pushToolResult(formatResponse.toolError(`siid_forge(${feature.name}) failed: ${msg}`))
+		}
 	} catch (error) {
 		await handleError(`running siid_forge feature "${featureName ?? "?"}"`, error as Error)
 	}

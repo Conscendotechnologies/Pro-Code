@@ -18,6 +18,8 @@ export function getSiidForgeDescription(_args: ToolArgs): string | undefined {
 	return `## siid_forge
 Description: Use SIID Forge's headless Salesforce features through ONE tool. Pick a capability with the \`feature\` parameter and pass its inputs as a JSON object in \`args\`. Requires the SIID Forge extension to be installed. Read-type features run immediately; features marked MUTATING (write to the org, change files, or handle credentials) ask the user for approval first.
 
+ALWAYS prefer the most specific feature for your task (e.g. \`query\` for SOQL, \`deploy\` for deploying Apex, \`runApexTests\` for tests, \`describeObject\` for schema, \`evaluateFormula\` for formulas). The \`sfRun\` feature is a last-resort escape hatch for \`sf\` commands that no dedicated feature covers — do NOT use it when a specific feature exists (e.g. never use sfRun to deploy; use \`deploy\`).
+
 Parameters:
 - feature: (required) The capability to run. One of the features listed below.
 - args: (optional) A JSON object with the feature's arguments.
@@ -47,5 +49,11 @@ Example: run a class's Apex tests
 <siid_forge>
 <feature>runApexTests</feature>
 <args>{"className": "AccountServiceTest"}</args>
+</siid_forge>
+
+Example: deploy named Apex classes (preferred over sfRun)
+<siid_forge>
+<feature>deploy</feature>
+<args>{"metadata": ["ApexClass:LeadService", "ApexClass:LeadServiceTest"]}</args>
 </siid_forge>`
 }
