@@ -12,11 +12,12 @@ export function getSiidForgeDescription(_args: ToolArgs): string | undefined {
 				? "(no args)"
 				: f.args.map((a) => `${a.name}${a.required ? "" : "?"}: ${a.type} — ${a.description}`).join("; ")
 		const gate = f.mutating ? " [MUTATING — asks the user for approval]" : ""
-		return `- ${f.name}${gate}: ${f.summary}\n    args: ${argList}`
+		const returns = f.returns ? `\n    returns: ${f.returns}` : ""
+		return `- ${f.name}${gate}: ${f.summary}\n    args: ${argList}${returns}`
 	}).join("\n")
 
 	return `## siid_forge
-Description: Use SIID Forge's headless Salesforce features through ONE tool. Pick a capability with the \`feature\` parameter and pass its inputs as a JSON object in \`args\`. Requires the SIID Forge extension to be installed. Read-type features run immediately; features marked MUTATING (write to the org, change files, or handle credentials) ask the user for approval first.
+Description: Use SIID Forge's headless Salesforce features through ONE tool. Pick a capability with the \`feature\` parameter and pass its inputs as a JSON object in \`args\`.
 
 ALWAYS prefer the most specific feature for your task (e.g. \`query\` for SOQL, \`deploy\` for deploying Apex, \`runApexTests\` for tests, \`describeObject\` for schema, \`evaluateFormula\` for formulas). The \`sfRun\` feature is a last-resort escape hatch for \`sf\` commands that no dedicated feature covers — do NOT use it when a specific feature exists (e.g. never use sfRun to deploy; use \`deploy\`).
 

@@ -22,6 +22,8 @@ export interface ForgeArgSpec {
 	type: "string" | "number" | "boolean" | "string[]" | "object" | "object[]"
 	required: boolean
 	description: string
+	/** For string args: the allowed values. If set, a value outside the set is rejected. */
+	enum?: string[]
 }
 
 export interface ForgeFeature {
@@ -33,6 +35,8 @@ export interface ForgeFeature {
 	mutating: boolean
 	/** Declared args (validated before dispatch; documented to the model). */
 	args: ForgeArgSpec[]
+	/** Optional one-liner describing the result shape, for features whose output isn't obvious. */
+	returns?: string
 	/**
 	 * Dispatch to the forge API. `args` has already been shape-validated against `args` above.
 	 * Return any JSON-serializable result; it becomes the tool result the model sees.
@@ -45,6 +49,7 @@ export interface ForgeFeature {
 /** Minimum forge API version this tool relies on. */
 export const REQUIRED_FORGE_VERSION = "2.14.0" // needs data/formula/diff/stdlib/batch-log namespaces
 
+// Safe only for args declared in the feature's args spec (validated upstream by validateForgeArgs).
 const str = (a: Record<string, unknown>, k: string) => a[k] as string
 const opt = <T>(a: Record<string, unknown>, k: string) => a[k] as T | undefined
 
@@ -57,6 +62,7 @@ export const FORGE_FEATURES: ForgeFeature[] = [
 	{
 		name: "query",
 		summary: "Run a SOQL query and return the records (like `sf data query`).",
+		returns: "{totalSize, done, records[]} — rows are under .records.",
 		mutating: false,
 		args: [
 			{ name: "soql", type: "string", required: true, description: "The SOQL query string." },
@@ -67,6 +73,8 @@ export const FORGE_FEATURES: ForgeFeature[] = [
 	{
 		name: "describeObject",
 		summary: "Describe an SObject's schema (fields, picklists) from the org.",
+		returns:
+			"Object schema {name, fields[{name,type,picklistValues,referenceTo,relationshipName,...}]}, or {described:true, schema:null} if not readable.",
 		mutating: false,
 		args: [
 			{ name: "name", type: "string", required: true, description: "SObject API name, e.g. Account." },
@@ -74,7 +82,13 @@ export const FORGE_FEATURES: ForgeFeature[] = [
 		],
 		run: async (forge, a) => {
 			await forge.schema.describeObject(str(a, "name"), opt<string>(a, "projectRoot"))
-			return forge.schema.readObject(str(a, "name"), opt<string>(a, "projectRoot")) ?? { described: true }
+			return (
+				forge.schema.readObject(str(a, "name"), opt<string>(a, "projectRoot")) ?? {
+					described: true,
+					schema: null,
+					note: "describe ran but no readable schema was returned",
+				}
+			)
 		},
 	},
 	{
@@ -113,6 +127,7 @@ export const FORGE_FEATURES: ForgeFeature[] = [
 	{
 		name: "getCoverage",
 		summary: "Get stored Apex code-coverage for a class.",
+		returns: "{name, coveredPercent, totalLines, covered[], uncovered[], capturedAt}.",
 		mutating: false,
 		args: [
 			{ name: "className", type: "string", required: true, description: "Apex class name." },
@@ -123,6 +138,7 @@ export const FORGE_FEATURES: ForgeFeature[] = [
 	{
 		name: "analyzeLog",
 		summary: "Analyze an Apex debug log string (governor limits, timings, SOQL/DML, errors).",
+		returns: "LogAnalysis {limits[], hotMethods[], dataOps[], insights[], counts, errors[], truncated, isFinest}.",
 		mutating: false,
 		args: [{ name: "rawLog", type: "string", required: true, description: "The raw Apex debug log text." }],
 		run: async (forge, a) => forge.logs.analyze(str(a, "rawLog")),
@@ -130,6 +146,8 @@ export const FORGE_FEATURES: ForgeFeature[] = [
 	{
 		name: "runApexTests",
 		summary: "Run a class's Apex tests against the org and return structured results.",
+		returns:
+			"{passing, failing, testsRan, classCoverage?, reportPath, logFiles[]}. Includes coverage — a separate getCoverage call is usually unnecessary.",
 		mutating: false,
 		args: [
 			{ name: "className", type: "string", required: true, description: "Apex test class name to run." },
@@ -221,6 +239,7 @@ export const FORGE_FEATURES: ForgeFeature[] = [
 	{
 		name: "evaluateFormula",
 		summary: "Evaluate a Salesforce formula against the org (via FormulaEval) and return the value.",
+		returns: "{success, value?, referencedFields[], warning?, error?, executionTimeMs}.",
 		mutating: false,
 		args: [
 			{ name: "formula", type: "string", required: true, description: "The formula expression." },
@@ -234,7 +253,8 @@ export const FORGE_FEATURES: ForgeFeature[] = [
 				name: "returnType",
 				type: "string",
 				required: true,
-				description: "STRING|BOOLEAN|INTEGER|LONG|DECIMAL|DOUBLE|DATE|DATETIME|TIME.",
+				description: "The formula's return type.",
+				enum: ["STRING", "BOOLEAN", "INTEGER", "LONG", "DECIMAL", "DOUBLE", "DATE", "DATETIME", "TIME"],
 			},
 			{
 				name: "recordId",
@@ -271,6 +291,7 @@ export const FORGE_FEATURES: ForgeFeature[] = [
 	{
 		name: "analyzeLogFile",
 		summary: "Analyze a saved Apex debug log FILE (.siid/logs/*.log) into limits/timings/SOQL-DML/errors.",
+		returns: "LogAnalysis {limits[], hotMethods[], dataOps[], insights[], counts, errors[], truncated, isFinest}.",
 		mutating: false,
 		args: [{ name: "logFilePath", type: "string", required: true, description: "Path to the saved .log file." }],
 		run: async (forge, a) => forge.logs.analyzeFile(str(a, "logFilePath")),
@@ -278,6 +299,8 @@ export const FORGE_FEATURES: ForgeFeature[] = [
 	{
 		name: "analyzeBatchJob",
 		summary: "Collect + analyze EVERY log of an async Apex job (Batchable/Queueable) by job Id.",
+		returns:
+			"BatchJobAnalysis with per-phase breakdown; note limitsUsable=false means limits not measured (async logs report 0), SOQL/DML counts still reliable.",
 		mutating: false,
 		args: [
 			{ name: "jobId", type: "string", required: true, description: "The AsyncApexJob Id." },
@@ -288,7 +311,10 @@ export const FORGE_FEATURES: ForgeFeature[] = [
 	},
 	{
 		name: "diffTypes",
-		summary: "Diff whole metadata TYPES between the org and the local project (per-member status).",
+		summary:
+			"Diff whole metadata TYPES between the org and the local project (per-member status) — for content-diffable types (Apex, LWC, etc.).",
+		returns:
+			"Array of {type, comparedByContent, rows:[{fullName, status}]}. status ∈ new-in-org|changed|only-local|identical|retrieved-not-compared.",
 		mutating: false,
 		args: [
 			{
@@ -390,7 +416,8 @@ export const FORGE_FEATURES: ForgeFeature[] = [
 				name: "edits",
 				type: "object[]",
 				required: true,
-				description: "Array of record edits (per the RecordEdit shape).",
+				description:
+					"Array of {recordId: string, fields: [{field: string, value: string}], sobject?: string} — one object per record.",
 			},
 			{ name: "projectRoot", type: "string", required: false, description: "Optional project root override." },
 		],
@@ -420,7 +447,8 @@ export const FORGE_FEATURES: ForgeFeature[] = [
 	},
 	{
 		name: "retrieveTypes",
-		summary: "Retrieve whole metadata types from the org into the local project. Requires approval.",
+		summary:
+			"Retrieve whole metadata types from the org into the local project — for retrieve-only types (CustomObject, Report, …) that can't be content-diffed. Requires approval.",
 		mutating: true,
 		args: [
 			{
@@ -431,7 +459,8 @@ export const FORGE_FEATURES: ForgeFeature[] = [
 			},
 			{ name: "projectRoot", type: "string", required: false, description: "Optional project root override." },
 		],
-		run: async (forge, a) => forge.diff.retrieveTypes(a["types"] as never, opt<string>(a, "projectRoot") as never),
+		run: async (forge, a) =>
+			forge.diff.retrieveTypes(a["types"] as never, { projectRoot: opt<string>(a, "projectRoot") }),
 	},
 	{
 		name: "authorizeOrg",
@@ -490,6 +519,10 @@ export function validateForgeArgs(feature: ForgeFeature, args: Record<string, un
 									: false
 		if (!ok) {
 			return `Arg "${spec.name}" for feature "${feature.name}" must be ${spec.type}.`
+		}
+		// Enum check for string args (shape/presence only — deeper validation stays in the API).
+		if (spec.type === "string" && spec.enum && !spec.enum.includes(v as string)) {
+			return `Arg "${spec.name}" for feature "${feature.name}" must be one of: ${spec.enum.join(", ")}.`
 		}
 	}
 	return undefined

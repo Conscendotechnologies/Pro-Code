@@ -60,5 +60,14 @@ describe("forgeFeatureRegistry", () => {
 			expect(validateForgeArgs(sfRun, { args: "org list" })).toMatch(/must be string\[\]/i)
 			expect(validateForgeArgs(sfRun, {})).toMatch(/missing required arg "args"/i)
 		})
+
+		it("enforces enum on string args (evaluateFormula.returnType)", () => {
+			const evalFormula = getForgeFeature("evaluateFormula") as ForgeFeature
+			const base = { formula: "1+1", objectName: "Account" }
+			expect(validateForgeArgs(evalFormula, { ...base, returnType: "INTEGER" })).toBeUndefined()
+			expect(validateForgeArgs(evalFormula, { ...base, returnType: "int" })).toMatch(/must be one of:/i)
+			// A wrong-typed enum arg still fails the type check first.
+			expect(validateForgeArgs(evalFormula, { ...base, returnType: 123 })).toMatch(/must be string/i)
+		})
 	})
 })
