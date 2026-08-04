@@ -1557,6 +1557,18 @@ export const webviewMessageHandler = async (
 			}
 			break
 		}
+
+		case "deleteMessageConfirm":
+			if (message.messageTs) {
+				await handleDeleteMessageConfirm(message.messageTs)
+			}
+			break
+		case "editMessageConfirm":
+			if (message.messageTs && message.text) {
+				await handleEditMessageConfirm(message.messageTs, message.text, message.images)
+			}
+			break
+
 		case "submitEditedMessage": {
 			if (
 				provider.getCurrentCline() &&
