@@ -58,6 +58,29 @@ async function latestTag(owner, repo) {
 	}
 }
 
+/** The GitHub Release body for a tag (the "what changed" notes), trimmed, or null. */
+async function releaseNotes(owner, repo, tag) {
+	try {
+		const headers = { "user-agent": "siid-code-postinstall", accept: "application/vnd.github+json" }
+		const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN
+		if (token) headers.authorization = `Bearer ${token}`
+		const res = await fetch(`https://api.github.com/repos/${owner}/${repo}/releases/tags/v${tag}`, { headers })
+		if (!res.ok) return null // no Release for this tag yet → just skip the notes
+		const body = (await res.json()).body
+		return typeof body === "string" && body.trim() ? body.trim() : null
+	} catch {
+		return null // fail-open
+	}
+}
+
+/** Indent a notes block so it reads as a sub-section under the warning line. */
+function indent(text) {
+	return text
+		.split("\n")
+		.map((l) => "     " + l)
+		.join("\n")
+}
+
 async function main() {
 	// In CI, only run when a token is available (avoid unauthenticated rate-limit noise).
 	if (process.env.CI && !(process.env.GITHUB_TOKEN || process.env.GH_TOKEN)) return
@@ -75,10 +98,13 @@ async function main() {
 		if (!spec) continue
 		const latest = await latestTag(spec.owner, spec.repo)
 		if (latest && cmpVersion(latest, spec.version) > 0) {
+			const notes = await releaseNotes(spec.owner, spec.repo, latest)
 			console.warn(
 				`${YELLOW}⚠  ${pkg} v${latest} is available (you pin v${spec.version}).\n` +
 					`   Bump the pin in src/package.json to "github:${spec.owner}/${spec.repo}#v${latest}" ` +
-					`if you need the new surface.${RESET}`,
+					`if you need the new surface.` +
+					(notes ? `\n   Release notes for v${latest}:\n${indent(notes)}` : "") +
+					RESET,
 			)
 		}
 	}
