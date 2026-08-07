@@ -13,6 +13,13 @@ export type CheckpointDiff = {
 	}
 }
 
+export type FileChangeSummary = {
+	path: string
+	additions: number
+	deletions: number
+	status: "created" | "modified" | "deleted" | "renamed"
+}
+
 export interface CheckpointServiceOptions {
 	taskId: string
 	workspaceDir: string

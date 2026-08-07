@@ -215,10 +215,8 @@ export interface ExtensionMessage {
 		path: string
 		additions: number
 		deletions: number
-		status: "modified" | "created" | "deleted"
-		diff?: string
+		status: "modified" | "created" | "deleted" | "renamed"
 		deploymentStatus?: "local" | "dry-run" | "deploying" | "deployed" | "failed"
-		timestamp: number
 		error?: string
 	}>
 	statistics?: {
