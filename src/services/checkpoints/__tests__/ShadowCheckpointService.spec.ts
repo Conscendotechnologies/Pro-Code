@@ -55,9 +55,10 @@ describe.each([[RepoPerTaskCheckpointService, "RepoPerTaskCheckpointService"]])(
 		let workspaceGit: SimpleGit
 		let testFile: string
 		let service: RepoPerTaskCheckpointService
+		let shadowDir: string
 
 		beforeEach(async () => {
-			const shadowDir = path.join(tmpDir, `${prefix}-${Date.now()}`)
+			shadowDir = path.join(tmpDir, `${prefix}-${Date.now()}`)
 			const workspaceDir = path.join(tmpDir, `workspace-${Date.now()}`)
 			const repo = await initWorkspaceRepo({ workspaceDir })
 
@@ -136,6 +137,159 @@ describe.each([[RepoPerTaskCheckpointService, "RepoPerTaskCheckpointService"]])(
 				expect(change).toBeDefined()
 				expect(change!.content.before).toBe("New file content")
 				expect(change!.content.after).toBe("")
+			})
+		})
+
+		describe(`${klass.name}#getFileChangeSummary`, () => {
+			it("reports per-file counts and status, cumulative from the base commit", async () => {
+				// Modified: one line replaced -> +1/-1.
+				await fs.writeFile(testFile, "Ahoy, world!")
+
+				// Created.
+				const addedFile = path.join(service.workspaceDir, "added.txt")
+				await fs.writeFile(addedFile, "one\ntwo\nthree\n")
+
+				const summary = await service.getFileChangeSummary()
+				const byPath = Object.fromEntries(summary.map((f) => [f.path, f]))
+
+				expect(byPath["test.txt"]).toMatchObject({ status: "modified", additions: 1, deletions: 1 })
+				expect(byPath["added.txt"]).toMatchObject({ status: "created", additions: 3, deletions: 0 })
+
+				// Edit the same file again - counts must be cumulative from the
+				// base commit, not just the most recent edit.
+				await service.saveCheckpoint("first")
+				await fs.writeFile(addedFile, "one\ntwo\nthree\nfour\n")
+
+				const after = await service.getFileChangeSummary()
+				expect(after.find((f) => f.path === "added.txt")).toMatchObject({
+					status: "created",
+					additions: 4,
+					deletions: 0,
+				})
+			})
+
+			it("reports deleted files", async () => {
+				await fs.unlink(testFile)
+
+				const summary = await service.getFileChangeSummary()
+				expect(summary.find((f) => f.path === "test.txt")).toMatchObject({
+					status: "deleted",
+					deletions: 1,
+				})
+			})
+
+			it("returns an empty list when nothing changed", async () => {
+				expect(await service.getFileChangeSummary()).toEqual([])
+			})
+
+			it("stays anchored to task start after the service is re-created", async () => {
+				// A service constructed against an existing shadow repo sets
+				// baseHash to whatever HEAD is *now*, which after the first
+				// checkpoint is that checkpoint - not the task's start. The
+				// summary must use the root commit instead, or it reports only
+				// what changed since the last checkpoint.
+				await fs.writeFile(testFile, "Hello, world!\nfirst\n")
+				await service.saveCheckpoint("first edit")
+
+				const revived = klass.create({ taskId, workspaceDir: service.workspaceDir, shadowDir, log: () => {} })
+				await revived.initShadowGit()
+
+				await fs.writeFile(testFile, "Hello, world!\nfirst\nsecond\n")
+
+				const summary = await revived.getFileChangeSummary()
+				// Cumulative from task start: both lines, not just the newest one.
+				expect(summary.find((f) => f.path === "test.txt")).toMatchObject({ additions: 3, deletions: 1 })
+			})
+
+			it("reflects uncommitted edits, so the panel isn't a checkpoint behind", async () => {
+				// Checkpoints are saved *before* a tool runs, so the newest edit is
+				// always still uncommitted when the summary is built. The summary
+				// must count it anyway, or the panel lags one edit behind.
+				await fs.writeFile(testFile, "Hello, world!\nedit one\n")
+				await service.saveCheckpoint("after first edit")
+
+				const afterFirst = await service.getFileChangeSummary()
+				expect(afterFirst.find((f) => f.path === "test.txt")).toMatchObject({ additions: 2, deletions: 1 })
+
+				// Second edit, deliberately left uncommitted.
+				await fs.writeFile(testFile, "Hello, world!\nedit one\ntwo\nthree\nfour\nfive\n")
+
+				const afterSecond = await service.getFileChangeSummary()
+				expect(afterSecond.find((f) => f.path === "test.txt")).toMatchObject({ additions: 6, deletions: 1 })
+			})
+		})
+
+		describe(`${klass.name}#getDiff scoped to one checkpoint`, () => {
+			it("shows only that step's change, not the cumulative one", async () => {
+				await fs.writeFile(testFile, "Hello, world!\nsecond")
+				const first = await service.saveCheckpoint("first edit")
+
+				await fs.writeFile(testFile, "Hello, world!\nsecond\nthird")
+				const second = await service.saveCheckpoint("second edit")
+
+				// Scoped to the second edit only.
+				const scoped = await service.getDiff({ from: first!.commit, to: second!.commit })
+				const scopedChange = scoped.find((c) => c.paths.relative === "test.txt")!
+				expect(scopedChange.content.before).toBe("Hello, world!\nsecond")
+				expect(scopedChange.content.after).toBe("Hello, world!\nsecond\nthird")
+
+				// Cumulative from task start still spans both edits.
+				const full = await service.getDiff({ from: service.baseHash, to: second!.commit })
+				const fullChange = full.find((c) => c.paths.relative === "test.txt")!
+				expect(fullChange.content.before).toBe("Hello, world!")
+				expect(fullChange.content.after).toBe("Hello, world!\nsecond\nthird")
+			})
+		})
+
+		describe(`${klass.name}#untrackExcluded`, () => {
+			it("drops newly-excluded files from an existing repo without touching the workspace", async () => {
+				// .siid is in the exclude patterns, but a repo created before that
+				// would already be tracking it - info/exclude won't help there.
+				const siidDir = path.join(service.workspaceDir, ".siid", "schema")
+				await fs.mkdir(siidDir, { recursive: true })
+				const generated = path.join(siidDir, "Hello.json")
+				await fs.writeFile(generated, '{"a":1}')
+
+				// Force it into the index the way an older repo would have it.
+				const git = simpleGit(service.checkpointsDir)
+				await git.raw(["add", "-f", "--", ".siid/schema/Hello.json"])
+				await service.saveCheckpoint("with generated file")
+				expect(await git.raw(["ls-files", "--", ".siid"])).toContain("Hello.json")
+
+				// Re-initializing should untrack it.
+				const revived = klass.create({ taskId, workspaceDir: service.workspaceDir, shadowDir, log: () => {} })
+				await revived.initShadowGit()
+
+				expect(await git.raw(["ls-files", "--", ".siid"])).not.toContain("Hello.json")
+				// Untracking is index-only - the real file must survive.
+				expect(await fs.readFile(generated, "utf8")).toBe('{"a":1}')
+			})
+		})
+
+		describe(`${klass.name}#revertFile`, () => {
+			it("restores a modified file and leaves other files alone", async () => {
+				const otherFile = path.join(service.workspaceDir, "other.txt")
+				await fs.writeFile(otherFile, "untouched")
+				await service.saveCheckpoint("add other")
+
+				const baseHash = service.baseHash!
+				await fs.writeFile(testFile, "Changed!")
+				await fs.writeFile(otherFile, "also changed")
+
+				await service.revertFile(baseHash, "test.txt")
+
+				expect(await fs.readFile(testFile, "utf8")).toBe("Hello, world!")
+				// The other file must survive untouched.
+				expect(await fs.readFile(otherFile, "utf8")).toBe("also changed")
+			})
+
+			it("deletes a file that did not exist at the base commit", async () => {
+				const newFile = path.join(service.workspaceDir, "created.txt")
+				await fs.writeFile(newFile, "brand new")
+
+				await service.revertFile(service.baseHash!, "created.txt")
+
+				await expect(fs.access(newFile)).rejects.toThrow()
 			})
 		})
 

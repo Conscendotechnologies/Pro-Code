@@ -1,4 +1,5 @@
 import pWaitFor from "p-wait-for"
+import * as path from "path"
 import * as vscode from "vscode"
 
 import { TelemetryService } from "@siid-code/telemetry"
@@ -15,8 +16,45 @@ import { getApiMetrics } from "../../shared/getApiMetrics"
 import { DIFF_VIEW_URI_SCHEME } from "../../integrations/editor/DiffViewProvider"
 
 import { CheckpointServiceOptions, RepoPerTaskCheckpointService } from "../../services/checkpoints"
+import { getDeploymentStatuses } from "../../services/file-changes/deploymentStatus"
+
+/**
+ * In-flight initializations, keyed by task.
+ *
+ * `cline.checkpointService` is only assigned after initShadowGit resolves, so
+ * without this every concurrent caller starts its own `git init` on the same
+ * directory. They collide ("could not lock config file"), and each failure
+ * disables checkpoints for the whole task.
+ */
+const initializing = new Map<string, Promise<RepoPerTaskCheckpointService | undefined>>()
 
 export async function getCheckpointService(
+	cline: Task,
+	options: { interval?: number; timeout?: number } = {},
+): Promise<RepoPerTaskCheckpointService | undefined> {
+	if (!cline.enableCheckpoints) {
+		return undefined
+	}
+
+	// Already built and ready - the common case, no need to serialize.
+	if (cline.checkpointService && !cline.checkpointServiceInitializing) {
+		return cline.checkpointService
+	}
+
+	const pending = initializing.get(cline.taskId)
+
+	if (pending) {
+		return pending
+	}
+
+	const promise = initCheckpointService(cline, options).finally(() => initializing.delete(cline.taskId))
+
+	initializing.set(cline.taskId, promise)
+
+	return promise
+}
+
+async function initCheckpointService(
 	cline: Task,
 	{ interval = 250, timeout = 15_000 }: { interval?: number; timeout?: number } = {},
 ) {
@@ -138,6 +176,15 @@ async function checkGitInstallation(
 			try {
 				provider?.postMessageToWebview({ type: "currentCheckpointUpdated", text: to })
 
+				// A checkpoint means the workspace changed - refresh the file
+				// list. Build it straight off `service`: routing through
+				// getCheckpointService here would re-enter initialization from
+				// inside its own event handler.
+				postFileChangesFrom(cline, service).catch((err) => {
+					log("[Task#getCheckpointService] caught unexpected error in postFileChanges")
+					console.error(err)
+				})
+
 				cline
 					.say("checkpoint_saved", to, undefined, undefined, { from, to }, undefined, {
 						isNonInteractive: true,
@@ -157,7 +204,11 @@ async function checkGitInstallation(
 		try {
 			await service.initShadowGit()
 		} catch (err) {
-			log(`[Task#getCheckpointService] initShadowGit -> ${err.message}`)
+			// One-way switch: from here on checkpoints, the file-changes panel,
+			// and per-file diffs are all silently disabled for this task.
+			log(
+				`[Task#getCheckpointService] initShadowGit -> ${err.message} - DISABLING checkpoints, file changes and diffs for this task`,
+			)
 			cline.enableCheckpoints = false
 		}
 	} catch (err) {
@@ -274,19 +325,15 @@ export async function checkpointDiff(cline: Task, { ts, previousCommitHash, comm
 
 	TelemetryService.instance.captureCheckpointDiffed(cline.taskId)
 
-	let prevHash = commitHash
-	let nextHash: string | undefined
-
-	const checkpoints = typeof service.getCheckpoints === "function" ? service.getCheckpoints() : []
-	const idx = checkpoints.indexOf(commitHash)
-	if (idx !== -1 && idx < checkpoints.length - 1) {
-		nextHash = checkpoints[idx + 1]
-	} else {
-		nextHash = undefined
-	}
+	// Both modes end at the checkpoint that was clicked; they differ only in
+	// where they start. "full" spans the whole task, "checkpoint" just the one
+	// step. Diffing forward from the clicked hash would show changes that came
+	// after it - the opposite of what either label promises.
+	const taskStart = await service.getTaskStartHash()
+	const from = mode === "full" ? taskStart : (previousCommitHash ?? taskStart)
 
 	try {
-		const changes = await service.getDiff({ from: prevHash, to: nextHash })
+		const changes = await service.getDiff({ from, to: commitHash })
 
 		if (!changes?.length) {
 			vscode.window.showInformationMessage("No changes found.")
@@ -311,4 +358,181 @@ export async function checkpointDiff(cline: Task, { ts, previousCommitHash, comm
 		provider?.log("[checkpointDiff] disabling checkpoints for this task")
 		cline.enableCheckpoints = false
 	}
+}
+
+/**
+ * Files changed since the task started, with per-file +/- counts from git,
+ * merged with the deployment status we track separately.
+ *
+ * Returns [] when checkpoints are unavailable (disabled, git missing, nested
+ * repos) - the webview renders an empty state rather than stale data.
+ */
+export async function getTaskFileChanges(cline: Task) {
+	const service = await getCheckpointService(cline)
+
+	if (!service) {
+		// The usual reason the panel is empty. enableCheckpoints is one-way, so
+		// once something flips it off this is silent for the rest of the task.
+		cline.providerRef
+			.deref()
+			?.log(
+				`[fileChanges] no checkpoint service (enableCheckpoints=${cline.enableCheckpoints}) - list will be empty`,
+			)
+		return []
+	}
+
+	return fileChangesFrom(cline, service)
+}
+
+/**
+ * Build the list from an already-resolved service.
+ *
+ * Callers inside the service's own event handlers must use this rather than
+ * getTaskFileChanges - that would re-enter initialization, and any throw there
+ * is caught by the handler and permanently disables checkpoints for the task.
+ */
+async function fileChangesFrom(cline: Task, service: RepoPerTaskCheckpointService) {
+	const log = (message: string) => cline.providerRef.deref()?.log(`[fileChanges] ${message}`)
+
+	try {
+		const summary = await service.getFileChangeSummary()
+		const deployment = getDeploymentStatuses(cline.taskId)
+
+		// An empty summary is indistinguishable from a broken one in the UI -
+		// the panel just doesn't render - so say which it was.
+		log(
+			summary.length === 0
+				? `no files changed since task start (base=${(await service.getTaskStartHash())?.slice(0, 8)})`
+				: `${summary.length} file(s): ${summary.map((f) => `${f.path} +${f.additions}/-${f.deletions}`).join(", ")}`,
+		)
+
+		return summary.map((file) => {
+			const deployed = deployment.get(file.path)
+
+			return {
+				path: file.path,
+				additions: file.additions,
+				deletions: file.deletions,
+				status: file.status,
+				deploymentStatus: deployed?.status,
+				error: deployed?.error,
+			}
+		})
+	} catch (err) {
+		log(`failed: ${err instanceof Error ? err.message : String(err)}`)
+		return []
+	}
+}
+
+/**
+ * Open a VS Code diff of one file.
+ *
+ * With no hashes this shows the whole task: content at task start vs. now,
+ * matching the cumulative counts in the file-changes panel. Passing `from`/`to`
+ * scopes it to a single operation instead, so an inline edit row can show just
+ * the change it reports.
+ *
+ * Returns false when the shadow repo can't supply a baseline (checkpoints
+ * disabled, or the file didn't change in that range), so the caller can fall
+ * back to just opening the file.
+ */
+export async function openTaskFileDiff(
+	cline: Task,
+	relPath: string,
+	range?: { from?: string; to?: string },
+): Promise<boolean> {
+	const log = (message: string) => cline.providerRef.deref()?.log(`[openTaskFileDiff] ${message}`)
+	const service = await getCheckpointService(cline)
+
+	if (!service) {
+		log(`no checkpoint service (enableCheckpoints=${cline.enableCheckpoints}) - falling back to opening the file`)
+		return false
+	}
+
+	try {
+		const changes = await service.getDiff({ from: range?.from, to: range?.to })
+		const change = changes.find((c) => c.paths.relative === relPath)
+
+		if (!change) {
+			// Usually a path-shape mismatch, so log both sides.
+			log(
+				`${relPath} not in diff (${changes.length} changed: ${changes.map((c) => c.paths.relative).join(", ")})`,
+			)
+			return false
+		}
+
+		const fileName = path.basename(relPath)
+		const scoped = !!(range?.from || range?.to)
+
+		// A scoped diff compares two commits, so the "after" side is historical
+		// content, not the file on disk.
+		const after = scoped
+			? vscode.Uri.parse(`${DIFF_VIEW_URI_SCHEME}:${relPath}`).with({
+					query: Buffer.from(change.content.after ?? "").toString("base64"),
+				})
+			: vscode.Uri.file(change.paths.absolute)
+
+		await vscode.commands.executeCommand(
+			"vscode.diff",
+			vscode.Uri.parse(`${DIFF_VIEW_URI_SCHEME}:${relPath}`).with({
+				query: Buffer.from(change.content.before ?? "").toString("base64"),
+			}),
+			after,
+			`${fileName}: ${scoped ? "Changes in this edit" : "Changes since task started"}`,
+			{ preview: true },
+		)
+
+		return true
+	} catch (err) {
+		log(`failed: ${err instanceof Error ? err.message : String(err)}`)
+		return false
+	}
+}
+
+/**
+ * Restore one file to its content at task start, leaving every other file
+ * alone. Per-file counterpart to restoreCheckpoint.
+ */
+export async function revertTaskFile(cline: Task, relPath: string): Promise<boolean> {
+	const service = await getCheckpointService(cline)
+
+	if (!service) {
+		return false
+	}
+
+	try {
+		const taskStart = await service.getTaskStartHash()
+
+		if (!taskStart) {
+			return false
+		}
+
+		await service.revertFile(taskStart, relPath)
+		await postFileChangesFrom(cline, service)
+		return true
+	} catch (err) {
+		cline.providerRef.deref()?.log(`[revertTaskFile] ${err instanceof Error ? err.message : String(err)}`)
+		return false
+	}
+}
+
+/** Push the current file-change list to the webview. */
+export async function postFileChanges(cline: Task) {
+	const service = await getCheckpointService(cline)
+
+	if (service) {
+		await postFileChangesFrom(cline, service)
+	}
+}
+
+/** Push variant for callers that already hold the service - see fileChangesFrom. */
+async function postFileChangesFrom(cline: Task, service: RepoPerTaskCheckpointService) {
+	const provider = cline.providerRef.deref()
+
+	if (!provider) {
+		return
+	}
+
+	const fileChanges = await fileChangesFrom(cline, service)
+	await provider.postMessageToWebview({ type: "fileChanges", fileChanges })
 }

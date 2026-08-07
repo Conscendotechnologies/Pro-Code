@@ -1,71 +1,48 @@
 # FileChanges Component
 
-A reusable React component for displaying file changes with two variants: a collapsible list view and a detailed expanded view. Includes diff tracking, deployment status tracking, and localStorage persistence.
+Displays the files changed during the current task, with per-file line counts, status icons, Salesforce deployment badges, and per-file diff/revert actions.
 
-## Features
+## Where the data comes from
 
-- **Two Variants**: List (collapsible) and Detail (always expanded with prominent stats)
-- **File Statistics**: Shows additions (+) and deletions (-) when available
-- **Status Icons**: Visual indicators for created, modified, and deleted files
-- **Deployment Status**: Track and display file deployment stages (local, dry-run, deploying, deployed, failed)
-- **Diff Tracking**: Store and view actual file diffs
-- **LocalStorage Persistence**: Automatically persists file changes for each task
-- **Clickable Files**: Opens files in VS Code editor
-- **Diff Viewer**: Modal view to inspect changes
-- **Responsive Design**: Works with VS Code theming
-- **TypeScript Support**: Fully typed with exported interfaces
+The component is **presentational only**. It renders whatever `files` it is given and owns no fetching, persistence, or caching.
 
-## Installation
+The data originates in the task's **shadow git repository** — a repo the checkpoints service maintains at `<globalStorage>/tasks/<taskId>/checkpoints/.git` with `core.worktree` pointed at the workspace. The user's own `.git` is never read or written, so this works even in a workspace with no git repo or no source tracking configured.
 
-The component is already integrated into the chat interface. Import it where needed:
-
-```typescript
-import { FileChanges, type FileChange, type DeploymentStatus } from "./components/chat/FileChanges"
-import { DiffViewer } from "./components/chat/DiffViewer"
 ```
+ShadowCheckpointService.getFileChangeSummary()   // git diffSummary + --name-status
+        ↓
+getTaskFileChanges(cline)                        // src/core/checkpoints/index.ts
+        ↓  merges in-memory deployment status
+postMessageToWebview({ type: "fileChanges" })
+        ↓
+useFileChangesBackend(taskId)                    // subscribes; no polling
+        ↓
+<FileChanges files={...} />
+```
+
+Counts are **cumulative from task start**, not per-edit: a file edited three times shows its total change. Because git diffs the workspace rather than the agent, changes made outside the agent during a task (manual edits, build output) are included — git cannot attribute a change to its author.
+
+The extension pushes an updated list whenever a checkpoint is saved (after every file-writing tool) and on Salesforce deploy phase transitions. The hook only requests an initial list when the task changes.
+
+When checkpoints are unavailable — disabled by setting, git not installed, or nested git repos in the workspace — the list is empty and nothing renders.
 
 ## Usage
 
-### Basic List Variant with Deployment Status
-
 ```tsx
-const [selectedDiffFile, setSelectedDiffFile] = useState<FileChange | null>(null)
+const { files } = useFileChangesBackend(currentTaskItem?.id)
 
-<FileChanges
-  files={fileChanges}
-  variant="list"
-  defaultCollapsed={true}
-  onViewDiff={(file) => setSelectedDiffFile(file)}
-  taskId={task?.ts}
-/>
-
-{selectedDiffFile && (
-  <DiffViewer
-    file={selectedDiffFile}
-    onClose={() => setSelectedDiffFile(null)}
-  />
-)}
-```
-
-### Detail Variant with Full Statistics
-
-```tsx
-<FileChanges files={fileChanges} variant="detail" onViewDiff={(file) => setSelectedDiffFile(file)} taskId={task?.ts} />
-```
-
-### With Custom File Click Handler
-
-```tsx
-<FileChanges
-	files={fileChanges}
-	variant="list"
-	onFileClick={(path) => {
-		console.log("Opening:", path)
-		// Custom logic here
-	}}
-	onViewDiff={(file) => showDiff(file)}
-	taskId="my-task-id"
-/>
+{
+	files.length > 0 && (
+		<FileChanges
+			files={files}
+			variant="list"
+			defaultCollapsed={true}
+			onViewDiff={openVsCodeDiff}
+			onRevert={revertFile}
+			className="px-3.5 mb-2"
+		/>
+	)
+}
 ```
 
 ## Props
@@ -74,70 +51,62 @@ const [selectedDiffFile, setSelectedDiffFile] = useState<FileChange | null>(null
 
 | Prop               | Type                         | Default    | Description                                 |
 | ------------------ | ---------------------------- | ---------- | ------------------------------------------- |
-| `files`            | `FileChange[]`               | _required_ | Array of file changes to display            |
+| `files`            | `FileChange[]`               | _required_ | Files to display                            |
 | `variant`          | `"list" \| "detail"`         | `"list"`   | Display variant                             |
 | `defaultCollapsed` | `boolean`                    | `true`     | Initial collapsed state (list variant only) |
-| `onFileClick`      | `(path: string) => void`     | _optional_ | Custom file click handler                   |
-| `onViewDiff`       | `(file: FileChange) => void` | _optional_ | Handler for viewing diffs                   |
+| `onFileClick`      | `(path: string) => void`     | _optional_ | Overrides the default "open file" behavior  |
+| `onViewDiff`       | `(file: FileChange) => void` | _optional_ | Shows the diff button when provided         |
+| `onRevert`         | `(file: FileChange) => void` | _optional_ | Shows the revert button when provided       |
 | `className`        | `string`                     | `""`       | Additional CSS classes                      |
-| `taskId`           | `string`                     | _optional_ | Task ID for localStorage persistence        |
 
-### FileChange Type
+### FileChange
 
 ```typescript
 type FileChange = {
-	path: string // File path (required)
-	additions?: number // Lines added
-	deletions?: number // Lines deleted
-	status?: "modified" | "created" | "deleted" // File status
-	diff?: string // Actual diff content
-	deploymentStatus?: DeploymentStatus // Deployment stage
-	timestamp?: number // When the change was made
-	error?: string // Error message if deployment failed
+	path: string
+	additions?: number
+	deletions?: number
+	status?: "modified" | "created" | "deleted" | "renamed"
+	deploymentStatus?: DeploymentStatus
+	error?: string // Deployment error, when deploymentStatus is "failed"
 }
 
 type DeploymentStatus = "local" | "dry-run" | "deploying" | "deployed" | "failed"
 ```
 
-### DiffViewerProps
-
-| Prop      | Type         | Description                       |
-| --------- | ------------ | --------------------------------- |
-| `file`    | `FileChange` | File with diff to display         |
-| `onClose` | `() => void` | Callback to close the diff viewer |
+Diff text is deliberately **not** on this type — shipping full before/after content for every row would be wasteful when most are never opened. `onViewDiff` posts an `openDiff` message and the extension reads the content from the shadow repo on demand.
 
 ## Variants
 
-### List Variant
+**`list`** — collapsible, for the chat interface. Header shows the file count and deployment status chips.
 
-- **Use Case**: Compact display in chat interface
-- **Behavior**: Collapsible with chevron icon
-- **Features**:
-    - Shows file count in header
-    - Expandable/collapsible
-    - Hover background for better visibility
-    - Scrollable if content exceeds max height
+**`detail`** — always expanded, with total additions/deletions in the header. Currently unused.
 
-### Detail Variant
+## Actions
 
-- **Use Case**: Summary views, reports, PR descriptions
-- **Behavior**: Always expanded with prominent statistics
-- **Features**:
-    - Border container for visual separation
-    - Total additions/deletions summary in header
-    - Status icons with appropriate colors
-    - More spacious layout
+Clicking a **file path** opens it in the editor. The diff and revert buttons only render when their handler is supplied.
 
-## Status Icons and Colors
+**View diff** opens VS Code's native diff editor showing _"Changes since task started"_ — the file's content at the task's base commit versus the file on disk. Because the right-hand side is the real file, VS Code's own gutter arrows work, giving per-hunk revert for free.
 
-| Status     | Icon                    | Color                                             |
-| ---------- | ----------------------- | ------------------------------------------------- |
-| `created`  | `codicon-diff-added`    | Green (gitDecoration-addedResourceForeground)     |
-| `modified` | `codicon-diff-modified` | Orange (gitDecoration-modifiedResourceForeground) |
-| `deleted`  | `codicon-diff-removed`  | Red (gitDecoration-deletedResourceForeground)     |
-| _default_  | `codicon-file`          | Default foreground                                |
+> The inline `Edit:` rows in the chat transcript (rendered by `ChatRow`, not this component) use the same `openDiff` message but pass the `{from, to}` hashes of the checkpoint that edit produced, so their diff is scoped to that single operation and matches the `+/-` shown beside it.
 
-## Deployment Status Badges
+**Revert** restores the file to its content at task start via `git checkout <baseHash> -- <path>` in the shadow repo; a file created during the task is deleted instead. Other files are untouched. This is destructive and not undoable from the panel, so it confirms first.
+
+## Status icons
+
+| Status     | Icon                    | Color                                      |
+| ---------- | ----------------------- | ------------------------------------------ |
+| `created`  | `codicon-diff-added`    | `gitDecoration-addedResourceForeground`    |
+| `modified` | `codicon-diff-modified` | `gitDecoration-modifiedResourceForeground` |
+| `deleted`  | `codicon-diff-removed`  | `gitDecoration-deletedResourceForeground`  |
+| `renamed`  | `codicon-diff-renamed`  | `gitDecoration-renamedResourceForeground`  |
+| _default_  | `codicon-file`          | `editor-foreground`                        |
+
+## Deployment status
+
+Deployment status is the one field git cannot supply — whether a file reached a Salesforce org is org state, not workspace state. It is tracked separately in `src/services/file-changes/deploymentStatus.ts` and merged onto the git summary when the list is built.
+
+That store is **in-memory**, so status is lost on window reload: the badge disappears while the file list and line counts, which come from git, survive. Persisting it is a deliberate deferral, not an oversight.
 
 | Status      | Label     | Icon                | Color             |
 | ----------- | --------- | ------------------- | ----------------- |
@@ -147,139 +116,14 @@ type DeploymentStatus = "local" | "dry-run" | "deploying" | "deployed" | "failed
 | `deployed`  | Deployed  | `codicon-check`     | Green             |
 | `failed`    | Failed    | `codicon-error`     | Red               |
 
-## Examples
+## Related files
 
-See [`FileChanges.example.tsx`](./FileChanges.example.tsx) for comprehensive usage examples.
-
-## Integration with ChatView
-
-The FileChanges component is integrated into ChatView.tsx and automatically displays tracked file changes with diff and deployment tracking:
-
-```tsx
-{
-	fileChanges.length > 0 && (
-		<FileChanges
-			files={fileChanges}
-			variant="list"
-			defaultCollapsed={fileListCollapsed}
-			onViewDiff={(file) => setSelectedDiffFile(file)}
-			className="px-3.5 mb-2"
-			taskId={task?.ts ? String(task.ts) : undefined}
-		/>
-	)
-}
-{
-	selectedDiffFile && <DiffViewer file={selectedDiffFile} onClose={() => setSelectedDiffFile(null)} />
-}
-```
-
-## LocalStorage Utilities
-
-The component includes utility functions for persisting file changes:
-
-```typescript
-// Save file changes for a task
-saveFileChanges(taskId: string, files: FileChange[]): void
-
-// Load file changes for a task
-loadFileChanges(taskId: string): FileChange[]
-
-// Clear file changes for a task
-clearFileChanges(taskId: string): void
-```
-
-**Storage Key Format**: `fileChanges_{taskId}`
-
-### Example Usage:
-
-```typescript
-import { saveFileChanges, loadFileChanges } from "./FileChanges"
-
-// Save changes
-saveFileChanges("task-123", fileChanges)
-
-// Load changes
-const savedChanges = loadFileChanges("task-123")
-
-// Clear when task is complete
-clearFileChanges("task-123")
-```
-
-## File Change Detection
-
-File changes are automatically detected through multiple mechanisms:
-
-1. **Message Parsing**: Scans messages for "Created:", "Modified:", etc.
-2. **Extension Events**: Listens for file creation and task completion events
-3. **DOM Fallback**: Scans rendered content as a backup
-
-### Setting Deployment Status
-
-When receiving file changes from the extension, include the deployment status:
-
-```typescript
-// From extension
-vscode.postMessage({
-	type: "fileCreated",
-	files: [
-		{
-			path: "src/App.tsx",
-			additions: 10,
-			deletions: 2,
-			status: "modified",
-			diff: "...", // actual diff string
-			deploymentStatus: "dry-run", // or "local", "deploying", "deployed", "failed"
-			timestamp: Date.now(),
-			error: undefined, // set if deployment failed
-		},
-	],
-})
-```
-
-### Updating Deployment Status
-
-To update the deployment status of files (e.g., after deployment):
-
-```typescript
-setFileChanges((prev) =>
-	prev.map((file) => (file.path === targetPath ? { ...file, deploymentStatus: "deployed" } : file)),
-)
-```
-
-## Styling
-
-The component uses VS Code CSS variables for theming:
-
-- `--vscode-editor-foreground`
-- `--vscode-editorHoverWidget-background`
-- `--vscode-panel-border`
-- `--vscode-charts-green`
-- `--vscode-errorForeground`
-- `--vscode-gitDecoration-*`
-
-## Accessibility
-
-- Keyboard navigable buttons
-- Screen reader friendly
-- Semantic HTML structure
-
-## Future Enhancements
-
-Potential improvements for future versions:
-
-- [x] Diff preview in modal
-- [x] Deployment status tracking
-- [x] LocalStorage persistence
-- [ ] Bulk file operations (open all, compare, etc.)
-- [ ] Filtering by status or deployment stage
-- [ ] Sorting options (by name, status, timestamp)
-- [ ] Copy file paths
-- [ ] Export file list
-- [ ] Integration with git status
-- [ ] Side-by-side diff view
-- [ ] Inline diff annotations
-- [ ] Real-time deployment progress
-- [ ] Rollback functionality
+| File                                                  | Role                                                                          |
+| ----------------------------------------------------- | ----------------------------------------------------------------------------- |
+| `useFileChangesBackend.ts`                            | Subscribes to `fileChanges` pushes                                            |
+| `src/core/checkpoints/index.ts`                       | `getTaskFileChanges`, `postFileChanges`, `openTaskFileDiff`, `revertTaskFile` |
+| `src/services/checkpoints/ShadowCheckpointService.ts` | `getFileChangeSummary`, `revertFile`                                          |
+| `src/services/file-changes/deploymentStatus.ts`       | Per-task deployment status map                                                |
 
 ## License
 

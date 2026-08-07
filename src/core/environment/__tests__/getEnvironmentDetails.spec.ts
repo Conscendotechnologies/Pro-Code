@@ -23,6 +23,7 @@ vi.mock("vscode", () => ({
 	window: {
 		tabGroups: { all: [], onDidChangeTabs: vi.fn() },
 		visibleTextEditors: [],
+		createTextEditorDecorationType: vi.fn(),
 	},
 	env: {
 		language: "en-US",
@@ -89,6 +90,7 @@ describe("getEnvironmentDetails", () => {
 			cwd: mockCwd,
 			taskId: mockTaskId,
 			didEditFile: false,
+			getFileChanges: vi.fn().mockResolvedValue([]),
 			fileContextTracker: {
 				getAndClearRecentlyModifiedFiles: vi.fn().mockReturnValue([]),
 			} as unknown as FileContextTracker,

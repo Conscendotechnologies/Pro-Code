@@ -13,7 +13,7 @@ import { fileExistsAtPath } from "../../utils/fs"
 import { RecordSource } from "../context-tracking/FileContextTrackerTypes"
 import { unescapeHtmlEntities } from "../../utils/text-normalization"
 import { EXPERIMENT_IDS, experiments } from "../../shared/experiments"
-import { trackFileChange } from "../../services/file-changes/trackFileChange"
+import { countContentChanges } from "../../utils/diffStats"
 
 export async function applyDiffToolLegacy(
 	cline: Task,
@@ -154,12 +154,18 @@ export async function applyDiffToolLegacy(
 			// Check if file is write-protected
 			const isWriteProtected = cline.rooProtectedController?.isWriteProtected(relPath) || false
 
+			// `diffContent` is a SEARCH/REPLACE block, which has no +/- lines to
+			// count - derive the stats from the content instead.
+			const { linesAdded, linesRemoved } = countContentChanges(originalContent, diffResult.content)
+
 			if (isPreventFocusDisruptionEnabled) {
 				// Direct file write without diff view
 				const completeMessage = JSON.stringify({
 					...sharedMessageProps,
 					diff: diffContent,
 					isProtected: isWriteProtected,
+					linesAdded,
+					linesRemoved,
 				} satisfies ClineSayTool)
 
 				let toolProgressStatus
@@ -196,6 +202,8 @@ export async function applyDiffToolLegacy(
 					...sharedMessageProps,
 					diff: diffContent,
 					isProtected: isWriteProtected,
+					linesAdded,
+					linesRemoved,
 				} satisfies ClineSayTool)
 
 				let toolProgressStatus
@@ -230,15 +238,6 @@ export async function applyDiffToolLegacy(
 
 			// Get the formatted response message
 			const message = await cline.diffViewProvider.pushToolWriteResult(cline, cline.cwd, !fileExists)
-
-			// Track file change in database with diff calculation
-			await trackFileChange({
-				taskId: cline.taskId,
-				filePath: relPath,
-				status: "modified",
-				oldContent: originalContent,
-				newContent: diffResult.content,
-			})
 
 			// Check for single SEARCH/REPLACE block warning
 			const searchBlocks = (diffContent.match(/<<<<<<< SEARCH/g) || []).length
