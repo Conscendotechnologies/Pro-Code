@@ -1337,7 +1337,9 @@ describe("Cline", () => {
 					context: {
 						globalStorageUri: { fsPath: "/test/storage" },
 					},
-					getState: vi.fn(),
+					// The Task constructor calls provider.getState().then(...), so this has
+					// to resolve even in tests that don't override it.
+					getState: vi.fn().mockResolvedValue({}),
 				}
 			})
 
