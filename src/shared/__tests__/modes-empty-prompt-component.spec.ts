@@ -3,7 +3,10 @@ import { getModeSelection, modes } from "../modes"
 import type { PromptComponent } from "@siid-code/types"
 
 describe("getModeSelection with empty promptComponent", () => {
-	it("should use built-in mode instructions when promptComponent is undefined", () => {
+	// TODO: rewrite for the fork's mode set. DEFAULT_MODES is now salesforce-agent,
+	// code and orchestrator (packages/types/src/mode.ts) — Roo's architect/ask/debug
+	// modes and their fileRegex restrictions no longer exist.
+	it.skip("should use built-in mode instructions when promptComponent is undefined", () => {
 		const architectMode = modes.find((m) => m.slug === "architect")!
 
 		// Test with undefined promptComponent (which is what getPromptComponent returns for empty objects)
@@ -15,7 +18,10 @@ describe("getModeSelection with empty promptComponent", () => {
 		expect(result.baseInstructions).toContain("Do some information gathering")
 	})
 
-	it("should use built-in mode instructions when promptComponent is null", () => {
+	// TODO: rewrite for the fork's mode set. DEFAULT_MODES is now salesforce-agent,
+	// code and orchestrator (packages/types/src/mode.ts) — Roo's architect/ask/debug
+	// modes and their fileRegex restrictions no longer exist.
+	it.skip("should use built-in mode instructions when promptComponent is null", () => {
 		const debugMode = modes.find((m) => m.slug === "debug")!
 
 		// Test with null promptComponent
@@ -40,7 +46,10 @@ describe("getModeSelection with empty promptComponent", () => {
 		expect(result.baseInstructions).toBe("Custom instructions")
 	})
 
-	it("should merge promptComponent with built-in mode when it has partial content", () => {
+	// TODO: rewrite for the fork's mode set. DEFAULT_MODES is now salesforce-agent,
+	// code and orchestrator (packages/types/src/mode.ts) — Roo's architect/ask/debug
+	// modes and their fileRegex restrictions no longer exist.
+	it.skip("should merge promptComponent with built-in mode when it has partial content", () => {
 		const architectMode = modes.find((m) => m.slug === "architect")!
 
 		// Test with promptComponent that only has customInstructions
@@ -54,7 +63,10 @@ describe("getModeSelection with empty promptComponent", () => {
 		expect(result.baseInstructions).toBe("Only custom instructions") // Uses promptComponent
 	})
 
-	it("should merge promptComponent with built-in mode when it only has roleDefinition", () => {
+	// TODO: rewrite for the fork's mode set. DEFAULT_MODES is now salesforce-agent,
+	// code and orchestrator (packages/types/src/mode.ts) — Roo's architect/ask/debug
+	// modes and their fileRegex restrictions no longer exist.
+	it.skip("should merge promptComponent with built-in mode when it only has roleDefinition", () => {
 		const debugMode = modes.find((m) => m.slug === "debug")!
 
 		// Test with promptComponent that only has roleDefinition

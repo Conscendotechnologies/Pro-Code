@@ -261,9 +261,8 @@ export async function readFileTool(
 
 				const fullPathForApproval = path.resolve(cline.cwd, relPath)
 				const provider = cline.providerRef.deref()
-				const globalInstructionsPath = provider
-					? path.join(provider.context.globalStorageUri.fsPath, "instructions")
-					: ""
+				const globalStorageFsPath = provider?.context?.globalStorageUri?.fsPath
+				const globalInstructionsPath = globalStorageFsPath ? path.join(globalStorageFsPath, "instructions") : ""
 				const isMarkdown = path.extname(relPath).toLowerCase() === ".md"
 				const inWorkspaceRulesDir = fullPathForApproval.includes(path.join(".roo", "rules-"))
 				const inGlobalInstructions =

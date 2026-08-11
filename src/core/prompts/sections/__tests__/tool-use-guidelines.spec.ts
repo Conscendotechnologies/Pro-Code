@@ -37,7 +37,7 @@ describe("getToolUseGuidelinesSection", () => {
 			expect(guidelines).toContain("1. In <thinking> tags")
 			expect(guidelines).toContain("2. **CRITICAL:")
 			expect(guidelines).toContain("3. Choose the most appropriate tool")
-			expect(guidelines).toContain("4. If multiple actions are needed")
+			expect(guidelines).toContain("4. If multiple independent actions are needed")
 			expect(guidelines).toContain("5. Formulate your tool use")
 			expect(guidelines).toContain("6. After each tool use")
 			expect(guidelines).toContain("7. ALWAYS wait for user confirmation")
@@ -61,7 +61,7 @@ describe("getToolUseGuidelinesSection", () => {
 			// Check that all numbered items are present with correct numbering
 			expect(guidelines).toContain("1. In <thinking> tags")
 			expect(guidelines).toContain("2. Choose the most appropriate tool")
-			expect(guidelines).toContain("3. If multiple actions are needed")
+			expect(guidelines).toContain("3. If multiple independent actions are needed")
 			expect(guidelines).toContain("4. Formulate your tool use")
 			expect(guidelines).toContain("5. After each tool use")
 			expect(guidelines).toContain("6. ALWAYS wait for user confirmation")
@@ -74,7 +74,7 @@ describe("getToolUseGuidelinesSection", () => {
 
 		// Check that the iterative process section is included in both cases
 		for (const guidelines of [guidelinesEnabled, guidelinesDisabled]) {
-			expect(guidelines).toContain("It is crucial to proceed step-by-step")
+			expect(guidelines).toContain("It is crucial to proceed thoughtfully")
 			expect(guidelines).toContain("1. Confirm the success of each step before proceeding")
 			expect(guidelines).toContain("2. Address any issues or errors that arise immediately")
 			expect(guidelines).toContain("3. Adapt your approach based on new information")

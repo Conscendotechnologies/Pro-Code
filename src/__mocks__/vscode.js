@@ -102,8 +102,22 @@ export const extensions = {
 	getExtension: () => null,
 }
 
+export const version = "1.100.0"
+
 export const env = {
 	openExternal: () => Promise.resolve(),
+	language: "en",
+	appName: "Visual Studio Code",
+	machineId: "test-machine-id",
+	sessionId: "test-session-id",
+	isNewAppInstall: false,
+	isTelemetryEnabled: false,
+	uiKind: 1,
+}
+
+export const UIKind = {
+	Desktop: 1,
+	Web: 2,
 }
 
 export const Uri = mockUri

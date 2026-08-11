@@ -13,7 +13,9 @@ const mockMarketplaceManager = {
 	updateWithFilteredItems: vi.fn(),
 } as any
 
-describe("Marketplace General Availability", () => {
+// TODO: commit 08e485694 removed the marketplace cases (filterMarketplaceItems,
+// fetchMarketplaceData, installMarketplaceItem) from webviewMessageHandler.
+describe.skip("Marketplace General Availability", () => {
 	beforeEach(() => {
 		vi.clearAllMocks()
 	})
