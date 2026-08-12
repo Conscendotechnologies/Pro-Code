@@ -41,6 +41,8 @@ vi.mock("@src/context/ExtensionStateContext", () => ({
 			apiModelId: "claude-3-opus-20240229", // Add relevant fields
 		} as ProviderSettings, // Optional: Add type assertion if ProviderSettings is imported
 		currentTaskItem: { id: "test-task-id" },
+		// Cost display and the condense button are gated on developer mode (75b3071c9).
+		developerMode: true,
 	}),
 }))
 

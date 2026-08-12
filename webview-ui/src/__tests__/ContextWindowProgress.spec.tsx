@@ -20,6 +20,9 @@ vi.mock("@src/context/ExtensionStateContext", () => ({
 	useExtensionState: vi.fn(() => ({
 		apiConfiguration: { apiProvider: "openai" },
 		currentTaskItem: { id: "test-id", number: 1, size: 1024 },
+		// TaskHeader's expanded section (which hosts ContextWindowProgress) is gated on
+		// developer mode (75b3071c9).
+		developerMode: true,
 	})),
 }))
 
