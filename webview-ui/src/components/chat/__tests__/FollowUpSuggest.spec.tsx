@@ -27,8 +27,6 @@ vi.mock("@src/i18n/TranslationContext", () => ({
 // Test-specific extension state context that only provides the values needed by FollowUpSuggest
 interface TestExtensionState {
 	autoApprovalEnabled: boolean
-	
-	
 }
 
 const TestExtensionStateContext = createContext<TestExtensionState | undefined>(undefined)
@@ -70,7 +68,6 @@ describe("FollowUpSuggest", () => {
 	// Default test state with auto-approval enabled
 	const defaultTestState: TestExtensionState = {
 		autoApprovalEnabled: true,
-		
 	}
 
 	beforeEach(() => {
@@ -151,7 +148,10 @@ describe("FollowUpSuggest", () => {
 		expect(screen.queryByText(/\d+s/)).not.toBeInTheDocument()
 	})
 
-	it("should not show countdown when alwaysAllowFollowupQuestions is false", () => {
+	// TODO: rewrite for 7a7ce7526 — alwaysAllowFollowupQuestions was removed from settings,
+	// so there is no longer a per-followup toggle to suppress the countdown; only
+	// autoApprovalEnabled gates it (covered by the test below).
+	it.skip("should not show countdown when alwaysAllowFollowupQuestions is false", () => {
 		const testState: TestExtensionState = {
 			...defaultTestState,
 		}
@@ -170,10 +170,11 @@ describe("FollowUpSuggest", () => {
 		expect(screen.queryByText(/\d+s/)).not.toBeInTheDocument()
 	})
 
-	it("should use custom timeout value from extension state", () => {
+	// TODO: rewrite for 7a7ce7526 — followupAutoApproveTimeoutMs was removed from settings;
+	// the countdown now always uses DEFAULT_FOLLOWUP_TIMEOUT_MS.
+	it.skip("should use custom timeout value from extension state", () => {
 		const testState: TestExtensionState = {
 			...defaultTestState,
-			
 		}
 
 		renderWithTestProviders(
@@ -193,8 +194,6 @@ describe("FollowUpSuggest", () => {
 	it("should render suggestions without countdown when both auto-approval settings are disabled", () => {
 		const testState: TestExtensionState = {
 			autoApprovalEnabled: false,
-			
-			
 		}
 
 		renderWithTestProviders(

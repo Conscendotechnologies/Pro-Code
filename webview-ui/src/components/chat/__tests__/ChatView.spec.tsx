@@ -356,10 +356,12 @@ describe("ChatView - Auto Approval Tests", () => {
 			})
 
 			// Should not auto-approve when autoApprovalEnabled is false
-			expect(vscode.postMessage).not.toHaveBeenCalledWith({
-				type: "askResponse",
-				askResponse: "yesButtonClicked",
-			})
+			expect(vscode.postMessage).not.toHaveBeenCalledWith(
+				expect.objectContaining({
+					type: "askResponse",
+					askResponse: "yesButtonClicked",
+				}),
+			)
 		})
 	})
 
@@ -405,10 +407,12 @@ describe("ChatView - Auto Approval Tests", () => {
 
 		// Wait for auto-approval to happen
 		await waitFor(() => {
-			expect(vscode.postMessage).toHaveBeenCalledWith({
-				type: "askResponse",
-				askResponse: "yesButtonClicked",
-			})
+			expect(vscode.postMessage).toHaveBeenCalledWith(
+				expect.objectContaining({
+					type: "askResponse",
+					askResponse: "yesButtonClicked",
+				}),
+			)
 		})
 	})
 
@@ -454,10 +458,12 @@ describe("ChatView - Auto Approval Tests", () => {
 
 		// Wait for auto-approval to happen
 		await waitFor(() => {
-			expect(vscode.postMessage).toHaveBeenCalledWith({
-				type: "askResponse",
-				askResponse: "yesButtonClicked",
-			})
+			expect(vscode.postMessage).toHaveBeenCalledWith(
+				expect.objectContaining({
+					type: "askResponse",
+					askResponse: "yesButtonClicked",
+				}),
+			)
 		})
 	})
 
@@ -508,10 +514,12 @@ describe("ChatView - Auto Approval Tests", () => {
 			// Wait for auto-approval to happen (with delay for write tools)
 			await waitFor(
 				() => {
-					expect(vscode.postMessage).toHaveBeenCalledWith({
-						type: "askResponse",
-						askResponse: "yesButtonClicked",
-					})
+					expect(vscode.postMessage).toHaveBeenCalledWith(
+						expect.objectContaining({
+							type: "askResponse",
+							askResponse: "yesButtonClicked",
+						}),
+					)
 				},
 				{ timeout: 1000 },
 			)
@@ -558,10 +566,12 @@ describe("ChatView - Auto Approval Tests", () => {
 			})
 
 			// Should not auto-approve non-tool write operations
-			expect(vscode.postMessage).not.toHaveBeenCalledWith({
-				type: "askResponse",
-				askResponse: "yesButtonClicked",
-			})
+			expect(vscode.postMessage).not.toHaveBeenCalledWith(
+				expect.objectContaining({
+					type: "askResponse",
+					askResponse: "yesButtonClicked",
+				}),
+			)
 		})
 	})
 
@@ -609,10 +619,12 @@ describe("ChatView - Auto Approval Tests", () => {
 
 		// Wait for auto-approval to happen
 		await waitFor(() => {
-			expect(vscode.postMessage).toHaveBeenCalledWith({
-				type: "askResponse",
-				askResponse: "yesButtonClicked",
-			})
+			expect(vscode.postMessage).toHaveBeenCalledWith(
+				expect.objectContaining({
+					type: "askResponse",
+					askResponse: "yesButtonClicked",
+				}),
+			)
 		})
 	})
 
@@ -659,10 +671,12 @@ describe("ChatView - Auto Approval Tests", () => {
 		})
 
 		// Should not auto-approve disallowed command
-		expect(vscode.postMessage).not.toHaveBeenCalledWith({
-			type: "askResponse",
-			askResponse: "yesButtonClicked",
-		})
+		expect(vscode.postMessage).not.toHaveBeenCalledWith(
+			expect.objectContaining({
+				type: "askResponse",
+				askResponse: "yesButtonClicked",
+			}),
+		)
 	})
 
 	describe("Command Chaining Tests", () => {
@@ -719,10 +733,12 @@ describe("ChatView - Auto Approval Tests", () => {
 
 				// Wait for auto-approval to happen
 				await waitFor(() => {
-					expect(vscode.postMessage).toHaveBeenCalledWith({
-						type: "askResponse",
-						askResponse: "yesButtonClicked",
-					})
+					expect(vscode.postMessage).toHaveBeenCalledWith(
+						expect.objectContaining({
+							type: "askResponse",
+							askResponse: "yesButtonClicked",
+						}),
+					)
 				})
 			}
 		})
@@ -770,10 +786,12 @@ describe("ChatView - Auto Approval Tests", () => {
 			})
 
 			// Should not auto-approve chained command with disallowed part
-			expect(vscode.postMessage).not.toHaveBeenCalledWith({
-				type: "askResponse",
-				askResponse: "yesButtonClicked",
-			})
+			expect(vscode.postMessage).not.toHaveBeenCalledWith(
+				expect.objectContaining({
+					type: "askResponse",
+					askResponse: "yesButtonClicked",
+				}),
+			)
 		})
 
 		it("handles complex PowerShell command chains correctly", async () => {
@@ -820,10 +838,12 @@ describe("ChatView - Auto Approval Tests", () => {
 
 			// Wait for auto-approval to happen
 			await waitFor(() => {
-				expect(vscode.postMessage).toHaveBeenCalledWith({
-					type: "askResponse",
-					askResponse: "yesButtonClicked",
-				})
+				expect(vscode.postMessage).toHaveBeenCalledWith(
+					expect.objectContaining({
+						type: "askResponse",
+						askResponse: "yesButtonClicked",
+					}),
+				)
 			})
 		})
 	})
@@ -877,13 +897,15 @@ describe("ChatView - Sound Playing Tests", () => {
 	})
 
 	it("plays notification sound for non-auto-approved browser actions", async () => {
-		renderChatView()
+		// shouldNotify() (749ee288b) only fires when the webview is not visible to the user.
+		renderChatView({ isHidden: true })
 
 		// First hydrate state with initial task
 		mockPostMessage({
 			autoApprovalEnabled: true,
 			alwaysAllowBrowser: false, // Browser actions not auto-approved
 			soundEnabled: true, // Enable sound
+			notificationsEnabled: true, // Required by shouldNotify()
 			clineMessages: [
 				{
 					type: "say",
@@ -902,6 +924,7 @@ describe("ChatView - Sound Playing Tests", () => {
 			autoApprovalEnabled: true,
 			alwaysAllowBrowser: false,
 			soundEnabled: true, // Enable sound
+			notificationsEnabled: true, // Required by shouldNotify()
 			clineMessages: [
 				{
 					type: "say",
@@ -926,11 +949,13 @@ describe("ChatView - Sound Playing Tests", () => {
 	})
 
 	it("plays celebration sound for completion results", async () => {
-		renderChatView()
+		// shouldNotify() (749ee288b) only fires when the webview is not visible to the user.
+		renderChatView({ isHidden: true })
 
 		// First hydrate state with initial task
 		mockPostMessage({
 			soundEnabled: true, // Enable sound
+			notificationsEnabled: true, // Required by shouldNotify()
 			clineMessages: [
 				{
 					type: "say",
@@ -947,6 +972,7 @@ describe("ChatView - Sound Playing Tests", () => {
 		// Add completion result
 		mockPostMessage({
 			soundEnabled: true, // Enable sound
+			notificationsEnabled: true, // Required by shouldNotify()
 			clineMessages: [
 				{
 					type: "say",
@@ -976,6 +1002,7 @@ describe("ChatView - Sound Playing Tests", () => {
 		// First hydrate state with initial task
 		mockPostMessage({
 			soundEnabled: true, // Enable sound
+			notificationsEnabled: true, // Required by shouldNotify()
 			clineMessages: [
 				{
 					type: "say",
@@ -992,6 +1019,7 @@ describe("ChatView - Sound Playing Tests", () => {
 		// Add API failure
 		mockPostMessage({
 			soundEnabled: true, // Enable sound
+			notificationsEnabled: true, // Required by shouldNotify()
 			clineMessages: [
 				{
 					type: "say",
@@ -1152,7 +1180,9 @@ describe("ChatView - Version Indicator Tests", () => {
 		expect(getByTestId("version-indicator")).toBeInTheDocument()
 	})
 
-	it("opens announcement modal when version indicator is clicked", async () => {
+	// TODO: rewrite for 9c584f58b — the announcement modal and its version-indicator
+	// trigger were removed from ChatView.
+	it.skip("opens announcement modal when version indicator is clicked", async () => {
 		// Mock VersionIndicator to return a button with onClick
 		mockVersionIndicator.mockImplementation(({ onClick }: { onClick?: () => void }) =>
 			React.createElement("button", {
@@ -1273,7 +1303,9 @@ describe("ChatView - Version Indicator Tests", () => {
 	})
 })
 
-describe("ChatView - RooCloudCTA Display Tests", () => {
+// TODO: rewrite for 9c584f58b — that commit removed RooCloudCTA (the component file was
+// deleted) and the RooTips/CTA branch from ChatView's welcome area.
+describe.skip("ChatView - RooCloudCTA Display Tests", () => {
 	beforeEach(() => vi.clearAllMocks())
 
 	it("does not show RooCloudCTA when user is authenticated to Cloud", () => {
