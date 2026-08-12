@@ -152,10 +152,12 @@ describe("ChatView - New Auto Approval Logic Tests", () => {
 
 			// Wait and verify no auto-approval message was sent
 			await new Promise((resolve) => setTimeout(resolve, 100))
-			expect(vscode.postMessage).not.toHaveBeenCalledWith({
-				type: "askResponse",
-				askResponse: "yesButtonClicked",
-			})
+			expect(vscode.postMessage).not.toHaveBeenCalledWith(
+				expect.objectContaining({
+					type: "askResponse",
+					askResponse: "yesButtonClicked",
+				}),
+			)
 		})
 
 		it("should NOT auto-approve write operations when only master is enabled", async () => {
@@ -202,10 +204,12 @@ describe("ChatView - New Auto Approval Logic Tests", () => {
 
 			// Wait and verify no auto-approval message was sent
 			await new Promise((resolve) => setTimeout(resolve, 100))
-			expect(vscode.postMessage).not.toHaveBeenCalledWith({
-				type: "askResponse",
-				askResponse: "yesButtonClicked",
-			})
+			expect(vscode.postMessage).not.toHaveBeenCalledWith(
+				expect.objectContaining({
+					type: "askResponse",
+					askResponse: "yesButtonClicked",
+				}),
+			)
 		})
 
 		it("should NOT auto-approve browser actions when only master is enabled", async () => {
@@ -248,10 +252,12 @@ describe("ChatView - New Auto Approval Logic Tests", () => {
 
 			// Wait and verify no auto-approval message was sent
 			await new Promise((resolve) => setTimeout(resolve, 100))
-			expect(vscode.postMessage).not.toHaveBeenCalledWith({
-				type: "askResponse",
-				askResponse: "yesButtonClicked",
-			})
+			expect(vscode.postMessage).not.toHaveBeenCalledWith(
+				expect.objectContaining({
+					type: "askResponse",
+					askResponse: "yesButtonClicked",
+				}),
+			)
 		})
 	})
 
@@ -298,10 +304,12 @@ describe("ChatView - New Auto Approval Logic Tests", () => {
 
 			// Wait for the auto-approval message
 			await waitFor(() => {
-				expect(vscode.postMessage).toHaveBeenCalledWith({
-					type: "askResponse",
-					askResponse: "yesButtonClicked",
-				})
+				expect(vscode.postMessage).toHaveBeenCalledWith(
+					expect.objectContaining({
+						type: "askResponse",
+						askResponse: "yesButtonClicked",
+					}),
+				)
 			})
 		})
 
@@ -351,10 +359,12 @@ describe("ChatView - New Auto Approval Logic Tests", () => {
 
 			// Wait for the auto-approval message
 			await waitFor(() => {
-				expect(vscode.postMessage).toHaveBeenCalledWith({
-					type: "askResponse",
-					askResponse: "yesButtonClicked",
-				})
+				expect(vscode.postMessage).toHaveBeenCalledWith(
+					expect.objectContaining({
+						type: "askResponse",
+						askResponse: "yesButtonClicked",
+					}),
+				)
 			})
 		})
 	})
@@ -404,10 +414,12 @@ describe("ChatView - New Auto Approval Logic Tests", () => {
 
 			// Wait and verify no auto-approval message was sent
 			await new Promise((resolve) => setTimeout(resolve, 100))
-			expect(vscode.postMessage).not.toHaveBeenCalledWith({
-				type: "askResponse",
-				askResponse: "yesButtonClicked",
-			})
+			expect(vscode.postMessage).not.toHaveBeenCalledWith(
+				expect.objectContaining({
+					type: "askResponse",
+					askResponse: "yesButtonClicked",
+				}),
+			)
 		})
 
 		it("should respect the hasEnabledOptions check in isAutoApproved", async () => {
@@ -470,10 +482,12 @@ describe("ChatView - New Auto Approval Logic Tests", () => {
 
 				// Wait and verify no auto-approval for any tool type
 				await new Promise((resolve) => setTimeout(resolve, 100))
-				expect(vscode.postMessage).not.toHaveBeenCalledWith({
-					type: "askResponse",
-					askResponse: "yesButtonClicked",
-				})
+				expect(vscode.postMessage).not.toHaveBeenCalledWith(
+					expect.objectContaining({
+						type: "askResponse",
+						askResponse: "yesButtonClicked",
+					}),
+				)
 			}
 		})
 	})
