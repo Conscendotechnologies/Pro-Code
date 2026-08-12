@@ -180,6 +180,7 @@ function createMockCline(): any {
 	const mockProvider = {
 		getState: vi.fn(),
 		deref: vi.fn().mockReturnThis(),
+		context: { globalStorageUri: { fsPath: "/mock/global/storage" } },
 	}
 
 	const mockCline: any = {

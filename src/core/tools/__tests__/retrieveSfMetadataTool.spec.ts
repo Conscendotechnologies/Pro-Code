@@ -131,7 +131,7 @@ describe("retrieveSfMetadataTool - formatSfOutput logic", () => {
 			})
 
 			const result = formatSfOutput(sfOutput, "ApexClass", "AccountController")
-			expect(result).toContain("Retrieved ApexClass 'AccountController' from the org")
+			expect(result).toContain("Successfully retrieved ApexClass 'AccountController'")
 			expect(result).not.toContain("metadata has been saved to your local project directory")
 			expect(result).not.toContain("AccountController.cls") // Should not include file paths
 		})
@@ -149,7 +149,7 @@ describe("retrieveSfMetadataTool - formatSfOutput logic", () => {
 			})
 
 			const result = formatSfOutput(sfOutput, "LightningComponentBundle", "myComponent")
-			expect(result).toContain("Retrieved LightningComponentBundle 'myComponent' from the org")
+			expect(result).toContain("Successfully retrieved LightningComponentBundle 'myComponent'")
 			expect(result).not.toContain(".js") // Should not include file extensions
 			expect(result).not.toContain("force-app") // Should not include file paths
 		})
@@ -163,8 +163,8 @@ describe("retrieveSfMetadataTool - formatSfOutput logic", () => {
 			})
 
 			const result = formatSfOutput(sfOutput, "ApexClass", "NonExistentClass")
-			expect(result).toContain("No files were retrieved for ApexClass 'NonExistentClass'.")
-			expect(result).toContain("may not exist")
+			expect(result).toContain("ApexClass 'NonExistentClass' does not exist in the org")
+			expect(result).toContain("No files were retrieved")
 		})
 
 		test("should return count summary for listing mode", () => {
@@ -182,7 +182,7 @@ describe("retrieveSfMetadataTool - formatSfOutput logic", () => {
 			})
 
 			const result = formatSfOutput(sfOutput, "ApexClass", undefined)
-			expect(result).toContain("Retrieved 5 ApexClass component(s) from the org")
+			expect(result).toContain("Found 5 ApexClass component(s)")
 			expect(result).not.toContain("Class1.cls") // Should not include individual file names
 		})
 
@@ -276,7 +276,7 @@ describe("retrieveSfMetadataTool - formatSfOutput logic", () => {
 			})
 
 			const result = formatSfOutput(sfOutput, "ApexClass", "MyClass")
-			expect(result).toContain("Retrieved ApexClass 'MyClass' from the org")
+			expect(result).toContain("Successfully retrieved ApexClass 'MyClass'")
 			// Warnings are not included in summary - only success message
 			expect(result).not.toContain("warning")
 		})
@@ -291,7 +291,7 @@ describe("retrieveSfMetadataTool - formatSfOutput logic", () => {
 			})
 
 			const result = formatSfOutput(sfOutput, "ApexClass", undefined)
-			expect(result).toContain("Retrieved 100 ApexClass component(s) from the org")
+			expect(result).toContain("Found 100 ApexClass component(s)")
 			expect(result).not.toContain("Class0.cls") // Should not list individual files
 			expect(result).not.toContain("Class99.cls")
 		})
@@ -310,7 +310,7 @@ describe("retrieveSfMetadataTool - formatSfOutput logic", () => {
 			})
 
 			const result = formatSfOutput(sfOutput, "LightningComponentBundle", "myComponent")
-			expect(result).toContain("Retrieved LightningComponentBundle 'myComponent' from the org")
+			expect(result).toContain("Successfully retrieved LightningComponentBundle 'myComponent'")
 			expect(result).not.toContain("myComponent.js") // Should not list files
 			expect(result).not.toContain("myComponent.html")
 		})

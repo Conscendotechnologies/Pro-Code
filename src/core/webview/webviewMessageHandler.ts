@@ -1573,6 +1573,18 @@ export const webviewMessageHandler = async (
 			}
 			break
 		}
+		case "deleteMessageConfirm": {
+			if (typeof message.messageTs === "number" && message.messageTs) {
+				await handleDeleteMessageConfirm(message.messageTs)
+			}
+			break
+		}
+		case "editMessageConfirm": {
+			if (typeof message.messageTs === "number" && message.messageTs && typeof message.text === "string") {
+				await handleEditMessageConfirm(message.messageTs, message.text, message.images)
+			}
+			break
+		}
 		case "screenshotQuality":
 			await updateGlobalState("screenshotQuality", message.value)
 			await provider.postStateToWebview()

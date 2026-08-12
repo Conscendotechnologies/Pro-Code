@@ -279,7 +279,7 @@ describe("getModelParams", () => {
 				}),
 			).toEqual({
 				format: anthropicParams.format,
-				maxTokens: 4000,
+				maxTokens: 3200, // Capped at 20% of the 16000 context window.
 				temperature: 1.0,
 				reasoningEffort: undefined,
 				reasoningBudget: 1500, // Using the custom value.
@@ -372,7 +372,7 @@ describe("getModelParams", () => {
 				}),
 			).toEqual({
 				format: "openrouter",
-				maxTokens: 4000,
+				maxTokens: 3200, // Capped at 20% of the 16000 context window.
 				temperature: 1.0,
 				reasoningEffort: undefined,
 				reasoningBudget: 128, // Default is 128 for Gemini 2.5 Pro
@@ -396,13 +396,13 @@ describe("getModelParams", () => {
 				}),
 			).toEqual({
 				format: anthropicParams.format,
-				maxTokens: 4000,
+				maxTokens: 3200, // Capped at 20% of the 16000 context window.
 				temperature: 1.0,
 				reasoningEffort: undefined,
-				reasoningBudget: 0.8 * 4000,
+				reasoningBudget: 0.8 * 3200,
 				reasoning: {
 					type: "enabled",
-					budget_tokens: 3200,
+					budget_tokens: 0.8 * 3200,
 				},
 			})
 		})
@@ -415,13 +415,13 @@ describe("getModelParams", () => {
 
 			expect(getModelParams({ ...anthropicParams, settings: {}, model })).toEqual({
 				format: anthropicParams.format,
-				maxTokens: DEFAULT_HYBRID_REASONING_MODEL_MAX_TOKENS,
+				maxTokens: 3200, // Capped at 20% of the 16000 context window.
 				temperature: 1.0,
 				reasoningEffort: undefined,
-				reasoningBudget: DEFAULT_HYBRID_REASONING_MODEL_THINKING_TOKENS,
+				reasoningBudget: 2560, // 80% of the capped maxTokens.
 				reasoning: {
 					type: "enabled",
-					budget_tokens: DEFAULT_HYBRID_REASONING_MODEL_THINKING_TOKENS,
+					budget_tokens: 2560,
 				},
 			})
 		})
@@ -438,7 +438,7 @@ describe("getModelParams", () => {
 				model,
 			})
 
-			expect(result.maxTokens).toBe(5000)
+			expect(result.maxTokens).toBe(3200) // Capped at 20% of the 16000 context window.
 			expect(result.reasoningBudget).toBe(2000) // Custom thinking tokens takes precedence
 		})
 
@@ -608,8 +608,8 @@ describe("getModelParams", () => {
 				model,
 			})
 
-			expect(result.maxTokens).toBe(16384) // Default value.
-			expect(result.reasoningBudget).toBe(8192) // Default value.
+			expect(result.maxTokens).toBe(3200) // Capped at 20% of the 16000 context window.
+			expect(result.reasoningBudget).toBe(2560) // 80% of the capped maxTokens.
 		})
 	})
 
@@ -629,7 +629,7 @@ describe("getModelParams", () => {
 				model,
 			})
 
-			expect(result.reasoningBudget).toBe(3200) // 80% of 4000
+			expect(result.reasoningBudget).toBe(2560) // 80% of the capped 3200 maxTokens.
 			expect(result.reasoningEffort).toBeUndefined()
 			expect(result.temperature).toBe(1.0)
 		})
@@ -717,8 +717,8 @@ describe("getModelParams", () => {
 				model,
 			})
 
-			expect(result.maxTokens).toBe(20000)
-			expect(result.reasoningBudget).toBe(10000)
+			expect(result.maxTokens).toBe(3200) // Capped at 20% of the 16000 context window.
+			expect(result.reasoningBudget).toBe(2560) // 80% of the capped maxTokens.
 			expect(result.temperature).toBe(1.0) // Overridden for reasoning budget models
 			expect(result.reasoningEffort).toBeUndefined() // Budget takes precedence
 		})
@@ -769,7 +769,7 @@ describe("getModelParams", () => {
 				model,
 			})
 
-			expect(result.reasoning).toEqual({ max_tokens: 3200 })
+			expect(result.reasoning).toEqual({ max_tokens: 2560 }) // 80% of the capped maxTokens.
 		})
 
 		it("should return undefined reasoning for anthropic with reasoning effort", () => {
@@ -882,7 +882,7 @@ describe("getModelParams", () => {
 			})
 
 			expect(result.verbosity).toBe("high")
-			expect(result.reasoningBudget).toBe(8192) // Default thinking tokens
+			expect(result.reasoningBudget).toBe(2560) // 80% of the capped maxTokens.
 		})
 	})
 })
