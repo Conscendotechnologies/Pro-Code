@@ -120,12 +120,24 @@ __setMockImplementation(
 
 // Mock vscode language
 vi.mock("vscode", () => ({
+	version: "1.100.0",
 	env: {
 		language: "en",
+		appName: "Visual Studio Code",
+		machineId: "test-machine-id",
+		sessionId: "test-session-id",
+		isNewAppInstall: false,
+		isTelemetryEnabled: false,
+		uiKind: 1,
+	},
+	UIKind: {
+		Desktop: 1,
+		Web: 2,
 	},
 	workspace: {
 		workspaceFolders: [{ uri: { fsPath: "/test/path" } }],
 		getWorkspaceFolder: vi.fn().mockReturnValue({ uri: { fsPath: "/test/path" } }),
+		getConfiguration: vi.fn().mockReturnValue({ get: vi.fn().mockReturnValue(undefined) }),
 	},
 	window: {
 		activeTextEditor: undefined,

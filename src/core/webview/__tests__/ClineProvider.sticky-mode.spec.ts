@@ -71,6 +71,12 @@ vi.mock("../../task/Task", () => ({
 		setTaskNumber: vi.fn(),
 		setParentTask: vi.fn(),
 		setRootTask: vi.fn(),
+		getTaskDuration: vi.fn().mockReturnValue(0),
+		on: vi.fn(),
+		off: vi.fn(),
+		once: vi.fn(),
+		removeListener: vi.fn(),
+		removeAllListeners: vi.fn(),
 		emit: vi.fn(),
 		parentTask: options.parentTask,
 	})),
@@ -314,6 +320,7 @@ describe("ClineProvider - Sticky Mode", () => {
 			// Create a mock task with initial mode
 			const mockTask = {
 				taskId: "test-task-id",
+				getTaskDuration: vi.fn().mockReturnValue(0),
 				taskMode: "code", // Initial mode
 				emit: vi.fn(),
 				saveClineMessages: vi.fn(),
@@ -756,6 +763,7 @@ describe("ClineProvider - Sticky Mode", () => {
 			// Create a mock task
 			const mockTask = {
 				taskId: "test-task-id",
+				getTaskDuration: vi.fn().mockReturnValue(0),
 				_taskMode: "code",
 				emit: vi.fn(),
 				saveClineMessages: vi.fn(),
@@ -819,6 +827,7 @@ describe("ClineProvider - Sticky Mode", () => {
 			// Create a mock task with slow save operation
 			const mockTask = {
 				taskId: "test-task-id",
+				getTaskDuration: vi.fn().mockReturnValue(0),
 				_taskMode: "code",
 				emit: vi.fn(),
 				saveClineMessages: vi.fn().mockImplementation(async () => {
@@ -873,6 +882,7 @@ describe("ClineProvider - Sticky Mode", () => {
 			// This test should verify that behavior
 			const mockTask = {
 				taskId: "test-task-id",
+				getTaskDuration: vi.fn().mockReturnValue(0),
 				_taskMode: "code",
 				emit: vi.fn(),
 				saveClineMessages: vi.fn(),
@@ -900,6 +910,7 @@ describe("ClineProvider - Sticky Mode", () => {
 			let emitCallCount = 0
 			const mockTask = {
 				taskId: "test-task-id",
+				getTaskDuration: vi.fn().mockReturnValue(0),
 				_taskMode: "code",
 				emit: vi.fn().mockImplementation((event) => {
 					emitCallCount++
@@ -962,6 +973,7 @@ describe("ClineProvider - Sticky Mode", () => {
 			// Create a mock task
 			const mockTask = {
 				taskId: "test-task-id",
+				getTaskDuration: vi.fn().mockReturnValue(0),
 				_taskMode: "code",
 				emit: vi.fn(),
 				saveClineMessages: vi.fn(),
@@ -1008,6 +1020,7 @@ describe("ClineProvider - Sticky Mode", () => {
 			// Create multiple mock tasks
 			const task1 = {
 				taskId: "task-1",
+				getTaskDuration: vi.fn().mockReturnValue(0),
 				_taskMode: "code",
 				emit: vi.fn(),
 				saveClineMessages: vi.fn(),
@@ -1017,6 +1030,7 @@ describe("ClineProvider - Sticky Mode", () => {
 
 			const task2 = {
 				taskId: "task-2",
+				getTaskDuration: vi.fn().mockReturnValue(0),
 				_taskMode: "architect",
 				emit: vi.fn(),
 				saveClineMessages: vi.fn(),
@@ -1026,6 +1040,7 @@ describe("ClineProvider - Sticky Mode", () => {
 
 			const task3 = {
 				taskId: "task-3",
+				getTaskDuration: vi.fn().mockReturnValue(0),
 				_taskMode: "debug",
 				emit: vi.fn(),
 				saveClineMessages: vi.fn(),
@@ -1167,6 +1182,7 @@ describe("ClineProvider - Sticky Mode", () => {
 			// Create multiple tasks
 			const tasks = Array.from({ length: 5 }, (_, i) => ({
 				taskId: `task-${i}`,
+				getTaskDuration: vi.fn().mockReturnValue(0),
 				_taskMode: "code",
 				emit: vi.fn(),
 				saveClineMessages: vi.fn(),

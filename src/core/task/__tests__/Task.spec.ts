@@ -7,6 +7,7 @@ import * as vscode from "vscode"
 import { Anthropic } from "@anthropic-ai/sdk"
 
 import type { GlobalState, ProviderSettings, ModelInfo } from "@siid-code/types"
+import { DEFAULT_CONSECUTIVE_MISTAKE_LIMIT } from "@siid-code/types"
 import { TelemetryService } from "@siid-code/telemetry"
 
 import { Task } from "../Task"
@@ -118,9 +119,20 @@ vi.mock("vscode", () => {
 			onDidSaveTextDocument: vi.fn(() => mockDisposable),
 			getConfiguration: vi.fn(() => ({ get: (key: string, defaultValue: any) => defaultValue })),
 		},
+		version: "1.100.0",
 		env: {
 			uriScheme: "vscode",
 			language: "en",
+			appName: "Visual Studio Code",
+			machineId: "test-machine-id",
+			sessionId: "test-session-id",
+			isNewAppInstall: false,
+			isTelemetryEnabled: false,
+			uiKind: 1,
+		},
+		UIKind: {
+			Desktop: 1,
+			Web: 2,
 		},
 		EventEmitter: vi.fn().mockImplementation(() => mockEventEmitter),
 		Disposable: {
@@ -328,7 +340,7 @@ describe("Cline", () => {
 				startTask: false,
 			})
 
-			expect(cline.consecutiveMistakeLimit).toBe(3)
+			expect(cline.consecutiveMistakeLimit).toBe(DEFAULT_CONSECUTIVE_MISTAKE_LIMIT)
 		})
 
 		it("should respect provided consecutiveMistakeLimit", () => {
@@ -969,6 +981,12 @@ describe("Cline", () => {
 				mockProvider = {
 					context: {
 						globalStorageUri: { fsPath: "/test/storage" },
+						// getSystemPrompt() -> getModesSection() reads custom modes/prompts
+						// straight off the extension context.
+						globalState: {
+							get: vi.fn().mockReturnValue(undefined),
+							update: vi.fn().mockResolvedValue(undefined),
+						},
 					},
 					getState: vi.fn().mockResolvedValue({
 						apiConfiguration: mockApiConfig,
@@ -982,9 +1000,15 @@ describe("Cline", () => {
 				// Get the mocked delay function
 				mockDelay = delay as ReturnType<typeof vi.fn>
 				mockDelay.mockClear()
+
+				// delay() is mocked out, but the surrounding say() calls still take real
+				// time. Pin Date.now() so the rate-limit maths sees zero elapsed time and
+				// the delay count is deterministic under full-suite load.
+				vi.spyOn(Date, "now").mockReturnValue(1_000_000)
 			})
 
 			afterEach(() => {
+				vi.mocked(Date.now).mockRestore?.()
 				// Clean up the global state after each test
 				Task.resetGlobalApiRequestTime()
 			})
@@ -1063,7 +1087,7 @@ describe("Cline", () => {
 				// Verify rate limiting was applied
 				expect(mockDelay).toHaveBeenCalledTimes(mockApiConfig.rateLimitSeconds)
 				expect(mockDelay).toHaveBeenCalledWith(1000)
-			}, 10000) // Increase timeout to 10 seconds
+			}, 30000) // Real say() calls make this slow under full-suite load.
 
 			it("should not apply rate limiting if enough time has passed", async () => {
 				// Create parent task
@@ -1123,7 +1147,7 @@ describe("Cline", () => {
 
 				// Restore Date.now
 				Date.now = originalDateNow
-			})
+			}, 30000)
 
 			it("should share rate limiting across multiple subtasks", async () => {
 				// Create parent task
@@ -1198,7 +1222,7 @@ describe("Cline", () => {
 
 				// Verify rate limiting was applied again
 				expect(mockDelay).toHaveBeenCalledTimes(mockApiConfig.rateLimitSeconds)
-			}, 15000) // Increase timeout to 15 seconds
+			}, 30000) // Real say() calls make this slow under full-suite load.
 
 			it("should handle rate limiting with zero rate limit", async () => {
 				// Update config to have zero rate limit

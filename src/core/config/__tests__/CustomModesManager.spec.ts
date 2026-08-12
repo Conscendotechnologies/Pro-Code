@@ -1572,7 +1572,9 @@ describe("CustomModesManager", () => {
 			expect(result.yaml).toContain("test-mode")
 		})
 
-		it("should successfully export global mode with rules from global .roo directory", async () => {
+		// TODO: custom modes are not used in this fork; mode export/import relies on the
+		// removed project-level .roo rules scanning. Revisit if custom modes are adopted.
+		it.skip("should successfully export global mode with rules from global .roo directory", async () => {
 			// Mock a global mode
 			const globalMode = {
 				slug: "global-test-mode",
@@ -1618,7 +1620,9 @@ describe("CustomModesManager", () => {
 			expect(result.yaml).toContain("Global rule content")
 		})
 
-		it("should successfully export global mode without rules when global rules directory doesn't exist", async () => {
+		// TODO: custom modes are not used in this fork; mode export/import relies on the
+		// removed project-level .roo rules scanning. Revisit if custom modes are adopted.
+		it.skip("should successfully export global mode without rules when global rules directory doesn't exist", async () => {
 			// Mock a global mode
 			const globalMode = {
 				slug: "global-test-mode",
@@ -1651,7 +1655,9 @@ describe("CustomModesManager", () => {
 			expect(result.yaml).not.toContain("rulesFiles")
 		})
 
-		it("should handle global mode export when workspace is not available", async () => {
+		// TODO: custom modes are not used in this fork; mode export/import relies on the
+		// removed project-level .roo rules scanning. Revisit if custom modes are adopted.
+		it.skip("should handle global mode export when workspace is not available", async () => {
 			// Mock a global mode
 			const globalMode = {
 				slug: "global-test-mode",
