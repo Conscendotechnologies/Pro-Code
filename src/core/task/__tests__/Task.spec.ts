@@ -960,6 +960,45 @@ describe("Cline", () => {
 					await task.catch(() => {})
 				})
 			})
+
+			describe("abort during startup", () => {
+				it("should not reject when the task is aborted while starting", async () => {
+					const [cline, task] = Task.create({
+						provider: mockProvider,
+						apiConfiguration: mockApiConfig,
+						task: "test task",
+					})
+
+					// abortTask() sets this.abort and returns without waiting, so the
+					// in-flight startTask() hits a say() that throws. That rejection is
+					// expected and must not escape: on the constructor path nothing
+					// holds the promise, so it would become an unhandled rejection.
+					await cline.abortTask(true)
+
+					await expect(task).resolves.toBeUndefined()
+				})
+
+				it("should still surface non-abort startup failures", async () => {
+					// Fail before startTask() runs, so the rejection is guaranteed to
+					// come from inside it rather than racing the spy. this.abort stays
+					// false, so the guard must let this one through.
+					const saySpy = vi
+						.spyOn(Task.prototype as any, "say")
+						.mockRejectedValue(new Error("startup exploded"))
+
+					try {
+						const [, task] = Task.create({
+							provider: mockProvider,
+							apiConfiguration: mockApiConfig,
+							task: "test task",
+						})
+
+						await expect(task).rejects.toThrow("startup exploded")
+					} finally {
+						saySpy.mockRestore()
+					}
+				})
+			})
 		})
 
 		describe("Subtask Rate Limiting", () => {
