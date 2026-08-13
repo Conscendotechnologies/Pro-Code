@@ -1,5 +1,12 @@
 import "@testing-library/jest-dom"
 import "@testing-library/jest-dom/vitest"
+import { configure } from "@testing-library/react"
+
+// waitFor's 1s default is enough when this suite runs alone, but `pnpm test`
+// runs it in parallel with the src suite and the async auto-approval
+// assertions in ChatView can miss that window on a loaded machine. Costs
+// nothing when the assertion passes — waitFor returns as soon as it does.
+configure({ asyncUtilTimeout: 5000 })
 
 // Force React into development mode for tests
 // This is needed to enable act(...) function in React Testing Library
