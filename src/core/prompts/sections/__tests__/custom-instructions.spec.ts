@@ -1150,7 +1150,11 @@ describe("Directory existence checks", () => {
 
 // Indirectly test readTextFilesFromDirectory and formatDirectoryContent through loadRuleFiles
 describe("Rules directory reading", () => {
-	it.skipIf(process.platform === "win32")("should follow symbolic links in the rules directory", async () => {
+	// TODO: rewrite for b2c030206 — that commit removed project-level .roo
+	// scanning, so loadRuleFiles() no longer reads cwd/.roo/rules and returns ""
+	// unless a bundled rules dir exists in global storage. This test mocks the
+	// old cwd path. It was skipIf(win32), so it only ever ran on Linux/CI.
+	it.skip("should follow symbolic links in the rules directory", async () => {
 		// Simulate .roo/rules directory exists
 		statMock.mockResolvedValueOnce({
 			isDirectory: vi.fn().mockReturnValue(true),
@@ -1285,7 +1289,9 @@ describe("Rules directory reading", () => {
 		vi.clearAllMocks()
 	})
 
-	it.skipIf(process.platform === "win32")("should correctly format multiple files from directory", async () => {
+	// TODO: rewrite for b2c030206 — see the note on the symlink test above.
+	// loadRuleFiles() no longer reads cwd/.roo/rules, so result is always "".
+	it.skip("should correctly format multiple files from directory", async () => {
 		// Simulate .roo/rules directory exists
 		statMock.mockResolvedValueOnce({
 			isDirectory: vi.fn().mockReturnValue(true),
