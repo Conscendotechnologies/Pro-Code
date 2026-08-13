@@ -43,6 +43,18 @@ vi.mock("os-name", () => ({
 
 vi.mock("fs/promises")
 
+// getModesSection() mkdirs globalStorageUri.fsPath ("/mock/settings/path")
+// via `promises` from "fs", which vi.mock("fs/promises") does not intercept.
+// On Windows that lands in C:\mock and quietly succeeds; on Linux it is a
+// write to / and fails with EACCES.
+vi.mock("fs", async (importOriginal) => {
+	const actual = await importOriginal<typeof import("fs")>()
+	return {
+		...actual,
+		promises: { ...actual.promises, mkdir: vi.fn().mockResolvedValue(undefined) },
+	}
+})
+
 import * as vscode from "vscode"
 
 import { ModeConfig } from "@siid-code/types"
