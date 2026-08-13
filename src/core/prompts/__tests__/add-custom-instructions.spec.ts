@@ -41,7 +41,26 @@ vi.mock("os-name", () => ({
 	default: () => "Linux",
 }))
 
+// getDeveloperInfoSection() puts process.platform and process.version straight
+// into the prompt, so the file snapshots below would otherwise record whichever
+// machine last regenerated them (win32/v22 locally, linux/v20 on CI) and fail
+// everywhere else. os-name and getShell are already pinned for the same reason.
+vi.spyOn(process, "platform", "get").mockReturnValue("win32")
+vi.spyOn(process, "version", "get").mockReturnValue("v22.19.0")
+
 vi.mock("fs/promises")
+
+// getModesSection() mkdirs globalStorageUri.fsPath ("/mock/settings/path")
+// via `promises` from "fs", which vi.mock("fs/promises") does not intercept.
+// On Windows that lands in C:\mock and quietly succeeds; on Linux it is a
+// write to / and fails with EACCES.
+vi.mock("fs", async (importOriginal) => {
+	const actual = await importOriginal<typeof import("fs")>()
+	return {
+		...actual,
+		promises: { ...actual.promises, mkdir: vi.fn().mockResolvedValue(undefined) },
+	}
+})
 
 import * as vscode from "vscode"
 
