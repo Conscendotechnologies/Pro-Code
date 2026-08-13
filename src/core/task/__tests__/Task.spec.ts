@@ -31,6 +31,18 @@ vi.mock("execa", () => ({
 	execa: vi.fn(),
 }))
 
+// getModesSection() mkdirs globalStorageUri.fsPath ("/test/storage") via
+// `promises` from "fs", which the fs/promises mock below does not intercept.
+// On Windows that lands in C:\test and quietly succeeds; on Linux it is a
+// write to / and fails with EACCES.
+vi.mock("fs", async (importOriginal) => {
+	const actual = await importOriginal<typeof import("fs")>()
+	return {
+		...actual,
+		promises: { ...actual.promises, mkdir: vi.fn().mockResolvedValue(undefined) },
+	}
+})
+
 vi.mock("fs/promises", async (importOriginal) => {
 	const actual = (await importOriginal()) as Record<string, any>
 	const mockFunctions = {
