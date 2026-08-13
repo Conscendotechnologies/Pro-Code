@@ -5,6 +5,7 @@
 	"scripts": {
 		"lint": "next lint --max-warnings 0",
 		"check-types": "tsc -b",
+		"test": "vitest run",
 		"dev": "scripts/check-services.sh && next dev",
 		"format": "prettier --write src",
 		"build": "next build",
