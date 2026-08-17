@@ -38,6 +38,7 @@ import { CloudService } from "@roo-code/cloud"
 // api
 import { ApiHandler, ApiHandlerCreateMessageMetadata, buildApiHandler } from "../../api"
 import { ApiStream } from "../../api/transform/stream"
+import { maybeRouteThroughCompression } from "../../integrations/siid-compression"
 
 // shared
 import { findLastIndex } from "../../shared/array"
@@ -333,7 +334,8 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 		})
 
 		this.apiConfiguration = apiConfiguration
-		this.api = buildApiHandler(apiConfiguration)
+		// Route through the SIID Compression proxy when available (optional; direct fallback).
+		this.api = buildApiHandler(maybeRouteThroughCompression(apiConfiguration))
 		this.autoApprovalHandler = new AutoApprovalHandler()
 
 		this.urlContentFetcher = new UrlContentFetcher(provider.context)
@@ -903,7 +905,7 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 				})
 				// Ensure profile and apiProvider exist before trying to build handler
 				if (profile && profile.apiProvider) {
-					condensingApiHandler = buildApiHandler(profile)
+					condensingApiHandler = buildApiHandler(maybeRouteThroughCompression(profile))
 				}
 			}
 		}
@@ -2662,7 +2664,7 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 
 				// Ensure profile and apiProvider exist before trying to build handler.
 				if (profile && profile.apiProvider) {
-					condensingApiHandler = buildApiHandler(profile)
+					condensingApiHandler = buildApiHandler(maybeRouteThroughCompression(profile))
 				}
 			}
 		}

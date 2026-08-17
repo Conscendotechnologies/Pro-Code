@@ -26,6 +26,7 @@ import { getUpdateTodoListDescription } from "./update-todo-list"
 import { getRetrieveSfMetadataDescription } from "./retrieve-sf-metadata"
 import { CodeIndexManager } from "../../../services/code-index/manager"
 import { getSfDeployMetadataDescription } from "./sf-deploy-metadata"
+import { getSiidForgeDescription } from "./siid-forge"
 
 // Map of tool names to their description functions
 const toolDescriptionMap: Record<string, (args: ToolArgs) => string | undefined> = {
@@ -51,6 +52,7 @@ const toolDescriptionMap: Record<string, (args: ToolArgs) => string | undefined>
 	update_todo_list: (args) => getUpdateTodoListDescription(args),
 	retrieve_sf_metadata: (args) => getRetrieveSfMetadataDescription(args),
 	sf_deploy_metadata: (args) => getSfDeployMetadataDescription(args),
+	siid_forge: (args) => getSiidForgeDescription(args),
 }
 
 export function getToolDescriptionsForMode(

@@ -68,7 +68,8 @@ export class OpenRouterHandler extends BaseProvider implements SingleCompletionH
 		super()
 		this.options = options
 
-		const baseURL = this.options.openRouterBaseUrl || "https://openrouter.ai/api/v1"
+		const DEFAULT_OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
+		const baseURL = this.options.openRouterBaseUrl || DEFAULT_OPENROUTER_BASE_URL
 		const apiKey = this.options.openRouterApiKey ?? "not-provided"
 
 		// Log API key for debugging (masked)
@@ -78,7 +79,13 @@ export class OpenRouterHandler extends BaseProvider implements SingleCompletionH
 				: "[NOT PROVIDED]"
 		console.log(`[OpenRouterHandler] Constructor - API Key: ${maskedKey}, Length: ${apiKey?.length || 0}`)
 
-		this.client = new OpenAI({ baseURL, apiKey, defaultHeaders: DEFAULT_HEADERS })
+		// When the base URL has been redirected away from OpenRouter (e.g. by the SIID Compression
+		// integration pointing at its local proxy), tag the traffic so the proxy can attribute it.
+		// Harmless if it ever reaches OpenRouter; only sent when NOT talking to OpenRouter directly.
+		const routedElsewhere = baseURL !== DEFAULT_OPENROUTER_BASE_URL
+		const defaultHeaders = routedElsewhere ? { ...DEFAULT_HEADERS, "x-siid-source": "siid-code" } : DEFAULT_HEADERS
+
+		this.client = new OpenAI({ baseURL, apiKey, defaultHeaders })
 	}
 
 	override async *createMessage(
