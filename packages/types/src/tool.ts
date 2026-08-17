@@ -37,6 +37,7 @@ export const toolNames = [
 	"retrieve_sf_metadata",
 	"sf_deploy_metadata",
 	"show_agent_deployment_guide",
+	"siid_forge",
 ] as const
 
 export const toolNamesSchema = z.enum(toolNames)

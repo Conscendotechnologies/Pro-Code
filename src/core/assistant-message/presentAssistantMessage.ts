@@ -43,6 +43,7 @@ import { applyDiffToolLegacy } from "../tools/applyDiffTool"
 import { retrieveSfMetadataTool } from "../tools/retrieveSfMetadataTool"
 import { deploySfMetadataTool } from "../tools/sfDeployMetadataTool"
 import { logStreamedToolDebug, STREAMED_TOOL_DEBUG_ENABLED } from "../../utils/streamed-tool-debug"
+import { siidForgeTool } from "../tools/siidForgeTool"
 
 /**
  * Processes and presents assistant message content to the user interface.
@@ -244,6 +245,8 @@ export async function presentAssistantMessage(cline: Task) {
 						return `[${block.name} for '${block.params.metadata_type}'${block.params.metadata_name ? `: ${block.params.metadata_name}` : " (all)"}]`
 					case "show_agent_deployment_guide":
 						return `[${block.name}]`
+					case "siid_forge":
+						return `[${block.name}: ${block.params.feature ?? "?"}]`
 					default:
 						return `[${block.name}]`
 				}
@@ -584,6 +587,9 @@ export async function presentAssistantMessage(cline: Task) {
 					break
 				case "sf_deploy_metadata":
 					await deploySfMetadataTool(cline, block, askApproval, handleError, pushToolResult, removeClosingTag)
+					break
+				case "siid_forge":
+					await siidForgeTool(cline, block, askApproval, handleError, pushToolResult, removeClosingTag)
 					break
 			}
 

@@ -25,9 +25,11 @@ describe("AutoApproveToggle", () => {
 		alwaysAllowModeSwitch: true,
 		alwaysAllowSubtasks: false,
 		alwaysAllowExecute: true,
-		
+
 		alwaysAllowDeploySfMetadata: false,
 		alwaysAllowRetrieveSfMetadata: false,
+		alwaysAllowSiidForgeRead: false,
+		alwaysAllowSiidForgeWrite: false,
 		onToggle: mockOnToggle,
 	}
 

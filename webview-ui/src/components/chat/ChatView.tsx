@@ -202,6 +202,8 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 
 		alwaysAllowDeploySfMetadata,
 		alwaysAllowRetrieveSfMetadata,
+		alwaysAllowSiidForgeRead,
+		alwaysAllowSiidForgeWrite,
 		customModes,
 		hasSystemPromptOverride,
 		historyPreviewCollapsed, // Added historyPreviewCollapsed
@@ -1030,6 +1032,20 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 		const latestApiReqStarted = apiReqStartedMessages.at(-1)
 
 		const newVisibleMessages = recentMessages.filter((message: ClineMessage) => {
+			// siid_forge progress heartbeats + the folded result row are rendered INSIDE the anchor
+			// row (its live timer / result box), never as their own rows — each standalone row would
+			// be an empty ChatRow, piling up blank space. Keep only the anchor (no phase, no success).
+			if (message.say === "tool" && (message.text ?? "").includes('"tool":"siidForge"')) {
+				try {
+					const t = JSON.parse(message.text || "{}")
+					if (t.tool === "siidForge" && (t.phase !== undefined || t.success !== undefined)) {
+						return false
+					}
+				} catch {
+					/* keep on parse error */
+				}
+			}
+
 			// Always show assistant text and reasoning for all users
 
 			if (everVisibleMessagesTsRef.current.has(message.ts)) {
@@ -1345,6 +1361,11 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 					return alwaysAllowRetrieveSfMetadata
 				}
 
+				if (tool?.tool === "siidForge") {
+					// Mutating siid_forge features gate on the write toggle, read features on the read toggle.
+					return tool.mutating ? alwaysAllowSiidForgeWrite : alwaysAllowSiidForgeRead
+				}
+
 				if (tool.content === "create_mcp_server" || tool.content === "create-mcp-server") {
 					return alwaysAllowMcp
 				}
@@ -1396,6 +1417,8 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 
 			alwaysAllowDeploySfMetadata,
 			alwaysAllowRetrieveSfMetadata,
+			alwaysAllowSiidForgeRead,
+			alwaysAllowSiidForgeWrite,
 		],
 	)
 

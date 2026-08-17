@@ -42,6 +42,7 @@ import { ProgressIndicator } from "./ProgressIndicator"
 import { Markdown } from "./Markdown"
 import { CommandExecution } from "./CommandExecution"
 import { SfDeployExecution } from "./SfDeployExecution"
+import { SiidForgeRunning } from "./SiidForgeRunning"
 import { SfRetrieveExecution } from "./SfRetrieveExecution"
 import { CommandExecutionError } from "./CommandExecutionError"
 import { AutoApprovedRequestLimitWarning } from "./AutoApprovedRequestLimitWarning"
@@ -1240,6 +1241,109 @@ export const ChatRowContent = ({
 						)}
 					</>
 				)
+			case "siidForge": {
+				// Renders the approval/anchor row and folds the result INTO it; the separate result
+				// AND progress say-rows are suppressed so it's one element (like deploySfMetadata).
+				if (tool.success !== undefined || tool.phase !== undefined) {
+					return null
+				}
+				const followers = (followingMessages ?? [])
+					.map((m) => (m.say === "tool" || m.ask === "tool" ? safeJsonParse<ClineSayTool>(m.text) : null))
+					.filter((t): t is ClineSayTool => !!t && t.tool === "siidForge" && t.feature === tool.feature)
+				const forgeResult = followers.find((t) => t.success !== undefined) ?? null
+				const lastProgress = [...followers]
+					.reverse()
+					.find((t) => t.phase !== undefined && t.success === undefined)
+				const forgeDone = !!forgeResult
+				const forgeOk = forgeResult?.success
+				const forgeElapsedMs = forgeResult?.elapsedMs ?? lastProgress?.elapsedMs
+				const forgeRunning = !forgeDone && (!!lastProgress || (isLast && isStreaming))
+				const forgeIcon = !forgeDone ? "server-process" : forgeOk ? "pass-filled" : "error"
+				const forgeIconColor = !forgeDone
+					? undefined
+					: forgeOk
+						? "var(--vscode-charts-green)"
+						: "var(--vscode-errorForeground)"
+				return (
+					<>
+						<div style={headerStyle}>
+							<span
+								className={`codicon codicon-${forgeIcon}`}
+								style={{ marginRight: 6, color: forgeIconColor }}></span>
+							<span style={{ fontWeight: "bold" }}>
+								SIID Forge: {tool.feature}
+								{forgeRunning && " — running"}
+								{tool.mutating && !forgeRunning && !forgeDone && " (requires approval)"}
+								{forgeDone && (forgeOk ? " — success" : " — failed")}
+								{forgeDone &&
+									forgeElapsedMs !== undefined &&
+									` (${(forgeElapsedMs / 1000).toFixed(1)}s)`}
+							</span>
+						</div>
+						{tool.content && (
+							<div
+								style={{
+									marginTop: "4px",
+									backgroundColor: "var(--vscode-editor-background)",
+									border: "1px solid var(--vscode-badge-background)",
+									borderRadius: "4px",
+									overflow: "hidden",
+								}}>
+								<div style={{ padding: "12px 16px" }}>
+									<MarkdownBlock markdown={"```\n" + tool.content + "\n```"} />
+								</div>
+							</div>
+						)}
+						{/* The anchor row is permanently an "ask" (cline.ask never flips to say), so we can't
+						    use message.type to tell running from pending. Signals we DO have:
+						      - lastProgress: a real Forge onStatus heartbeat arrived => the command is running.
+						      - isLast && isStreaming: the task is actively working on this row.
+						    Show the timer when either holds (heartbeats only fire post-approval, so this never
+						    ticks during approval-pending). Otherwise, on the active edge, show a static note. */}
+						{!forgeDone &&
+							(forgeRunning ? (
+								<SiidForgeRunning feature={tool.feature} elapsedMs={lastProgress?.elapsedMs} />
+							) : (
+								isLast && (
+									<div
+										style={{
+											marginTop: "4px",
+											padding: "8px 12px",
+											color: "var(--vscode-descriptionForeground)",
+											fontSize: "var(--vscode-font-size)",
+										}}>
+										Awaiting approval…
+									</div>
+								)
+							))}
+						{forgeDone && forgeResult?.content && (
+							<details
+								style={{
+									marginTop: "4px",
+									backgroundColor: "var(--vscode-editor-background)",
+									border: `1px solid ${forgeOk ? "var(--vscode-charts-green)" : "var(--vscode-errorForeground)"}`,
+									borderRadius: "4px",
+									overflow: "hidden",
+									marginBottom: "8px",
+								}}>
+								<summary
+									style={{
+										padding: "8px 16px",
+										cursor: "pointer",
+										userSelect: "none",
+										color: "var(--vscode-descriptionForeground)",
+										fontSize: "var(--vscode-font-size)",
+									}}>
+									{forgeOk ? "Result" : "Error details"}
+								</summary>
+								<div style={{ padding: "0 16px 12px" }}>
+									<MarkdownBlock markdown={"```\n" + forgeResult.content + "\n```"} />
+								</div>
+							</details>
+						)}
+					</>
+				)
+			}
 			default:
 				return null
 		}

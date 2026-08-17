@@ -73,6 +73,7 @@ export const toolParamNames = [
 	"source_dir",
 	"section",
 	"task_type",
+	"feature",
 ] as const
 
 export type ToolParamName = (typeof toolParamNames)[number]
@@ -188,6 +189,12 @@ export interface SearchAndReplaceToolUse extends ToolUse {
 		Partial<Pick<Record<ToolParamName, string>, "use_regex" | "ignore_case" | "start_line" | "end_line">>
 }
 
+export interface SiidForgeToolUse extends ToolUse {
+	name: "siid_forge"
+	params: Required<Pick<Record<ToolParamName, string>, "feature">> &
+		Partial<Pick<Record<ToolParamName, string>, "args">>
+}
+
 // Define tool group configuration
 export type ToolGroupConfig = {
 	tools: readonly string[]
@@ -217,6 +224,7 @@ export const TOOL_DISPLAY_NAMES: Record<ToolName, string> = {
 	retrieve_sf_metadata: "retrieve salesforce metadata",
 	sf_deploy_metadata: "deploy salesforce metadata",
 	show_agent_deployment_guide: "show deployment guide",
+	siid_forge: "use SIID Forge Salesforce features",
 } as const
 
 // Define available tool groups.
@@ -230,6 +238,7 @@ export const TOOL_GROUPS: Record<ToolGroup, ToolGroupConfig> = {
 			"list_code_definition_names",
 			"codebase_search",
 			"retrieve_sf_metadata",
+			"siid_forge",
 		],
 	},
 	edit: {

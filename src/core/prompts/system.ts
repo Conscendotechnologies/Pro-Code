@@ -27,6 +27,7 @@ import {
 	getCapabilitiesSection,
 	getModesSection,
 	markdownFormattingSection,
+	getLeanOutputSection,
 } from "./sections"
 
 let globalStoragePath: string = ""
@@ -141,6 +142,8 @@ ${getSystemInfoSection(cwd)}
 ${getDeveloperInfoSection()}
 
 ${getObjectiveSection(codeIndexManager, experiments, enablePmdRules)}
+
+${getLeanOutputSection(mode)}
 
 ${baseInstructions}`
 
