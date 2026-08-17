@@ -7,7 +7,7 @@ import { useAppTranslation } from "@src/i18n/TranslationContext"
 import { useExtensionState } from "@src/context/ExtensionStateContext"
 import { SuggestionItem } from "@siid-code/types"
 
-// const DEFAULT_FOLLOWUP_TIMEOUT_MS = 60000
+const DEFAULT_FOLLOWUP_TIMEOUT_MS = 3000
 const COUNTDOWN_INTERVAL_MS = 1000
 
 interface FollowUpSuggestProps {
@@ -40,17 +40,9 @@ export const FollowUpSuggest = ({
 	useEffect(() => {
 		// Only start countdown if auto-approval is enabled for follow-up questions and no suggestion has been selected
 		// Also stop countdown if the question has been answered
-		if (
-			autoApprovalEnabled &&
-			suggestions.length > 0 &&
-			!suggestionSelected &&
-			!isAnswered
-		) {
-			// Start with the configured timeout in seconds
-			
-
+		if (autoApprovalEnabled && suggestions.length > 0 && !suggestionSelected && !isAnswered) {
 			// Convert milliseconds to seconds for the countdown
-			
+			setCountdown(Math.floor(DEFAULT_FOLLOWUP_TIMEOUT_MS / 1000))
 
 			// Update countdown every second
 			const intervalId = setInterval(() => {
@@ -73,15 +65,7 @@ export const FollowUpSuggest = ({
 		} else {
 			setCountdown(null)
 		}
-	}, [
-		autoApprovalEnabled,
-		
-		suggestions,
-		
-		suggestionSelected,
-		onCancelAutoApproval,
-		isAnswered,
-	])
+	}, [autoApprovalEnabled, suggestions, suggestionSelected, onCancelAutoApproval, isAnswered])
 
 	const handleSuggestionClick = useCallback(
 		(suggestion: SuggestionItem, event: React.MouseEvent) => {

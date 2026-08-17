@@ -417,7 +417,9 @@ describe("webviewMessageHandler - requestRouterModels", () => {
 	})
 })
 
-describe("webviewMessageHandler - deleteCustomMode", () => {
+// TODO: custom modes are unused in this fork and commit 08e485694 removed the
+// "deleteCustomMode" case from webviewMessageHandler, so the message is dropped.
+describe.skip("webviewMessageHandler - deleteCustomMode", () => {
 	beforeEach(() => {
 		vi.clearAllMocks()
 		vi.mocked(getWorkspacePath).mockReturnValue("/mock/workspace")

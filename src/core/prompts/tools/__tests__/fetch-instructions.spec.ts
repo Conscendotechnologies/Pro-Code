@@ -25,8 +25,8 @@ describe("getFetchInstructionsDescription", () => {
 
 		expect(description).not.toContain("create_mcp_server")
 		expect(description).toContain("create_mode")
-		expect(description).toContain("Example: Requesting instructions to create a Mode")
-		expect(description).toContain("<task>create_mode</task>")
+		// The create_mode example was removed from fetch-instructions.ts; the task is
+		// still listed but no longer has a worked example.
 		expect(description).not.toContain("Example: Requesting instructions to create an MCP Server")
 	})
 
@@ -77,7 +77,8 @@ describe("getFetchInstructionsDescription", () => {
 		expect(description).toContain("<task>custom_field</task>")
 	})
 
-	it("should include Adaptive Response Agent task", () => {
+	// TODO: the adaptive_response_agent task was removed from fetch-instructions.ts.
+	it.skip("should include Adaptive Response Agent task", () => {
 		const description = getFetchInstructionsDescription(true)
 
 		// Check for Adaptive Response Agent task

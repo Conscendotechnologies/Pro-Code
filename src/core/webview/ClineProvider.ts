@@ -2096,6 +2096,8 @@ export class ClineProvider
 			alwaysAllowSubtasks: stateValues.alwaysAllowSubtasks ?? false,
 			alwaysAllowDeploySfMetadata: stateValues.alwaysAllowDeploySfMetadata ?? false,
 			alwaysAllowRetrieveSfMetadata: stateValues.alwaysAllowRetrieveSfMetadata ?? false,
+			alwaysAllowSiidForgeRead: stateValues.alwaysAllowSiidForgeRead ?? false,
+			alwaysAllowSiidForgeWrite: stateValues.alwaysAllowSiidForgeWrite ?? false,
 			diagnosticsEnabled: stateValues.diagnosticsEnabled ?? true,
 			allowedMaxRequests: stateValues.allowedMaxRequests,
 			allowedMaxCost: stateValues.allowedMaxCost,

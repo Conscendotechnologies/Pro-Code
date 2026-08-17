@@ -80,7 +80,9 @@ describe("custom-instructions global .roo support", () => {
 			expect(result).not.toContain("project rule content")
 		})
 
-		it("should load project rules only when global rules do not exist", async () => {
+		// TODO: rewrite for bundled instructions. Commits b2c030206 + 827747c12 removed
+		// project-level .roo/.roorules scanning in favour of bundled global rules.
+		it.skip("should load project rules only when global rules do not exist", async () => {
 			// Mock directory existence
 			mockStat
 				.mockRejectedValueOnce(new Error("ENOENT")) // global rules dir doesn't exist
@@ -103,7 +105,9 @@ describe("custom-instructions global .roo support", () => {
 			expect(result).not.toContain("global rule content")
 		})
 
-		it("should merge global and project rules with project rules after global", async () => {
+		// TODO: rewrite for bundled instructions. Commits b2c030206 + 827747c12 removed
+		// project-level .roo/.roorules scanning in favour of bundled global rules.
+		it.skip("should merge global and project rules with project rules after global", async () => {
 			// Mock directory existence - both exist
 			mockStat
 				.mockResolvedValueOnce({ isDirectory: () => true } as any) // global rules dir exists
@@ -133,7 +137,9 @@ describe("custom-instructions global .roo support", () => {
 			expect(globalIndex).toBeLessThan(projectIndex)
 		})
 
-		it("should fall back to legacy .roorules file when no .roo/rules directories exist", async () => {
+		// TODO: rewrite for bundled instructions. Commits b2c030206 + 827747c12 removed
+		// project-level .roo/.roorules scanning in favour of bundled global rules.
+		it.skip("should fall back to legacy .roorules file when no .roo/rules directories exist", async () => {
 			// Mock directory existence - neither exist
 			mockStat
 				.mockRejectedValueOnce(new Error("ENOENT")) // global rules dir doesn't exist
@@ -206,7 +212,9 @@ describe("custom-instructions global .roo support", () => {
 			expect(result).toContain("project mode rule content")
 		})
 
-		it("should fall back to legacy mode-specific files when no mode directories exist", async () => {
+		// TODO: rewrite for bundled instructions. Commits b2c030206 + 827747c12 removed
+		// project-level .roo/.roorules scanning in favour of bundled global rules.
+		it.skip("should fall back to legacy mode-specific files when no mode directories exist", async () => {
 			const mode = "code"
 
 			// Mock directory existence - mode-specific dirs don't exist

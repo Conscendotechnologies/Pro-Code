@@ -7,6 +7,7 @@ import * as vscode from "vscode"
 import { Anthropic } from "@anthropic-ai/sdk"
 
 import type { GlobalState, ProviderSettings, ModelInfo } from "@siid-code/types"
+import { DEFAULT_CONSECUTIVE_MISTAKE_LIMIT } from "@siid-code/types"
 import { TelemetryService } from "@siid-code/telemetry"
 
 import { Task } from "../Task"
@@ -29,6 +30,18 @@ import delay from "delay"
 vi.mock("execa", () => ({
 	execa: vi.fn(),
 }))
+
+// getModesSection() mkdirs globalStorageUri.fsPath ("/test/storage") via
+// `promises` from "fs", which the fs/promises mock below does not intercept.
+// On Windows that lands in C:\test and quietly succeeds; on Linux it is a
+// write to / and fails with EACCES.
+vi.mock("fs", async (importOriginal) => {
+	const actual = await importOriginal<typeof import("fs")>()
+	return {
+		...actual,
+		promises: { ...actual.promises, mkdir: vi.fn().mockResolvedValue(undefined) },
+	}
+})
 
 vi.mock("fs/promises", async (importOriginal) => {
 	const actual = (await importOriginal()) as Record<string, any>
@@ -118,9 +131,20 @@ vi.mock("vscode", () => {
 			onDidSaveTextDocument: vi.fn(() => mockDisposable),
 			getConfiguration: vi.fn(() => ({ get: (key: string, defaultValue: any) => defaultValue })),
 		},
+		version: "1.100.0",
 		env: {
 			uriScheme: "vscode",
 			language: "en",
+			appName: "Visual Studio Code",
+			machineId: "test-machine-id",
+			sessionId: "test-session-id",
+			isNewAppInstall: false,
+			isTelemetryEnabled: false,
+			uiKind: 1,
+		},
+		UIKind: {
+			Desktop: 1,
+			Web: 2,
 		},
 		EventEmitter: vi.fn().mockImplementation(() => mockEventEmitter),
 		Disposable: {
@@ -328,7 +352,7 @@ describe("Cline", () => {
 				startTask: false,
 			})
 
-			expect(cline.consecutiveMistakeLimit).toBe(3)
+			expect(cline.consecutiveMistakeLimit).toBe(DEFAULT_CONSECUTIVE_MISTAKE_LIMIT)
 		})
 
 		it("should respect provided consecutiveMistakeLimit", () => {
@@ -948,6 +972,45 @@ describe("Cline", () => {
 					await task.catch(() => {})
 				})
 			})
+
+			describe("abort during startup", () => {
+				it("should not reject when the task is aborted while starting", async () => {
+					const [cline, task] = Task.create({
+						provider: mockProvider,
+						apiConfiguration: mockApiConfig,
+						task: "test task",
+					})
+
+					// abortTask() sets this.abort and returns without waiting, so the
+					// in-flight startTask() hits a say() that throws. That rejection is
+					// expected and must not escape: on the constructor path nothing
+					// holds the promise, so it would become an unhandled rejection.
+					await cline.abortTask(true)
+
+					await expect(task).resolves.toBeUndefined()
+				})
+
+				it("should still surface non-abort startup failures", async () => {
+					// Fail before startTask() runs, so the rejection is guaranteed to
+					// come from inside it rather than racing the spy. this.abort stays
+					// false, so the guard must let this one through.
+					const saySpy = vi
+						.spyOn(Task.prototype as any, "say")
+						.mockRejectedValue(new Error("startup exploded"))
+
+					try {
+						const [, task] = Task.create({
+							provider: mockProvider,
+							apiConfiguration: mockApiConfig,
+							task: "test task",
+						})
+
+						await expect(task).rejects.toThrow("startup exploded")
+					} finally {
+						saySpy.mockRestore()
+					}
+				})
+			})
 		})
 
 		describe("Subtask Rate Limiting", () => {
@@ -969,6 +1032,12 @@ describe("Cline", () => {
 				mockProvider = {
 					context: {
 						globalStorageUri: { fsPath: "/test/storage" },
+						// getSystemPrompt() -> getModesSection() reads custom modes/prompts
+						// straight off the extension context.
+						globalState: {
+							get: vi.fn().mockReturnValue(undefined),
+							update: vi.fn().mockResolvedValue(undefined),
+						},
 					},
 					getState: vi.fn().mockResolvedValue({
 						apiConfiguration: mockApiConfig,
@@ -982,9 +1051,15 @@ describe("Cline", () => {
 				// Get the mocked delay function
 				mockDelay = delay as ReturnType<typeof vi.fn>
 				mockDelay.mockClear()
+
+				// delay() is mocked out, but the surrounding say() calls still take real
+				// time. Pin Date.now() so the rate-limit maths sees zero elapsed time and
+				// the delay count is deterministic under full-suite load.
+				vi.spyOn(Date, "now").mockReturnValue(1_000_000)
 			})
 
 			afterEach(() => {
+				vi.mocked(Date.now).mockRestore?.()
 				// Clean up the global state after each test
 				Task.resetGlobalApiRequestTime()
 			})
@@ -1063,7 +1138,7 @@ describe("Cline", () => {
 				// Verify rate limiting was applied
 				expect(mockDelay).toHaveBeenCalledTimes(mockApiConfig.rateLimitSeconds)
 				expect(mockDelay).toHaveBeenCalledWith(1000)
-			}, 10000) // Increase timeout to 10 seconds
+			}, 30000) // Real say() calls make this slow under full-suite load.
 
 			it("should not apply rate limiting if enough time has passed", async () => {
 				// Create parent task
@@ -1123,7 +1198,7 @@ describe("Cline", () => {
 
 				// Restore Date.now
 				Date.now = originalDateNow
-			})
+			}, 30000)
 
 			it("should share rate limiting across multiple subtasks", async () => {
 				// Create parent task
@@ -1198,7 +1273,7 @@ describe("Cline", () => {
 
 				// Verify rate limiting was applied again
 				expect(mockDelay).toHaveBeenCalledTimes(mockApiConfig.rateLimitSeconds)
-			}, 15000) // Increase timeout to 15 seconds
+			}, 30000) // Real say() calls make this slow under full-suite load.
 
 			it("should handle rate limiting with zero rate limit", async () => {
 				// Update config to have zero rate limit

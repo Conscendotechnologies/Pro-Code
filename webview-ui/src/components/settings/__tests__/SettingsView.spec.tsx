@@ -221,6 +221,8 @@ const mockPostMessage = (state: any) => {
 				ttsSpeed: 1,
 				soundEnabled: false,
 				soundVolume: 0.5,
+				// The providers tab is only present in developer mode (640b2345e).
+				developerMode: true,
 				...state,
 			},
 		},
@@ -349,6 +351,10 @@ describe("SettingsView - Sound Settings", () => {
 		// Activate the notifications tab
 		activateTab("notifications")
 
+		// Since 749ee288b the tts/sound controls are gated on (and disabled without)
+		// the notifications master toggle.
+		fireEvent.click(screen.getByTestId("notifications-enabled-checkbox"))
+
 		// Enable tts
 		const ttsCheckbox = screen.getByTestId("tts-enabled-checkbox")
 		fireEvent.click(ttsCheckbox)
@@ -366,6 +372,10 @@ describe("SettingsView - Sound Settings", () => {
 		// Activate the notifications tab
 		activateTab("notifications")
 
+		// Since 749ee288b the tts/sound controls are gated on (and disabled without)
+		// the notifications master toggle.
+		fireEvent.click(screen.getByTestId("notifications-enabled-checkbox"))
+
 		// Enable sound
 		const soundCheckbox = screen.getByTestId("sound-enabled-checkbox")
 		fireEvent.click(soundCheckbox)
@@ -382,6 +392,10 @@ describe("SettingsView - Sound Settings", () => {
 
 		// Activate the notifications tab
 		activateTab("notifications")
+
+		// Since 749ee288b the tts/sound controls are gated on (and disabled without)
+		// the notifications master toggle.
+		fireEvent.click(screen.getByTestId("notifications-enabled-checkbox"))
 
 		// Enable tts
 		const ttsCheckbox = screen.getByTestId("tts-enabled-checkbox")
@@ -409,6 +423,10 @@ describe("SettingsView - Sound Settings", () => {
 		// Activate the notifications tab
 		activateTab("notifications")
 
+		// Since 749ee288b the tts/sound controls are gated on (and disabled without)
+		// the notifications master toggle.
+		fireEvent.click(screen.getByTestId("notifications-enabled-checkbox"))
+
 		// Enable sound
 		const soundCheckbox = screen.getByTestId("sound-enabled-checkbox")
 		fireEvent.click(soundCheckbox)
@@ -435,7 +453,9 @@ describe("SettingsView - API Configuration", () => {
 	})
 
 	it("renders ApiConfigManagement with correct props", () => {
-		renderSettingsView()
+		// The default tab is autoApprove since 640b2345e, so activate providers explicitly.
+		const { activateTab } = renderSettingsView()
+		activateTab("providers")
 
 		expect(screen.getByTestId("api-config-management")).toBeInTheDocument()
 	})
@@ -526,13 +546,14 @@ describe("SettingsView - Allowed Commands", () => {
 		})
 
 		it("renders with providers tab active by default", () => {
-			renderSettingsView()
+			const { activateTab } = renderSettingsView()
 
 			// Check that the tab list is rendered
 			const tabList = screen.getByTestId("settings-tab-list")
 			expect(tabList).toBeInTheDocument()
 
-			// Check that providers content is visible
+			// Providers is no longer the default tab (640b2345e); activate it first.
+			activateTab("providers")
 			expect(screen.getByTestId("api-config-management")).toBeInTheDocument()
 		})
 

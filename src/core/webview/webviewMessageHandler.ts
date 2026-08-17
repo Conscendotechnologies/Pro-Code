@@ -517,6 +517,14 @@ export const webviewMessageHandler = async (
 			await updateGlobalState("alwaysAllowRetrieveSfMetadata", message.bool)
 			await provider.postStateToWebview()
 			break
+		case "alwaysAllowSiidForgeRead":
+			await updateGlobalState("alwaysAllowSiidForgeRead", message.bool)
+			await provider.postStateToWebview()
+			break
+		case "alwaysAllowSiidForgeWrite":
+			await updateGlobalState("alwaysAllowSiidForgeWrite", message.bool)
+			await provider.postStateToWebview()
+			break
 		case "askResponse":
 			{
 				const task = provider.getCurrentCline()
@@ -1582,6 +1590,18 @@ export const webviewMessageHandler = async (
 					message.editedMessageContent,
 					message.images,
 				)
+			}
+			break
+		}
+		case "deleteMessageConfirm": {
+			if (typeof message.messageTs === "number" && message.messageTs) {
+				await handleDeleteMessageConfirm(message.messageTs)
+			}
+			break
+		}
+		case "editMessageConfirm": {
+			if (typeof message.messageTs === "number" && message.messageTs && typeof message.text === "string") {
+				await handleEditMessageConfirm(message.messageTs, message.text, message.images)
 			}
 			break
 		}

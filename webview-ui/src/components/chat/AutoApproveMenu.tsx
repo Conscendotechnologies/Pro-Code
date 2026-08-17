@@ -29,9 +29,11 @@ const AutoApproveMenu = ({ style }: AutoApproveMenuProps) => {
 		setAlwaysAllowModeSwitch,
 		setAlwaysAllowSubtasks,
 		setAlwaysApproveResubmit,
-		
+
 		setAlwaysAllowDeploySfMetadata,
 		setAlwaysAllowRetrieveSfMetadata,
+		setAlwaysAllowSiidForgeRead,
+		setAlwaysAllowSiidForgeWrite,
 	} = useExtensionState()
 
 	const { t } = useAppTranslation()
@@ -79,12 +81,18 @@ const AutoApproveMenu = ({ style }: AutoApproveMenuProps) => {
 				case "alwaysApproveResubmit":
 					setAlwaysApproveResubmit(value)
 					break
-				
+
 				case "alwaysAllowDeploySfMetadata":
 					setAlwaysAllowDeploySfMetadata(value)
 					break
 				case "alwaysAllowRetrieveSfMetadata":
 					setAlwaysAllowRetrieveSfMetadata(value)
+					break
+				case "alwaysAllowSiidForgeRead":
+					setAlwaysAllowSiidForgeRead(value)
+					break
+				case "alwaysAllowSiidForgeWrite":
+					setAlwaysAllowSiidForgeWrite(value)
 					break
 			}
 			const updatedToggles = {
@@ -116,9 +124,11 @@ const AutoApproveMenu = ({ style }: AutoApproveMenuProps) => {
 			setAlwaysAllowModeSwitch,
 			setAlwaysAllowSubtasks,
 			setAlwaysApproveResubmit,
-			
+
 			setAlwaysAllowDeploySfMetadata,
 			setAlwaysAllowRetrieveSfMetadata,
+			setAlwaysAllowSiidForgeRead,
+			setAlwaysAllowSiidForgeWrite,
 			setAutoApprovalEnabled,
 		],
 	)

@@ -38,6 +38,7 @@ import { CloudService } from "@roo-code/cloud"
 // api
 import { ApiHandler, ApiHandlerCreateMessageMetadata, buildApiHandler } from "../../api"
 import { ApiStream } from "../../api/transform/stream"
+import { maybeRouteThroughCompression } from "../../integrations/siid-compression"
 
 // shared
 import { findLastIndex } from "../../shared/array"
@@ -333,7 +334,8 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 		})
 
 		this.apiConfiguration = apiConfiguration
-		this.api = buildApiHandler(apiConfiguration)
+		// Route through the SIID Compression proxy when available (optional; direct fallback).
+		this.api = buildApiHandler(maybeRouteThroughCompression(apiConfiguration))
 		this.autoApprovalHandler = new AutoApprovalHandler()
 
 		this.urlContentFetcher = new UrlContentFetcher(provider.context)
@@ -398,6 +400,9 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 		if (startTask) {
 			// Ensure todo list is initialized and present before starting any task.
 			this.ensureTodoListInitialized()
+			// A constructor can't await, so these run detached. startTask() and
+			// resumeTaskFromHistory() swallow abort-triggered rejections internally;
+			// anything else would otherwise surface as an unhandled rejection here.
 			if (task || images) {
 				this.startTask(task, images)
 			} else if (historyItem) {
@@ -900,7 +905,7 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 				})
 				// Ensure profile and apiProvider exist before trying to build handler
 				if (profile && profile.apiProvider) {
-					condensingApiHandler = buildApiHandler(profile)
+					condensingApiHandler = buildApiHandler(maybeRouteThroughCompression(profile))
 				}
 			}
 		}
@@ -1346,6 +1351,21 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 	// Start / Abort / Resume
 
 	private async startTask(task?: string, images?: string[]): Promise<void> {
+		try {
+			await this.startTaskInner(task, images)
+		} catch (error) {
+			// Aborting while startup is still in flight is normal: abortTask() sets
+			// this.abort and returns without waiting, so the next say() in here
+			// throws. Callers that hold the promise (Task.create) already handle it,
+			// but the constructor path runs detached — rethrowing there would be an
+			// unhandled rejection. Only abort-triggered failures are swallowed.
+			if (!this.abort) {
+				throw error
+			}
+		}
+	}
+
+	private async startTaskInner(task?: string, images?: string[]): Promise<void> {
 		// `conversationHistory` (for API) and `clineMessages` (for webview)
 		// need to be in sync.
 		// If the extension process were killed, then on restart the
@@ -1530,6 +1550,17 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 	}
 
 	private async resumeTaskFromHistory() {
+		try {
+			await this.resumeTaskFromHistoryInner()
+		} catch (error) {
+			// Same abort race as startTask() — see the comment there.
+			if (!this.abort) {
+				throw error
+			}
+		}
+	}
+
+	private async resumeTaskFromHistoryInner() {
 		const modifiedClineMessages = await this.getSavedClineMessages()
 
 		// Remove any resume messages that may have been added before
@@ -2633,7 +2664,7 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 
 				// Ensure profile and apiProvider exist before trying to build handler.
 				if (profile && profile.apiProvider) {
-					condensingApiHandler = buildApiHandler(profile)
+					condensingApiHandler = buildApiHandler(maybeRouteThroughCompression(profile))
 				}
 			}
 		}

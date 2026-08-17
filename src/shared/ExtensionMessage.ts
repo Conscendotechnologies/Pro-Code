@@ -252,6 +252,8 @@ export type ExtensionState = Pick<
 	| "alwaysAllowExecute"
 	| "alwaysAllowDeploySfMetadata"
 	| "alwaysAllowRetrieveSfMetadata"
+	| "alwaysAllowSiidForgeRead"
+	| "alwaysAllowSiidForgeWrite"
 	| "allowedCommands"
 	| "deniedCommands"
 	| "allowedMaxRequests"
@@ -383,7 +385,13 @@ export interface ClineSayTool {
 		| "insertContent"
 		| "deploySfMetadata"
 		| "retrieveSfMetadata"
+		| "siidForge"
 	path?: string
+	feature?: string // siidForge: the feature name (e.g. "sfRun")
+	mutating?: boolean // siidForge: whether it required approval
+	success?: boolean // siidForge: result outcome (undefined = still running / approval stage)
+	phase?: string // siidForge progress: Forge command phase (started|running|succeeded|failed|cancelled)
+	elapsedMs?: number // siidForge progress: real elapsed ms reported by Forge's onStatus
 	diff?: string
 	content?: string
 	metadataType?: string
