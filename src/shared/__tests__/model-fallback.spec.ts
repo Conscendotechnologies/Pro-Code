@@ -101,4 +101,62 @@ describe("model-fallback", () => {
 			expect(isFallbackEligible("code", "vendor/removed-model")).toBe(false)
 		})
 	})
+
+	// OpenRouter moves models between free and paid, grants free access for
+	// limited periods, and removes models outright. The chain is derived from
+	// `tier` on every call, so these cases must hold for any list contents.
+	describe("volatile provider catalogue", () => {
+		it("derives the chain from tier rather than the :free id suffix", () => {
+			// A ":free" suffix is part of the vendor's id, not a promise about
+			// price, so tier is the only thing that may drive the chain.
+			const chain = getFallbackChain("code")
+			for (const id of chain) {
+				const model = getModelsForMode("code").find((m) => m.modelId === id)
+				expect(model?.tier).toBe("Free")
+			}
+			const paidWithFreeSuffix = getModelsForMode("code").filter(
+				(m) => m.modelId.endsWith(":free") && m.tier !== "Free",
+			)
+			for (const model of paidWithFreeSuffix) {
+				expect(chain).not.toContain(model.modelId)
+			}
+		})
+
+		it("keeps the primary as the first free model even as the list changes", () => {
+			// Whichever model currently sits first in the free tier is primary;
+			// nothing hardcodes a specific id.
+			const firstFree = getModelsForMode("code").find((m) => m.tier === "Free")
+			expect(getPrimaryModel("code")).toBe(firstFree?.modelId)
+		})
+
+		it("leaves a user on a model that has been removed from the list", () => {
+			// Removal must not silently reassign the user's model; the UI is
+			// responsible for prompting them to pick a new one.
+			const result = getNextModelOnError("code", "z-ai/glm-4.5-air:free-removed")
+			expect(result.model).toBeNull()
+			expect(result.isFallback).toBe(false)
+			expect(result.message).toBe("")
+		})
+
+		it("does not fall back for a model that moved from free to paid", () => {
+			// Once re-tiered, the model is no longer in the free chain, so a 429
+			// on it must not trigger automatic switching.
+			const paid = getModelsForMode("code").find((m) => m.tier !== "Free")!
+			expect(isFallbackEligible("code", paid.modelId)).toBe(false)
+			expect(getNextModelOnError("code", paid.modelId).model).toBeNull()
+		})
+
+		it("survives a mode whose models are all paid", () => {
+			// If every free model is delisted at once the chain empties, which
+			// must degrade to "no fallback" rather than throwing or picking a
+			// paid model on the user's behalf.
+			expect(getFallbackChain("no-such-mode")).toEqual([])
+			expect(getPrimaryModel("no-such-mode")).toBeNull()
+			expect(getNextModelOnError("no-such-mode", "anything")).toEqual({
+				model: null,
+				isFallback: false,
+				message: "",
+			})
+		})
+	})
 })
