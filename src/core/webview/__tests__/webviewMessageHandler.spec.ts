@@ -44,8 +44,8 @@ vi.mock("vscode", () => ({
 	window: {
 		showInformationMessage: vi.fn(),
 		showErrorMessage: vi.fn(),
-		// Called at module load by DecorationController; without it the import
-		// of DiffViewProvider throws and the whole file fails to collect.
+		// Called at module scope by DecorationController, which this suite pulls in
+		// transitively via checkpoints -> DiffViewProvider.
 		createTextEditorDecorationType: vi.fn(() => ({ dispose: vi.fn() })),
 	},
 	workspace: {
