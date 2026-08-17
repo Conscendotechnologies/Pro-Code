@@ -44,6 +44,9 @@ vi.mock("vscode", () => ({
 	window: {
 		showInformationMessage: vi.fn(),
 		showErrorMessage: vi.fn(),
+		// Called at module scope by DecorationController, which this suite pulls in
+		// transitively via checkpoints -> DiffViewProvider.
+		createTextEditorDecorationType: vi.fn(() => ({ dispose: vi.fn() })),
 	},
 	workspace: {
 		workspaceFolders: [{ uri: { fsPath: "/mock/workspace" } }],
