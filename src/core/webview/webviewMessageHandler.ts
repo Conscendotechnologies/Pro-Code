@@ -56,7 +56,8 @@ const ALLOWED_VSCODE_SETTINGS = new Set(["terminal.integrated.inheritEnv"])
 
 import { MarketplaceManager, MarketplaceItemType } from "../../services/marketplace"
 import { setPendingTodoList } from "../tools/updateTodoListTool"
-import { FileChangesService } from "../../services/file-changes"
+import { getTaskFileChanges, openTaskFileDiff, revertTaskFile } from "../checkpoints"
+import { setDeploymentStatus, type DeploymentStatus } from "../../services/file-changes/deploymentStatus"
 
 export const webviewMessageHandler = async (
 	provider: ClineProvider,
@@ -907,10 +908,10 @@ export const webviewMessageHandler = async (
 				const diffPayload = message.values as
 					| {
 							filePath?: string
-							diff?: string
-							original?: string
-							modified?: string
 							status?: string
+							// Scope the diff to one operation instead of the whole task.
+							fromHash?: string
+							toHash?: string
 					  }
 					| undefined
 
@@ -925,28 +926,21 @@ export const webviewMessageHandler = async (
 						: filePath
 
 				try {
-					// If we have a diff string, reconstruct original content from current file
-					if (diffPayload.diff) {
-						const currentContent = await fs.readFile(absolutePath, "utf-8").catch(() => "")
-						const originalContent = diffPayload.original ?? currentContent
+					// The shadow repo holds the file's content at task start, which
+					// is the only reliable "before" - reconstructing it from the
+					// current file just diffs the file against itself.
+					const cline = provider.getCurrentCline()
+					const relPath = workDir ? path.relative(workDir, absolutePath).replace(/\\/g, "/") : filePath
 
-						// Create a virtual document URI for the original content
-						const { DIFF_VIEW_URI_SCHEME } = await import("../../integrations/editor/DiffViewProvider")
-						const fileName = path.basename(absolutePath)
-						const originalUri = vscode.Uri.parse(`${DIFF_VIEW_URI_SCHEME}:${fileName}`).with({
-							query: Buffer.from(originalContent).toString("base64"),
-						})
-						const modifiedUri = vscode.Uri.file(absolutePath)
+					const opened = cline
+						? await openTaskFileDiff(cline, relPath, {
+								from: diffPayload.fromHash,
+								to: diffPayload.toHash,
+							})
+						: false
 
-						await vscode.commands.executeCommand(
-							"vscode.diff",
-							originalUri,
-							modifiedUri,
-							`${fileName}: Changes`,
-							{ preview: true, preserveFocus: false },
-						)
-					} else {
-						// No diff available, just open the file
+					if (!opened) {
+						// No baseline available (checkpoints off, or file unchanged).
 						openFile(absolutePath)
 					}
 				} catch (err) {
@@ -1956,147 +1950,42 @@ export const webviewMessageHandler = async (
 			}
 			break
 
-		// File Changes Database handlers
+		// File changes: derived from the task's shadow git repo.
 		case "getFileChanges": {
-			const taskId = message.text
-			if (taskId) {
-				try {
-					const service = FileChangesService.getInstance()
-					const fileChanges = await service.getTaskFileChanges(taskId)
-					await provider.postMessageToWebview({
-						type: "fileChanges",
-						fileChanges: fileChanges.map((fc) => ({
-							path: fc.filePath,
-							additions: fc.additions,
-							deletions: fc.deletions,
-							status: fc.status,
-							diff: fc.diff,
-							deploymentStatus: fc.deploymentStatus,
-							timestamp: fc.timestamp,
-							error: fc.error,
-						})),
-					})
-				} catch (error) {
-					provider.log(
-						`Error getting file changes: ${error instanceof Error ? error.message : String(error)}`,
-					)
-					await provider.postMessageToWebview({
-						type: "fileChanges",
-						fileChanges: [],
-					})
+			const cline = provider.getCurrentCline()
+
+			await provider.postMessageToWebview({
+				type: "fileChanges",
+				fileChanges: cline ? await getTaskFileChanges(cline) : [],
+			})
+
+			break
+		}
+
+		case "revertFileChange": {
+			const cline = provider.getCurrentCline()
+			const relPath = message.text
+
+			if (cline && relPath) {
+				const reverted = await revertTaskFile(cline, relPath)
+
+				if (!reverted) {
+					vscode.window.showWarningMessage(`Could not revert ${relPath}.`)
 				}
 			}
+
 			break
 		}
 
 		case "updateFileDeploymentStatus": {
 			const values = message.values as
-				| {
-						taskId: string
-						filePath: string
-						deploymentStatus: string
-						error?: string
-				  }
+				| { taskId: string; filePath: string; deploymentStatus: DeploymentStatus; error?: string }
 				| undefined
+
 			if (values?.taskId && values?.filePath && values?.deploymentStatus) {
-				try {
-					const service = FileChangesService.getInstance()
-					await service.updateDeploymentStatus(
-						values.taskId,
-						values.filePath,
-						values.deploymentStatus as "local" | "dry-run" | "deploying" | "deployed" | "failed",
-						values.error,
-					)
-				} catch (error) {
-					provider.log(
-						`Error updating deployment status: ${error instanceof Error ? error.message : String(error)}`,
-					)
-				}
+				setDeploymentStatus(values.taskId, [values.filePath], values.deploymentStatus, values.error)
 			}
-			break
-		}
 
-		case "clearFileChanges": {
-			const taskId = message.text
-			if (taskId) {
-				try {
-					const service = FileChangesService.getInstance()
-					const db = service.getDatabase()
-					await db.deleteAllFileChangesForTask(taskId)
-				} catch (error) {
-					provider.log(
-						`Error clearing file changes: ${error instanceof Error ? error.message : String(error)}`,
-					)
-				}
-			}
-			break
-		}
-
-		case "getFileChangesStatistics": {
-			const taskId = message.text
-			if (taskId) {
-				try {
-					const service = FileChangesService.getInstance()
-					const db = service.getDatabase()
-					const stats = await db.getTaskStatistics(taskId)
-					await provider.postMessageToWebview({
-						type: "fileChangesStatistics",
-						statistics: stats,
-					})
-				} catch (error) {
-					provider.log(
-						`Error getting file changes statistics: ${error instanceof Error ? error.message : String(error)}`,
-					)
-				}
-			}
-			break
-		}
-
-		case "migrateFileChanges": {
-			const taskId = message.text
-			const localFileChanges = message.values?.fileChanges as
-				| Array<{
-						path: string
-						additions?: number
-						deletions?: number
-						status?: "modified" | "created" | "deleted"
-						diff?: string
-						deploymentStatus?: string
-						timestamp?: number
-						error?: string
-				  }>
-				| undefined
-
-			if (taskId && Array.isArray(localFileChanges) && localFileChanges.length > 0) {
-				try {
-					const service = FileChangesService.getInstance()
-					const db = service.getDatabase()
-
-					provider.log(`Migrating ${localFileChanges.length} file changes for task ${taskId}`)
-
-					for (const fc of localFileChanges) {
-						if (fc.path) {
-							await db.addFileChange({
-								taskId,
-								filePath: fc.path,
-								status: fc.status || "modified",
-								additions: fc.additions,
-								deletions: fc.deletions,
-								deploymentStatus: (fc.deploymentStatus as any) || "local",
-								timestamp: fc.timestamp || Date.now(),
-								diff: fc.diff,
-								error: fc.error,
-							})
-						}
-					}
-
-					provider.log(`Successfully migrated file changes for task ${taskId}`)
-				} catch (error) {
-					provider.log(
-						`Error migrating file changes: ${error instanceof Error ? error.message : String(error)}`,
-					)
-				}
-			}
 			break
 		}
 	}

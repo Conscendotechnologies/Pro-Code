@@ -228,6 +228,7 @@ export interface WebviewMessage {
 		| "firebaseSignInWithApiKey"
 		| "developerMode"
 		| "openDiff"
+		| "revertFileChange"
 		| "getFileChanges"
 		| "updateFileDeploymentStatus"
 		| "clearFileChanges"

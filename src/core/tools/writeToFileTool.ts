@@ -16,7 +16,7 @@ import { detectCodeOmission } from "../../integrations/editor/detect-omission"
 import { unescapeHtmlEntities } from "../../utils/text-normalization"
 import { DEFAULT_WRITE_DELAY_MS } from "@siid-code/types"
 import { EXPERIMENT_IDS, experiments } from "../../shared/experiments"
-import { trackFileChange } from "../../services/file-changes/trackFileChange"
+import { countContentChanges } from "../../utils/diffStats"
 
 function shouldPreserveXmlEntities(relPath: string): boolean {
 	return relPath.toLowerCase().endsWith(".xml")
@@ -207,9 +207,18 @@ export async function writeToFileTool(
 					}
 				}
 
+				// For an overwrite, count against what was there before; for a new
+				// file every line is an addition.
+				const { linesAdded, linesRemoved } = countContentChanges(
+					fileExists ? (cline.diffViewProvider.originalContent ?? "") : "",
+					newContent,
+				)
+
 				const completeMessage = JSON.stringify({
 					...sharedMessageProps,
 					content: newContent,
+					linesAdded,
+					linesRemoved,
 				} satisfies ClineSayTool)
 
 				const didApprove = await askApproval("tool", completeMessage, undefined, isWriteProtected)
@@ -308,15 +317,6 @@ export async function writeToFileTool(
 
 			// Get the formatted response message
 			const message = await cline.diffViewProvider.pushToolWriteResult(cline, cline.cwd, !fileExists)
-
-			// Track file change in database with diff calculation
-			await trackFileChange({
-				taskId: cline.taskId,
-				filePath: relPath,
-				status: fileExists ? "modified" : "created",
-				oldContent: cline.diffViewProvider.originalContent ?? "",
-				newContent: newContent,
-			})
 
 			pushToolResult(message)
 

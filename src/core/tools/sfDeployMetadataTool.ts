@@ -6,13 +6,18 @@ import { Task } from "../task/Task"
 import { ToolUse, AskApproval, HandleError, PushToolResult, RemoveClosingTag } from "../../shared/tools"
 import { formatResponse } from "../prompts/responses"
 import { ClineSayTool } from "../../shared/ExtensionMessage"
-import { FileChangesService } from "../../services/file-changes"
-import type { DeploymentStatus } from "../../services/file-changes"
+import { setDeploymentStatus, getPathsWithStatus } from "../../services/file-changes/deploymentStatus"
 import type { SfDeployExecutionStatus } from "@siid-code/types"
 
 async function sendDeployStatus(cline: Task, executionId: string, status: SfDeployExecutionStatus): Promise<void> {
 	const provider = cline.providerRef.deref()
 	provider?.postMessageToWebview({ type: "sfDeployExecutionStatus", text: JSON.stringify(status) })
+
+	// Deploy phases change the badges but not the files, so checkpoints won't
+	// fire - refresh the file list here instead.
+	cline.postFileChanges().catch(() => {
+		// Non-critical
+	})
 }
 
 /**
@@ -577,27 +582,6 @@ function extractDeployedFilePaths(jsonOutput: any): string[] {
 }
 
 /**
- * Update deployment status for files involved in a deploy operation.
- * Handles both tracked files (in FileChangesDatabase) and untracked files
- * (ones the AI deployed that weren't modified in this task).
- */
-async function updateDeploymentStatuses(
-	taskId: string,
-	filePaths: string[],
-	status: DeploymentStatus,
-	error?: string,
-): Promise<void> {
-	try {
-		const service = FileChangesService.getInstance()
-		for (const filePath of filePaths) {
-			await service.updateDeploymentStatus(taskId, filePath, status, error)
-		}
-	} catch (err) {
-		console.error(`[deploySfMetadata] Failed to update deployment statuses: ${err}`)
-	}
-}
-
-/**
  * Execute an SF CLI command asynchronously so the extension host event loop
  * remains responsive while long-running deployments execute.
  */
@@ -773,7 +757,7 @@ export async function deploySfMetadataTool(
 				const dryRunJson = JSON.parse(dryRunOutput)
 				const validatedPaths = extractDeployedFilePaths(dryRunJson)
 				if (validatedPaths.length > 0) {
-					await updateDeploymentStatuses(cline.taskId, validatedPaths, "dry-run")
+					setDeploymentStatus(cline.taskId, validatedPaths, "dry-run")
 					console.log(`[deploySfMetadata] Updated ${validatedPaths.length} files to dry-run status`)
 				}
 			} catch {
@@ -845,16 +829,7 @@ export async function deploySfMetadataTool(
 		await sendDeployStatus(cline, executionId, { executionId, status: "deploying", metadataType, metadataName })
 
 		// Mark all task files as "deploying" before starting
-		try {
-			const service = FileChangesService.getInstance()
-			const taskFiles = await service.getTaskFileChanges(cline.taskId)
-			const dryRunPaths = taskFiles.filter((f) => f.deploymentStatus === "dry-run").map((f) => f.filePath)
-			if (dryRunPaths.length > 0) {
-				await updateDeploymentStatuses(cline.taskId, dryRunPaths, "deploying")
-			}
-		} catch {
-			// Non-critical
-		}
+		setDeploymentStatus(cline.taskId, getPathsWithStatus(cline.taskId, "dry-run"), "deploying")
 
 		try {
 			// Execute actual deployment
@@ -870,7 +845,7 @@ export async function deploySfMetadataTool(
 				const deployJson = JSON.parse(deployOutput)
 				const deployedPaths = extractDeployedFilePaths(deployJson)
 				if (deployedPaths.length > 0) {
-					await updateDeploymentStatuses(cline.taskId, deployedPaths, "deployed")
+					setDeploymentStatus(cline.taskId, deployedPaths, "deployed")
 					console.log(`[deploySfMetadata] Updated ${deployedPaths.length} files to deployed status`)
 				}
 			} catch {
@@ -893,23 +868,12 @@ export async function deploySfMetadataTool(
 			pushToolResult(formatResponse.toolResult(formattedResult))
 		} catch (deployError: any) {
 			// Mark deploying files as "failed"
-			try {
-				const service = FileChangesService.getInstance()
-				const taskFiles = await service.getTaskFileChanges(cline.taskId)
-				const deployingPaths = taskFiles
-					.filter((f) => f.deploymentStatus === "deploying")
-					.map((f) => f.filePath)
-				if (deployingPaths.length > 0) {
-					await updateDeploymentStatuses(
-						cline.taskId,
-						deployingPaths,
-						"failed",
-						String(deployError?.message || "Deployment failed"),
-					)
-				}
-			} catch {
-				// Non-critical
-			}
+			setDeploymentStatus(
+				cline.taskId,
+				getPathsWithStatus(cline.taskId, "deploying"),
+				"failed",
+				String(deployError?.message || "Deployment failed"),
+			)
 
 			// Handle deployment execution errors
 			let errorMessage = "Failed to execute SF CLI deployment"

@@ -1,18 +1,21 @@
-import React, { useState, useEffect } from "react"
+import React, { useState } from "react"
 import { vscode } from "@src/utils/vscode"
 import { useExtensionState } from "@src/context/ExtensionStateContext"
 
 export type DeploymentStatus = "local" | "dry-run" | "deploying" | "deployed" | "failed"
 
+/**
+ * A file changed during the current task, as reported by the extension from
+ * the task's shadow git repo. Diff content is fetched on demand rather than
+ * carried here - see the README.
+ */
 export type FileChange = {
 	path: string
 	additions?: number
 	deletions?: number
-	status?: "modified" | "created" | "deleted"
-	diff?: string // The actual diff content
+	status?: "modified" | "created" | "deleted" | "renamed"
 	deploymentStatus?: DeploymentStatus
-	timestamp?: number // When the change was made
-	error?: string // Error message if deployment failed
+	error?: string // Deployment error, when deploymentStatus is "failed"
 }
 
 export interface FileChangesProps {
@@ -21,48 +24,17 @@ export interface FileChangesProps {
 	defaultCollapsed?: boolean
 	onFileClick?: (path: string) => void
 	onViewDiff?: (file: FileChange) => void
+	onRevert?: (file: FileChange) => void
 	className?: string
-	taskId?: string // For localStorage key
 }
 
 export interface FileChangeItemProps {
 	file: FileChange
 	onFileClick?: (path: string) => void
 	onViewDiff?: (file: FileChange) => void
+	onRevert?: (file: FileChange) => void
 	showStats?: boolean
 	showDeploymentStatus?: boolean
-}
-
-// LocalStorage utilities for persisting file changes
-const STORAGE_KEY_PREFIX = "fileChanges_"
-
-export const saveFileChanges = (taskId: string, files: FileChange[]): void => {
-	try {
-		const key = `${STORAGE_KEY_PREFIX}${taskId}`
-		localStorage.setItem(key, JSON.stringify(files))
-	} catch (error) {
-		console.error("Failed to save file changes to localStorage:", error)
-	}
-}
-
-export const loadFileChanges = (taskId: string): FileChange[] => {
-	try {
-		const key = `${STORAGE_KEY_PREFIX}${taskId}`
-		const data = localStorage.getItem(key)
-		return data ? JSON.parse(data) : []
-	} catch (error) {
-		console.error("Failed to load file changes from localStorage:", error)
-		return []
-	}
-}
-
-export const clearFileChanges = (taskId: string): void => {
-	try {
-		const key = `${STORAGE_KEY_PREFIX}${taskId}`
-		localStorage.removeItem(key)
-	} catch (error) {
-		console.error("Failed to clear file changes from localStorage:", error)
-	}
 }
 
 // Get deployment status badge configuration
@@ -115,6 +87,7 @@ export const FileChangeItem: React.FC<FileChangeItemProps> = ({
 	file,
 	onFileClick,
 	onViewDiff,
+	onRevert,
 	showStats = true,
 	showDeploymentStatus = true,
 }) => {
@@ -150,9 +123,12 @@ export const FileChangeItem: React.FC<FileChangeItemProps> = ({
 
 	const handleViewDiff = (e: React.MouseEvent) => {
 		e.stopPropagation()
-		if (onViewDiff && file.diff) {
-			onViewDiff(file)
-		}
+		onViewDiff?.(file)
+	}
+
+	const handleRevert = (e: React.MouseEvent) => {
+		e.stopPropagation()
+		onRevert?.(file)
 	}
 
 	// Get status icon
@@ -162,6 +138,8 @@ export const FileChangeItem: React.FC<FileChangeItemProps> = ({
 				return "codicon-diff-added"
 			case "deleted":
 				return "codicon-diff-removed"
+			case "renamed":
+				return "codicon-diff-renamed"
 			case "modified":
 				return "codicon-diff-modified"
 			default:
@@ -176,6 +154,8 @@ export const FileChangeItem: React.FC<FileChangeItemProps> = ({
 				return "var(--vscode-gitDecoration-addedResourceForeground)"
 			case "deleted":
 				return "var(--vscode-gitDecoration-deletedResourceForeground)"
+			case "renamed":
+				return "var(--vscode-gitDecoration-renamedResourceForeground)"
 			case "modified":
 				return "var(--vscode-gitDecoration-modifiedResourceForeground)"
 			default:
@@ -245,11 +225,21 @@ export const FileChangeItem: React.FC<FileChangeItemProps> = ({
 			)}
 
 			{/* View Diff button */}
-			{file.diff && onViewDiff && (
+			{onViewDiff && (
 				<button
 					onClick={handleViewDiff}
 					className="codicon codicon-diff text-xs hover:bg-vscode-button-hoverBackground p-1 rounded"
-					title="View Diff"
+					title="View changes since task started"
+					style={{ fontSize: "12px" }}
+				/>
+			)}
+
+			{/* Revert button */}
+			{onRevert && (
+				<button
+					onClick={handleRevert}
+					className="codicon codicon-discard text-xs hover:bg-vscode-button-hoverBackground p-1 rounded"
+					title="Revert this file to its content at task start"
 					style={{ fontSize: "12px" }}
 				/>
 			)}
@@ -268,29 +258,10 @@ export const FileChanges: React.FC<FileChangesProps> = ({
 	defaultCollapsed = true,
 	onFileClick,
 	onViewDiff,
+	onRevert,
 	className = "",
-	taskId,
 }) => {
 	const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed)
-
-	// Persist file changes to localStorage when they change
-	useEffect(() => {
-		if (taskId && files.length > 0) {
-			saveFileChanges(taskId, files)
-		}
-	}, [files, taskId])
-
-	// Load file changes from localStorage on mount
-	useEffect(() => {
-		if (taskId) {
-			const savedFiles = loadFileChanges(taskId)
-			// You can merge savedFiles with current files if needed
-			// For now, we just log them
-			if (savedFiles.length > 0) {
-				console.debug("Loaded file changes from localStorage:", savedFiles)
-			}
-		}
-	}, [taskId])
 
 	if (files.length === 0) {
 		return null
@@ -388,6 +359,7 @@ export const FileChanges: React.FC<FileChangesProps> = ({
 								file={file}
 								onFileClick={onFileClick}
 								onViewDiff={onViewDiff}
+								onRevert={onRevert}
 								showStats={true}
 								showDeploymentStatus={true}
 							/>
@@ -441,6 +413,7 @@ export const FileChanges: React.FC<FileChangesProps> = ({
 							file={file}
 							onFileClick={onFileClick}
 							onViewDiff={onViewDiff}
+							onRevert={onRevert}
 							showStats={true}
 							showDeploymentStatus={true}
 						/>

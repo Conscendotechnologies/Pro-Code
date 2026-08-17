@@ -4,6 +4,11 @@ import { join } from "path"
 import { fileExistsAtPath } from "../../utils/fs"
 
 const getBuildArtifactPatterns = () => [
+	// Our own generated working dirs: retrieved schema, debug logs, temp diffs,
+	// test results, planning files. Never hand-edited, so tracking them only
+	// adds noise to the file-changes panel and to checkpoint restores.
+	".siid/",
+	".siid-code/",
 	".gradle/",
 	".idea/",
 	".parcel-cache/",

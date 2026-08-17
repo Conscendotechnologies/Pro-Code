@@ -512,6 +512,17 @@ export const ChatRowContent = ({
 					}
 				}
 
+				// A checkpoint is saved right after each file-writing tool, so the
+				// first one following this row brackets exactly this edit. Without
+				// it the diff falls back to the whole task.
+				const savedCheckpoint = followingMessages?.find((msg) => msg.say === "checkpoint_saved")?.checkpoint as
+					| { from?: string; to?: string }
+					| undefined
+
+				const editCheckpoint = savedCheckpoint?.to
+					? { fromHash: savedCheckpoint.from, toHash: savedCheckpoint.to }
+					: {}
+
 				const addedColor = "var(--vscode-charts-green)"
 				const removedColor = "var(--vscode-errorForeground)"
 
@@ -570,11 +581,13 @@ export const ChatRowContent = ({
 								-{linesRemoved}
 							</span>
 
-							{/* View Diff button - opens VS Code native diff */}
+							{/* View Diff button - opens VS Code native diff, scoped to
+							    the checkpoint this edit produced so it matches the
+							    +/- counts shown above. */}
 							{tool.diff && (
 								<span
 									className="codicon codicon-diff"
-									title="View Diff"
+									title="View this edit"
 									style={{
 										fontSize: "13px",
 										cursor: "pointer",
@@ -589,8 +602,8 @@ export const ChatRowContent = ({
 											text: tool.path,
 											values: {
 												filePath: tool.path,
-												diff: tool.diff,
 												status: "modified",
+												...editCheckpoint,
 											},
 										})
 									}
