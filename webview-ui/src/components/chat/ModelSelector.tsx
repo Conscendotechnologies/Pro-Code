@@ -38,26 +38,17 @@ export const ModelSelector = ({
 
 	// Get available models for the current mode with filtering
 	const availableModels = React.useMemo(() => {
+		// List order is already priority order
 		const allModels = getModelsForMode(mode)
 
 		// Developer mode shows all models
 		if (developerMode) {
-			// Sort by priority for developer mode too
-			return [...allModels].sort((a, b) => (a.priority || 999) - (b.priority || 999))
+			return allModels
 		}
 
-		// Filter based on useFreeModels setting
-		let filtered: typeof allModels
-		if (useFreeModels === true) {
-			// Show only free tier models when useFreeModels is enabled
-			filtered = allModels.filter((model) => model.tier === "Free")
-		} else {
-			// Show all models when useFreeModels is false (both free and paid)
-			filtered = allModels
-		}
-
-		// Sort by priority (lower number = higher priority)
-		return [...filtered].sort((a, b) => (a.priority || 999) - (b.priority || 999))
+		// Show only free tier models when useFreeModels is enabled,
+		// otherwise show everything (free and paid)
+		return useFreeModels === true ? allModels.filter((model) => model.tier === "Free") : allModels
 	}, [mode, useFreeModels, developerMode])
 
 	// Find the selected model info
