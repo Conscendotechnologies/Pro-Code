@@ -29,7 +29,9 @@ describe("mode-validator", () => {
 		})
 
 		describe("architect mode", () => {
-			it("allows configured tools", () => {
+			// TODO: rewrite for the fork's mode set. architect/ask modes no longer exist in
+			// DEFAULT_MODES (packages/types/src/mode.ts).
+			it.skip("allows configured tools", () => {
 				// Architect mode has read, browser, and mcp groups
 				const architectTools = [
 					...TOOL_GROUPS.read.tools,
@@ -43,7 +45,9 @@ describe("mode-validator", () => {
 		})
 
 		describe("ask mode", () => {
-			it("allows configured tools", () => {
+			// TODO: rewrite for the fork's mode set. architect/ask modes no longer exist in
+			// DEFAULT_MODES (packages/types/src/mode.ts).
+			it.skip("allows configured tools", () => {
 				// Ask mode has read, browser, and mcp groups
 				const askTools = [...TOOL_GROUPS.read.tools, ...TOOL_GROUPS.browser.tools, ...TOOL_GROUPS.mcp.tools]
 				askTools.forEach((tool) => {
@@ -137,7 +141,9 @@ describe("mode-validator", () => {
 			)
 		})
 
-		it("does not throw for allowed tools in architect mode", () => {
+		// TODO: rewrite for the fork's mode set. architect/ask modes no longer exist in
+		// DEFAULT_MODES (packages/types/src/mode.ts).
+		it.skip("does not throw for allowed tools in architect mode", () => {
 			expect(() => validateToolUse("read_file", "architect", [])).not.toThrow()
 		})
 

@@ -1136,7 +1136,10 @@ describe("ChatTextArea", () => {
 		})
 	})
 
-	describe("selectApiConfig", () => {
+	// TODO: rewrite for f21c5803a — the mode-based model fallback work removed the API
+	// config dropdown from ChatTextArea's toolbar (the prop survives only as an unused
+	// `_selectApiConfigDisabled`); model selection is now driven per-mode.
+	describe.skip("selectApiConfig", () => {
 		// Helper function to get the API config dropdown
 		const getApiConfigDropdown = () => {
 			return screen.getByTestId("dropdown-trigger")

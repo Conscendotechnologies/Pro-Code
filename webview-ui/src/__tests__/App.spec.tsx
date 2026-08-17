@@ -307,7 +307,9 @@ describe("App", () => {
 		expect(screen.queryByTestId(`${view}-view`)).not.toBeInTheDocument()
 	})
 
-	it("switches to marketplace view when receiving marketplaceButtonClicked action", async () => {
+	// TODO: rewrite for bb3a1f3a2 — the marketplace feature was removed; App.tsx has no
+	// marketplace tab branch.
+	it.skip("switches to marketplace view when receiving marketplaceButtonClicked action", async () => {
 		render(<AppWithProviders />)
 
 		act(() => {
@@ -321,7 +323,8 @@ describe("App", () => {
 		expect(chatView.getAttribute("data-hidden")).toBe("true")
 	})
 
-	it("returns to chat view when clicking done in marketplace view", async () => {
+	// TODO: rewrite for bb3a1f3a2 — the marketplace feature was removed.
+	it.skip("returns to chat view when clicking done in marketplace view", async () => {
 		render(<AppWithProviders />)
 
 		act(() => {

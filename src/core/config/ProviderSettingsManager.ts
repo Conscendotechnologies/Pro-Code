@@ -272,7 +272,7 @@ export class ProviderSettingsManager {
 
 			// Check for dev bypass API key first (for development/testing)
 			const devBypassKey = this.context.globalState.get<string>("devBypassApiKey")
-			if (devBypassKey) {
+			if (typeof devBypassKey === "string" && devBypassKey) {
 				logger.info("[ProviderSettingsManager] Using dev bypass API key")
 				return {
 					freeApiKey: devBypassKey,
@@ -308,7 +308,7 @@ export class ProviderSettingsManager {
 				userApiKey = userProps?.openRouterApiKey
 			}
 
-			if (!userApiKey) {
+			if (typeof userApiKey !== "string" || !userApiKey) {
 				logger.warn(
 					`[ProviderSettingsManager] No OpenRouter API key found in Firebase${userId ? ` for user ${userId}` : ""}`,
 				)

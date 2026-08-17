@@ -2,6 +2,7 @@ import { DiffViewProvider, DIFF_VIEW_URI_SCHEME, DIFF_VIEW_LABEL_CHANGES } from 
 import * as vscode from "vscode"
 import * as path from "path"
 import delay from "delay"
+import { DEFAULT_WRITE_DELAY_MS } from "@siid-code/types"
 
 // Mock delay
 vi.mock("delay", () => ({
@@ -443,7 +444,8 @@ describe("DiffViewProvider", () => {
 		beforeEach(() => {
 			// Setup common mocks for saveChanges tests
 			;(diffViewProvider as any).relPath = "test.ts"
-			;(diffViewProvider as any).newContent = "new content"
+			// newContent is a read-only getter over _newContent.
+			;(diffViewProvider as any)._newContent = "new content"
 			;(diffViewProvider as any).activeDiffEditor = {
 				document: {
 					getText: vi.fn().mockReturnValue("new content"),
@@ -497,8 +499,8 @@ describe("DiffViewProvider", () => {
 
 			const result = await diffViewProvider.saveChanges()
 
-			// Verify default behavior (enabled=true, delay=2000ms)
-			expect(mockDelay).toHaveBeenCalledWith(1000)
+			// Verify default behavior (enabled=true, delay=DEFAULT_WRITE_DELAY_MS)
+			expect(mockDelay).toHaveBeenCalledWith(DEFAULT_WRITE_DELAY_MS)
 			expect(vscode.languages.getDiagnostics).toHaveBeenCalled()
 			expect(result.newProblemsMessage).toBe("")
 		})

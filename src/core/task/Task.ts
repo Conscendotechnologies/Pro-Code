@@ -400,6 +400,9 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 		if (startTask) {
 			// Ensure todo list is initialized and present before starting any task.
 			this.ensureTodoListInitialized()
+			// A constructor can't await, so these run detached. startTask() and
+			// resumeTaskFromHistory() swallow abort-triggered rejections internally;
+			// anything else would otherwise surface as an unhandled rejection here.
 			if (task || images) {
 				this.startTask(task, images)
 			} else if (historyItem) {
@@ -1348,6 +1351,21 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 	// Start / Abort / Resume
 
 	private async startTask(task?: string, images?: string[]): Promise<void> {
+		try {
+			await this.startTaskInner(task, images)
+		} catch (error) {
+			// Aborting while startup is still in flight is normal: abortTask() sets
+			// this.abort and returns without waiting, so the next say() in here
+			// throws. Callers that hold the promise (Task.create) already handle it,
+			// but the constructor path runs detached — rethrowing there would be an
+			// unhandled rejection. Only abort-triggered failures are swallowed.
+			if (!this.abort) {
+				throw error
+			}
+		}
+	}
+
+	private async startTaskInner(task?: string, images?: string[]): Promise<void> {
 		// `conversationHistory` (for API) and `clineMessages` (for webview)
 		// need to be in sync.
 		// If the extension process were killed, then on restart the
@@ -1532,6 +1550,17 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 	}
 
 	private async resumeTaskFromHistory() {
+		try {
+			await this.resumeTaskFromHistoryInner()
+		} catch (error) {
+			// Same abort race as startTask() — see the comment there.
+			if (!this.abort) {
+				throw error
+			}
+		}
+	}
+
+	private async resumeTaskFromHistoryInner() {
 		const modifiedClineMessages = await this.getSavedClineMessages()
 
 		// Remove any resume messages that may have been added before

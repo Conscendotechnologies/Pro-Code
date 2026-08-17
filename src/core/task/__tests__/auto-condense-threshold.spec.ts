@@ -333,7 +333,7 @@ describe("Auto-Condense Threshold Logic", () => {
 
 			// Profile C: 90% threshold -> should NOT condense (65% < 90%)
 			const thresholdC = getEffectiveThreshold(autoCondenseContextPercent, profileThresholds, "profile-c")
-			expect(thresholdC).toBe(90)
+			expect(thresholdC).toBe(MAX_CONDENSE_THRESHOLD) // 90 clamps to the 80% ceiling.
 			expect(percentage >= thresholdC).toBe(false)
 
 			// Profile D (not configured): uses global 80% -> should NOT condense (65% < 80%)
@@ -395,7 +395,7 @@ describe("Auto-Condense Threshold Logic", () => {
 			const currentProfileId = "default"
 
 			const threshold = getEffectiveThreshold(autoCondenseContextPercent, profileThresholds, currentProfileId)
-			expect(threshold).toBe(100)
+			expect(threshold).toBe(MAX_CONDENSE_THRESHOLD) // 100 clamps to the 80% ceiling.
 		})
 	})
 })
