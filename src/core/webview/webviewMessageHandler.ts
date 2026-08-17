@@ -1567,7 +1567,7 @@ export const webviewMessageHandler = async (
 		}
 
 		case "deleteMessageConfirm":
-			if (message.messageTs) {
+			if (typeof message.messageTs === "number") {
 				await handleDeleteMessageConfirm(message.messageTs)
 			}
 			break
