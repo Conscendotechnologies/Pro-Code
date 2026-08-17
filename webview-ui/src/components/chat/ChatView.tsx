@@ -49,6 +49,7 @@ import TaskHeader from "./TaskHeader"
 import AutoApproveMenu from "./AutoApproveMenu"
 import SystemPromptWarning from "./SystemPromptWarning"
 import { FileChanges, type FileChange } from "./FileChanges"
+import { useFileChangesBackend } from "./useFileChangesBackend"
 import ProfileViolationWarning from "./ProfileViolationWarning"
 import { CheckpointWarning } from "./CheckpointWarning"
 import QueuedMessages from "./QueuedMessages"
@@ -557,100 +558,6 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 			setSecondaryButtonText(undefined)
 		}
 	}, [messages.length])
-
-	// Also try to discover created file names from incoming cline messages
-	useEffect(() => {
-		// Look for Create/Edit style messages and optional +N / -M counts.
-		// Improved regex: require forward slash or backslash in path to avoid matching property names like "or.background"
-		const filenameRegex =
-			/(?:Create|Created|Edit|Edited|Modify|Modified):?\s*((?:[\w-]+[/\\])+[\w-]+\.[A-Za-z0-9_]+)/gi
-		const plusRegex = /\+(\d+)/g
-		const minusRegex = /-(\d+)/g
-		const discovered: { path: string; additions?: number; deletions?: number; status?: string }[] = []
-		try {
-			for (const msg of messages) {
-				const txt = (msg as any).text || ""
-				let m: RegExpExecArray | null
-				while ((m = filenameRegex.exec(txt)) !== null) {
-					const p = m[1]
-					if (!p) continue
-					// Find additions/deletions nearby in the same text
-					let add: number | undefined
-					let del: number | undefined
-					const plusMatch = txt.match(plusRegex)
-					if (plusMatch && plusMatch.length > 0) {
-						// take the first +N
-						const r = /\+(\d+)/.exec(plusMatch[0])
-						if (r) add = Number(r[1])
-					}
-					const minusMatch = txt.match(minusRegex)
-					if (minusMatch && minusMatch.length > 0) {
-						const r = /-(\d+)/.exec(minusMatch[0])
-						if (r) del = Number(r[1])
-					}
-					const status =
-						txt.toLowerCase().includes("create") || txt.toLowerCase().includes("created")
-							? "created"
-							: "modified"
-					if (!discovered.some((d) => d.path === p))
-						discovered.push({ path: p, additions: add, deletions: del, status })
-				}
-			}
-			if (discovered.length > 0) {
-				setFileChanges((prev) => {
-					const next = [...prev]
-					for (const d of discovered) {
-						if (!next.some((f) => f.path === d.path)) {
-							next.push({
-								path: d.path,
-								additions: d.additions,
-								deletions: d.deletions,
-								status: d.status as any,
-							})
-							// debug
-							console.debug(
-								"Discovered file change:",
-								d.path,
-								"+",
-								d.additions ?? 0,
-								"-",
-								d.deletions ?? 0,
-							)
-						}
-					}
-					return next
-				})
-			}
-		} catch (_e) {
-			// ignore
-		}
-
-		// Fallback: scan rendered DOM text for Create/Edit markers if none found in messages
-		try {
-			if (discovered.length === 0) {
-				const bodyText = typeof document !== "undefined" ? document.body.innerText || "" : ""
-				const domMatch = bodyText.match(
-					/(?:Create|Created|Edit|Edited):?\s*((?:[\w-]+[/\\])+[\w-]+\.[A-Za-z0-9_]+)(?:\s*[+](\d+))?(?:\s*-(\d+))?/i,
-				)
-				if (domMatch && domMatch[1]) {
-					const p = domMatch[1]
-					const add = domMatch[2] ? Number(domMatch[2]) : undefined
-					const del = domMatch[3] ? Number(domMatch[3]) : undefined
-					setFileChanges((prev) =>
-						prev.some((f) => f.path === p)
-							? prev
-							: [
-									...prev,
-									{ path: p, additions: add, deletions: del, status: add ? "created" : "modified" },
-								],
-					)
-					console.debug("Discovered file change from DOM:", p, "+", add ?? 0, "-", del ?? 0)
-				}
-			}
-		} catch (_e) {
-			// ignore
-		}
-	}, [messages])
 
 	useEffect(() => {
 		setExpandedRows({})
@@ -2092,13 +1999,10 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 		vscode.postMessage({ type: "condenseTaskContextRequest", text: taskId })
 	}
 
-	// Track if a file was created
-	const [__fileCreated, setFileCreated] = useState(false)
-	const [__deploying, setDeploying] = useState(false)
+	// Files changed during this task, derived from the task's shadow git repo.
+	// The extension pushes an update whenever a checkpoint is saved.
+	const { files: fileChanges } = useFileChangesBackend(currentTaskItem?.id)
 
-	// Keep track of files that were created/edited by the assistant. This will
-	// be displayed above the chat input box when populated.
-	const [fileChanges, setFileChanges] = useState<FileChange[]>([])
 	// Open diff in VS Code's native diff editor
 	const openVsCodeDiff = useCallback((file: FileChange) => {
 		vscode.postMessage({
@@ -2106,219 +2010,22 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 			text: file.path,
 			values: {
 				filePath: file.path,
-				diff: file.diff,
 				status: file.status,
 			},
 		})
 	}, [])
 
-	// Listen for file creation and task completion events (and a few common
-	// payload shapes that the extension might send describing files changed).
-	useEffect(() => {
-		function handleVSCodeMessage(event: MessageEvent) {
-			const payload = event.data || {}
-			const { type } = payload
-			// Helpful debug in devtools to inspect incoming messages
-			console.debug("ChatView incoming message:", payload)
+	// Discard a file's changes back to its content at task start. Destructive
+	// and not undoable from here, so confirm first.
+	const revertFile = useCallback((file: FileChange) => {
+		const verb = file.status === "created" ? "Delete" : "Revert"
 
-			// helper: normalize various file shapes into FileChange objects
-			const normalizeFile = (f: any): FileChange | null => {
-				if (!f) return null
-				// plain string
-				if (typeof f === "string") return { path: f, timestamp: Date.now(), deploymentStatus: "local" }
-
-				// common shapes - extract all relevant fields
-				const fileChange: FileChange = {
-					path: "",
-					additions: f.additions,
-					deletions: f.deletions,
-					status: f.status,
-					diff: f.diff,
-					deploymentStatus: f.deploymentStatus || "local",
-					timestamp: f.timestamp || Date.now(),
-					error: f.error,
-				}
-
-				// Find the path from various possible keys
-				if (typeof f.path === "string" && f.path) {
-					fileChange.path = f.path
-				} else if (typeof f.filePath === "string" && f.filePath) {
-					fileChange.path = f.filePath
-				} else if (typeof f.fileName === "string" && f.fileName) {
-					fileChange.path = f.fileName
-				} else if (typeof f.name === "string" && f.name) {
-					fileChange.path = f.name
-				} else if (typeof f.filename === "string" && f.filename) {
-					fileChange.path = f.filename
-				} else if (typeof f.file === "string" && f.file) {
-					fileChange.path = f.file
-				} else if (typeof f.displayName === "string" && f.displayName) {
-					fileChange.path = f.displayName
-				} else if (f.file && typeof f.file === "object") {
-					// nested shapes: { file: { path: '...' } }
-					if (typeof f.file.path === "string") {
-						fileChange.path = f.file.path
-					} else if (typeof f.file.fileName === "string") {
-						fileChange.path = f.file.fileName
-					}
-				}
-
-				return fileChange.path ? fileChange : null
-			}
-
-			const mergeFilesArray = (filesArr: any[]) => {
-				const normalized = filesArr.map(normalizeFile).filter((x): x is FileChange => x !== null)
-				console.debug("ChatView normalized files:", normalized)
-				const missing = filesArr.length - normalized.length
-				if (missing > 0) console.warn(`ChatView: ${missing} file entries could not be normalized`, filesArr)
-				if (normalized.length === 0) return
-				setFileChanges((prev) => {
-					const next = [...prev]
-					for (const nf of normalized) {
-						if (!nf.path) {
-							console.warn("ChatView: skipping file with undefined path", nf)
-							continue
-						}
-						if (!next.some((p) => p.path === nf.path)) next.push(nf)
-					}
-					return next
-				})
-			}
-
-			// If extension supplied explicit files payload, merge it.
-			if (Array.isArray(payload.files) && payload.files.length > 0) {
-				console.debug("ChatView files payload (merged):", payload.files)
-				mergeFilesArray(payload.files)
-			}
-
-			// Handle common event types that may include single or multiple files
-			if (type === "newFileCreated" || type === "taskCompleted") {
-				setFileCreated(true)
-				setDeploying(false)
-
-				// If payload.files present it was already merged above; otherwise check other fields
-				if (Array.isArray(payload.files) && payload.files.length > 0) return
-
-				// filePath/fileName might be an array or string
-				if (Array.isArray(payload.filePath) && payload.filePath.length) {
-					mergeFilesArray(payload.filePath)
-					return
-				}
-				if (Array.isArray(payload.fileName) && payload.fileName.length) {
-					mergeFilesArray(payload.fileName)
-					return
-				}
-
-				const candidatePath = payload.path || payload.filePath || payload.fileName
-				if (typeof candidatePath === "string") {
-					setFileChanges((prev) =>
-						prev.some((f) => f.path === candidatePath)
-							? prev
-							: [...prev, { path: candidatePath, status: "created" }],
-					)
-					return
-				}
-
-				// Try to extract any filenames from payload.text (could contain multiple lines)
-				if (typeof payload.text === "string") {
-					// allow multi-dot filenames like Foo.cls-meta.xml, require path separator
-					const regex =
-						/(?:Create|Created|Edit|Edited|Modify|Modified):?\s*((?:[\w-]+[/\\])+[\w-]+(?:\.[A-Za-z0-9_./-]+)+)/gi
-					let m: RegExpExecArray | null
-					const found: string[] = []
-					while ((m = regex.exec(payload.text)) !== null) {
-						if (m[1]) found.push(m[1])
-					}
-					if (found.length > 0) {
-						mergeFilesArray(found)
-						return
-					}
-				}
-			}
-
-			if (type === "deployResult") {
-				setDeploying(false)
-			}
-
-			// Single file created message containing files array, path, or array of paths
-			if (type === "fileCreated") {
-				setFileCreated(true)
-
-				// payload.files is already merged above by the generic check, so just return
-				if (Array.isArray(payload.files) && payload.files.length > 0) {
-					return
-				}
-
-				if (Array.isArray(payload.path) && payload.path.length) {
-					mergeFilesArray(payload.path)
-					return
-				}
-				const p = payload.path || payload.filePath || payload.fileName
-				if (typeof p === "string") {
-					setFileChanges((prev) =>
-						prev.some((f) => f.path === p) ? prev : [...prev, { path: p, status: "created" }],
-					)
-					return
-				}
-			}
-
-			// Generic fallback: if payload.text contains human readable markers, extract all matches
-			if (typeof payload.text === "string") {
-				const regexAll =
-					/(?:Create|Created|Edit|Edited|Modify|Modified):?\s*((?:[\w-]+[/\\])+[\w-]+(?:\.[A-Za-z0-9_./-]+)+)/gi
-				let mm: RegExpExecArray | null
-				const discovered: string[] = []
-				while ((mm = regexAll.exec(payload.text)) !== null) {
-					if (mm[1]) discovered.push(mm[1])
-				}
-				if (discovered.length > 0) mergeFilesArray(discovered)
-			}
-
-			// DOM fallback: scan rendered text and merge any Create/Edit file tokens we find.
-			try {
-				const bodyText = typeof document !== "undefined" ? document.body.innerText || "" : ""
-				if (bodyText && bodyText.length > 0) {
-					const domRegex =
-						/(?:Create|Created|Edit|Edited|Modify|Modified):?\s*((?:[\w-]+[/\\])+[\w-]+(?:\.[A-Za-z0-9_./-]+)+)/gi
-					let d: RegExpExecArray | null
-					const domFound: string[] = []
-					while ((d = domRegex.exec(bodyText)) !== null) {
-						if (d[1]) domFound.push(d[1])
-					}
-					if (domFound.length > 0) mergeFilesArray(domFound)
-				}
-			} catch (_e) {
-				// ignore DOM access errors
-			}
+		if (!window.confirm(`${verb} ${file.path}? This discards all changes made to it during this task.`)) {
+			return
 		}
 
-		window.addEventListener("message", handleVSCodeMessage)
-		return () => window.removeEventListener("message", handleVSCodeMessage)
+		vscode.postMessage({ type: "revertFileChange", text: file.path })
 	}, [])
-
-	// Reset file changes when switching to a different task/chat, and load from localStorage
-	useEffect(() => {
-		// task?.ts changes when switching chats/tasks
-		if (task?.ts) {
-			// Try to load saved file changes from localStorage for this task
-			const storageKey = `fileChanges_${task.ts}`
-			try {
-				const saved = localStorage.getItem(storageKey)
-				if (saved) {
-					const savedFiles = JSON.parse(saved) as FileChange[]
-					if (Array.isArray(savedFiles) && savedFiles.length > 0) {
-						console.debug("Loaded file changes from localStorage:", savedFiles)
-						setFileChanges(savedFiles)
-						return
-					}
-				}
-			} catch (error) {
-				console.error("Failed to load file changes from localStorage:", error)
-			}
-		}
-		// If no saved data or error, clear for new chat
-		setFileChanges([])
-	}, [task?.ts])
 
 	const areButtonsVisible = showScrollToBottom || primaryButtonText || secondaryButtonText || isStreaming
 
@@ -2524,17 +2231,14 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 				}}
 			/>
 			{fileChanges.length > 0 && (
-				<>
-					{/* List variant - collapsible summary */}
-					<FileChanges
-						files={fileChanges}
-						variant="list"
-						defaultCollapsed={fileListCollapsed}
-						onViewDiff={openVsCodeDiff}
-						className="px-3.5 mb-2"
-						taskId={task?.ts ? String(task.ts) : undefined}
-					/>
-				</>
+				<FileChanges
+					files={fileChanges}
+					variant="list"
+					defaultCollapsed={fileListCollapsed}
+					onViewDiff={openVsCodeDiff}
+					onRevert={revertFile}
+					className="px-3.5 mb-2"
+				/>
 			)}
 			<div style={{ position: "relative" }}>
 				<ActiveFileIndicator messages={messages} isStreaming={isStreaming} />

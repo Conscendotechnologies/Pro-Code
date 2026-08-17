@@ -1,3 +1,5 @@
+import * as diff from "diff"
+
 /**
  * Calculate the number of lines added and removed in a diff
  * @param diff - The diff content (unified diff format)
@@ -22,6 +24,28 @@ export function calculateDiffStats(diff: string | undefined): { linesAdded: numb
 		// Lines starting with '-' (but not '---') are deletions
 		else if (line.startsWith("-") && !line.startsWith("---")) {
 			linesRemoved++
+		}
+	}
+
+	return { linesAdded, linesRemoved }
+}
+
+/**
+ * Count added/removed lines between two versions of a file.
+ *
+ * Use this when you have the before/after content rather than a unified diff.
+ * calculateDiffStats can't be used on a SEARCH/REPLACE block - those have no
+ * +/- prefixes, so every count comes back zero.
+ */
+export function countContentChanges(before: string, after: string): { linesAdded: number; linesRemoved: number } {
+	let linesAdded = 0
+	let linesRemoved = 0
+
+	for (const part of diff.diffLines(before, after)) {
+		if (part.added) {
+			linesAdded += part.count || 0
+		} else if (part.removed) {
+			linesRemoved += part.count || 0
 		}
 	}
 

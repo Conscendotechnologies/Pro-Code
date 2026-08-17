@@ -108,6 +108,8 @@ import {
 	checkpointSave,
 	checkpointRestore,
 	checkpointDiff,
+	getTaskFileChanges,
+	postFileChanges,
 } from "../checkpoints"
 import { processUserContentMentions } from "../mentions/processUserContentMentions"
 import { ApiMessage } from "../task-persistence/apiMessages"
@@ -2062,6 +2064,7 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 			experiments: state?.experiments,
 			taskId: this.taskId,
 			planningFilePath: this.planningFilePath,
+			fileChanges: await this.getFileChanges(),
 		})
 
 		// Add pre-task details FIRST for higher priority, then parsed content, then environment details
@@ -2979,6 +2982,14 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 
 	public async checkpointDiff(options: CheckpointDiffOptions) {
 		return checkpointDiff(this, options)
+	}
+
+	public async postFileChanges() {
+		return postFileChanges(this)
+	}
+
+	public async getFileChanges() {
+		return getTaskFileChanges(this)
 	}
 
 	// Metrics
