@@ -1559,6 +1559,7 @@ export const webviewMessageHandler = async (
 			}
 			break
 		}
+
 		case "submitEditedMessage": {
 			if (
 				provider.getCurrentCline() &&
