@@ -10,7 +10,7 @@ import pWaitFor from "p-wait-for"
 import { fileExistsAtPath } from "../../utils/fs"
 import { executeRipgrep } from "../../services/search/file-search"
 
-import { CheckpointDiff, CheckpointResult, CheckpointEventMap } from "./types"
+import { CheckpointDiff, CheckpointResult, CheckpointEventMap, FileChangeSummary } from "./types"
 import { getExcludePatterns } from "./excludes"
 
 export abstract class ShadowCheckpointService extends EventEmitter {
@@ -96,6 +96,8 @@ export abstract class ShadowCheckpointService extends EventEmitter {
 			}
 
 			await this.writeExcludeFile()
+			// Patterns may have grown since this repo was created.
+			await this.untrackExcluded(git)
 			this.baseHash = await git.revparse(["HEAD"])
 		} else {
 			this.log(`[${this.constructor.name}#initShadowGit] creating shadow git repo at ${this.checkpointsDir}`)
@@ -141,6 +143,34 @@ export abstract class ShadowCheckpointService extends EventEmitter {
 		await fs.mkdir(path.join(this.dotGitDir, "info"), { recursive: true })
 		const patterns = await getExcludePatterns(this.workspaceDir)
 		await fs.writeFile(path.join(this.dotGitDir, "info", "exclude"), patterns.join("\n"))
+	}
+
+	/**
+	 * Drop already-tracked files that the current excludes cover.
+	 *
+	 * info/exclude only applies to *untracked* paths, so a repo created before
+	 * a pattern was added keeps reporting those files forever. Untracking is
+	 * index-only (`--cached`) - nothing is removed from the workspace.
+	 */
+	private async untrackExcluded(git: SimpleGit) {
+		try {
+			const ignored = await git.raw(["ls-files", "--cached", "--ignored", "--exclude-standard"])
+			const paths = ignored.split("\n").filter((line) => line.trim())
+
+			if (paths.length === 0) {
+				return
+			}
+
+			await git.raw(["rm", "--cached", "-r", "--quiet", "--", ...paths])
+			this.log(`[${this.constructor.name}#untrackExcluded] untracked ${paths.length} newly-excluded file(s)`)
+		} catch (error) {
+			// Non-critical: the panel shows extra rows, nothing breaks.
+			this.log(
+				`[${this.constructor.name}#untrackExcluded] failed: ${
+					error instanceof Error ? error.message : String(error)
+				}`,
+			)
+		}
 	}
 
 	private async stageAll(git: SimpleGit) {
@@ -271,29 +301,52 @@ export abstract class ShadowCheckpointService extends EventEmitter {
 		}
 	}
 
+	/**
+	 * The shadow repo's root commit - the workspace as it was when the task
+	 * started.
+	 *
+	 * Note this is NOT `baseHash`: on a repo that already exists, `baseHash` is
+	 * set to whatever HEAD happened to be when the service was constructed, so
+	 * after the first checkpoint it points at that checkpoint rather than at
+	 * the task's starting state.
+	 */
+	public async getTaskStartHash(): Promise<string | undefined> {
+		if (!this.git) {
+			return undefined
+		}
+
+		try {
+			return (await this.git.raw(["rev-list", "--max-parents=0", "HEAD"])).trim() || undefined
+		} catch {
+			return undefined
+		}
+	}
+
 	public async getDiff({ from, to }: { from?: string; to?: string }): Promise<CheckpointDiff[]> {
 		if (!this.git) {
 			throw new Error("Shadow git repo not initialized")
 		}
 
-		const result = []
+		const result: CheckpointDiff[] = []
 
-		if (!from) {
-			from = (await this.git.raw(["rev-list", "--max-parents=0", "HEAD"])).trim()
+		const base = from ?? (await this.getTaskStartHash())
+
+		if (!base) {
+			return result
 		}
 
 		// Stage all changes so that untracked files appear in diff summary.
 		await this.stageAll(this.git)
 
-		this.log(`[${this.constructor.name}#getDiff] diffing ${to ? `${from}..${to}` : `${from}..HEAD`}`)
-		const { files } = to ? await this.git.diffSummary([`${from}..${to}`]) : await this.git.diffSummary([from])
+		this.log(`[${this.constructor.name}#getDiff] diffing ${to ? `${base}..${to}` : `${base}..HEAD`}`)
+		const { files } = to ? await this.git.diffSummary([`${base}..${to}`]) : await this.git.diffSummary([base])
 
 		const cwdPath = (await this.getShadowGitConfigWorktree(this.git)) || this.workspaceDir || ""
 
 		for (const file of files) {
 			const relPath = file.file
 			const absPath = path.join(cwdPath, relPath)
-			const before = await this.git.show([`${from}:${relPath}`]).catch(() => "")
+			const before = await this.git.show([`${base}:${relPath}`]).catch(() => "")
 
 			const after = to
 				? await this.git.show([`${to}:${relPath}`]).catch(() => "")
@@ -303,6 +356,111 @@ export abstract class ShadowCheckpointService extends EventEmitter {
 		}
 
 		return result
+	}
+
+	/**
+	 * Per-file additions/deletions for everything that changed since `from`
+	 * (defaults to the task's base commit) up to the current working tree.
+	 *
+	 * Cumulative by construction: a file edited several times reports its total
+	 * change, not just the most recent edit. Note this reflects the workspace,
+	 * so changes made outside the agent (manual edits, build output) are
+	 * included - git cannot attribute a change to its author.
+	 */
+	public async getFileChangeSummary(from?: string): Promise<FileChangeSummary[]> {
+		if (!this.git) {
+			throw new Error("Shadow git repo not initialized")
+		}
+
+		const base = from ?? (await this.getTaskStartHash())
+
+		if (!base) {
+			return []
+		}
+
+		// Stage all changes so that untracked files appear in the diff.
+		await this.stageAll(this.git)
+
+		const { files } = await this.git.diffSummary([base])
+
+		if (files.length === 0) {
+			return []
+		}
+
+		// diffSummary doesn't report create/delete/rename, so pair it with a
+		// name-status pass keyed by path.
+		const statusByPath = new Map<string, FileChangeSummary["status"]>()
+
+		try {
+			const raw = await this.git.raw(["diff", "--name-status", "-M", base])
+
+			for (const line of raw.split("\n")) {
+				if (!line.trim()) {
+					continue
+				}
+
+				// "A\tpath", "M\tpath", "D\tpath", "R100\told\tnew"
+				const parts = line.split("\t")
+				const code = parts[0]?.[0]
+				// For renames git lists old path then new; the new path is what we show.
+				const filePath = parts[parts.length - 1]
+
+				if (!code || !filePath) {
+					continue
+				}
+
+				const status =
+					code === "A" ? "created" : code === "D" ? "deleted" : code === "R" ? "renamed" : "modified"
+
+				statusByPath.set(filePath, status)
+			}
+		} catch (error) {
+			this.log(
+				`[${this.constructor.name}#getFileChangeSummary] failed to read name-status: ${
+					error instanceof Error ? error.message : String(error)
+				}`,
+			)
+		}
+
+		return files.map((file) => {
+			// Binary files report no insertions/deletions.
+			const { insertions, deletions } = file as { insertions?: number; deletions?: number }
+
+			return {
+				path: file.file,
+				additions: insertions ?? 0,
+				deletions: deletions ?? 0,
+				status: statusByPath.get(file.file) ?? "modified",
+			}
+		})
+	}
+
+	/**
+	 * Restore a single file to its content at `commitHash`, leaving the rest of
+	 * the workspace untouched.
+	 *
+	 * A file that didn't exist at that commit is deleted rather than restored -
+	 * `git checkout` errors on an unknown path, so handle that case directly.
+	 */
+	public async revertFile(commitHash: string, relPath: string): Promise<void> {
+		if (!this.git) {
+			throw new Error("Shadow git repo not initialized")
+		}
+
+		const existedAtBase = await this.git
+			.raw(["cat-file", "-e", `${commitHash}:${relPath}`])
+			.then(() => true)
+			.catch(() => false)
+
+		if (existedAtBase) {
+			await this.git.raw(["checkout", commitHash, "--", relPath])
+		} else {
+			// Created during the task - reverting means removing it.
+			const absPath = path.join(this.workspaceDir, relPath)
+			await fs.rm(absPath, { force: true })
+		}
+
+		this.log(`[${this.constructor.name}#revertFile] reverted ${relPath} to ${commitHash}`)
 	}
 
 	/**

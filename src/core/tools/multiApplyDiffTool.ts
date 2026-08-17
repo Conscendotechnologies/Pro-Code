@@ -16,7 +16,6 @@ import { unescapeHtmlEntities } from "../../utils/text-normalization"
 import { parseXml } from "../../utils/xml"
 import { EXPERIMENT_IDS, experiments } from "../../shared/experiments"
 import { applyDiffToolLegacy } from "./applyDiffTool"
-import { trackFileChange } from "../../services/file-changes/trackFileChange"
 
 interface DiffOperation {
 	path: string
@@ -649,15 +648,6 @@ ${errorDetails ? `\nTechnical details:\n${errorDetails}\n` : ""}
 
 				// Get the formatted response message
 				const message = await cline.diffViewProvider.pushToolWriteResult(cline, cline.cwd, !fileExists)
-
-				// Track file change in database with diff calculation
-				await trackFileChange({
-					taskId: cline.taskId,
-					filePath: relPath,
-					status: fileExists ? "modified" : "created",
-					oldContent: originalContent ?? "",
-					newContent: cline.diffViewProvider.newContent ?? "",
-				})
 
 				if (partFailHint) {
 					results.push(partFailHint + "\n" + message)

@@ -43,11 +43,9 @@ export interface WebviewMessage {
 		| "alwaysAllowWriteOutsideWorkspace"
 		| "alwaysAllowWriteProtected"
 		| "alwaysAllowExecute"
-		
 		| "alwaysAllowDeploySfMetadata"
 		| "alwaysAllowRetrieveSfMetadata"
 		| "useFreeModels"
-		
 		| "webviewDidLaunch"
 		| "debugStopTimer"
 		| "newTask"
@@ -87,7 +85,6 @@ export interface WebviewMessage {
 		| "allowedMaxRequests"
 		| "allowedMaxCost"
 		| "alwaysAllowSubtasks"
-	
 		| "alwaysAllowDeploySfMetadata"
 		| "alwaysAllowRetrieveSfMetadata"
 		| "autoCondenseContext"
@@ -227,6 +224,7 @@ export interface WebviewMessage {
 		| "firebaseSignInWithApiKey"
 		| "developerMode"
 		| "openDiff"
+		| "revertFileChange"
 		| "getFileChanges"
 		| "updateFileDeploymentStatus"
 		| "clearFileChanges"

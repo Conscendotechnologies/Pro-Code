@@ -49,7 +49,6 @@ import {
 	CodeActionProvider,
 } from "./activate"
 import { initializeI18n } from "./i18n"
-import { FileChangesService } from "./services/file-changes"
 import { json } from "stream/consumers"
 import { getHackDate, isLoginAllowed } from "./utils/hackDateStorage"
 
@@ -130,18 +129,6 @@ export async function activate(context: vscode.ExtensionContext) {
 
 	// Initialize terminal shell execution handlers.
 	TerminalRegistry.initialize()
-
-	// Initialize FileChangesService for SQLite-based file change tracking
-	const fileChangesStart = Date.now()
-	try {
-		const fileChangesService = FileChangesService.getInstance()
-		await fileChangesService.initialize(context.globalStoragePath)
-		outputChannel.appendLine(`⏱️ FileChangesService initialized in ${Date.now() - fileChangesStart}ms`)
-	} catch (error) {
-		outputChannel.appendLine(
-			`[FileChangesService] Failed to initialize: ${error instanceof Error ? error.message : String(error)}`,
-		)
-	}
 
 	// Get default commands from configuration.
 	const defaultCommands = vscode.workspace.getConfiguration(Package.name).get<string[]>("allowedCommands") || []

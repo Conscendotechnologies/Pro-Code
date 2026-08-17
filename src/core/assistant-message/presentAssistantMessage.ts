@@ -34,6 +34,9 @@ import { updateTodoListTool } from "../tools/updateTodoListTool"
 import { formatResponse } from "../prompts/responses"
 import { validateToolUse } from "../tools/validateToolUse"
 import { Task } from "../task/Task"
+
+/** Tools that write to disk, and so change the task's file-change list. */
+const FILE_WRITING_TOOLS = new Set<ToolName>(["write_to_file", "apply_diff", "insert_content", "search_and_replace"])
 import { codebaseSearchTool } from "../tools/codebaseSearchTool"
 import { experiments, EXPERIMENT_IDS } from "../../shared/experiments"
 import { applyDiffToolLegacy } from "../tools/applyDiffTool"
@@ -582,6 +585,16 @@ export async function presentAssistantMessage(cline: Task) {
 				case "sf_deploy_metadata":
 					await deploySfMetadataTool(cline, block, askApproval, handleError, pushToolResult, removeClosingTag)
 					break
+			}
+
+			// Checkpoints are saved *before* a tool runs and only once per
+			// streaming turn, so the checkpoint event can't refresh the file
+			// list after an edit lands. Push here instead, once the write is on
+			// disk.
+			if (!block.partial && FILE_WRITING_TOOLS.has(block.name)) {
+				cline.postFileChanges().catch(() => {
+					// Non-critical
+				})
 			}
 
 			break

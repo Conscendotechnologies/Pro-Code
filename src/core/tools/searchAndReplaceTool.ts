@@ -14,7 +14,6 @@ import { fileExistsAtPath } from "../../utils/fs"
 import { RecordSource } from "../context-tracking/FileContextTrackerTypes"
 import { DEFAULT_WRITE_DELAY_MS } from "@siid-code/types"
 import { EXPERIMENT_IDS, experiments } from "../../shared/experiments"
-import { trackFileChange } from "../../services/file-changes/trackFileChange"
 
 /**
  * Tool for performing search and replace operations on files
@@ -266,13 +265,6 @@ export async function searchAndReplaceTool(
 
 		// Track file change in database with diff calculation
 		if (relPath) {
-			await trackFileChange({
-				taskId: cline.taskId,
-				filePath: relPath,
-				status: "modified",
-				oldContent: cline.diffViewProvider.originalContent ?? "",
-				newContent: cline.diffViewProvider.newContent ?? "",
-			})
 		}
 
 		pushToolResult(message)

@@ -3,7 +3,6 @@ import * as fs from "fs/promises"
 import * as path from "path"
 import { TaskTypeMapping } from "../../shared/globalFileNames"
 import type { Experiments } from "@siid-code/types"
-import { FileChangesService } from "../../services/file-changes"
 
 export interface PreTaskOptions {
 	globalStorageUri: vscode.Uri | undefined
@@ -13,6 +12,7 @@ export interface PreTaskOptions {
 	experiments?: Experiments
 	taskId?: string
 	planningFilePath?: string
+	fileChanges?: Array<{ path: string; status: string; deploymentStatus?: string }>
 }
 
 /**
@@ -27,6 +27,7 @@ export async function getPreTaskDetails(globalStorageUri: vscode.Uri | undefined
 		experiments: exps,
 		taskId,
 		planningFilePath,
+		fileChanges,
 	} = options || {}
 
 	let preTask = "<pre-task>\n\n"
@@ -53,23 +54,15 @@ export async function getPreTaskDetails(globalStorageUri: vscode.Uri | undefined
 		}
 
 		// Include modified files list so AI knows what has changed and deploys only those files
-		if (taskId) {
-			try {
-				const service = FileChangesService.getInstance()
-				const fileChanges = await service.getTaskFileChanges(taskId)
-				if (fileChanges.length > 0) {
-					preTask += `### Modified Files in This Task\n`
-					preTask += `**IMPORTANT:** Keep track of these files. During deployment, deploy ONLY these specific files — NEVER deploy entire folders (e.g., \`default/\`, \`classes/\`, \`lwc/\`, \`triggers/\`).\n\n`
-					preTask += `| File | Status | Deployment |\n`
-					preTask += `|------|--------|------------|\n`
-					for (const fc of fileChanges) {
-						preTask += `| \`${fc.filePath}\` | ${fc.status} | ${fc.deploymentStatus} |\n`
-					}
-					preTask += `\n`
-				}
-			} catch {
-				// Ignore errors — file changes service may not be initialized
+		if (fileChanges && fileChanges.length > 0) {
+			preTask += `### Modified Files in This Task\n`
+			preTask += `**IMPORTANT:** Keep track of these files. During deployment, deploy ONLY these specific files — NEVER deploy entire folders (e.g., \`default/\`, \`classes/\`, \`lwc/\`, \`triggers/\`).\n\n`
+			preTask += `| File | Status | Deployment |\n`
+			preTask += `|------|--------|------------|\n`
+			for (const fc of fileChanges) {
+				preTask += `| \`${fc.path}\` | ${fc.status} | ${fc.deploymentStatus ?? "local"} |\n`
 			}
+			preTask += `\n`
 		}
 
 		preTask += `---\n\n`
