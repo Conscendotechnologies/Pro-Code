@@ -147,6 +147,12 @@ jobs:
         runs-on: ubuntu-latest
         if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/main-stable-agent')
 
+        # Serialize releases per branch: a second push waits instead of racing
+        # the first for the same version number.
+        concurrency:
+            group: release-${{ github.ref }}
+            cancel-in-progress: false
+
         steps:
             - name: Checkout repository
               uses: actions/checkout@v4
@@ -170,8 +176,16 @@ jobs:
               run: |
                   echo "🔍 Searching for latest CalVer tag (YEAR.MAJOR.MINOR format)..."
 
-                  # Get all v*.*.* tags
-                  ALL_TAGS=$(git tag -l "v*.*.*")
+                  # Refetch tags: another run may have released while this one queued.
+                  git fetch --tags --force origin
+
+                  BRANCH_NAME="${GITHUB_REF#refs/heads/}"
+                  if [ "$BRANCH_NAME" = "main-stable-agent" ]; then
+                    # main-stable-agent owns the -agent suffix; main owns bare tags.
+                    ALL_TAGS=$(git tag -l "v*.*.*-agent")
+                  else
+                    ALL_TAGS=$(git tag -l "v*.*.*" | grep -v -- '-agent$')
+                  fi
 
                   # Filter to ONLY CalVer versions (YEAR >= 2000)
                   LATEST_TAG=$(echo "$ALL_TAGS" | while read tag; do
@@ -332,23 +346,63 @@ jobs:
                   echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
                   echo "new_tag=$NEW_TAG" >> $GITHUB_OUTPUT
 
-            - name: Check if version already exists
+            - name: Reserve version tag
               id: check_version
               run: |
+                  # Claim the version NOW, before the long build, by pushing the tag.
+                  # `git push` of a new ref is atomic: if a concurrent run already
+                  # took this number the push is rejected and we try the next one.
+                  # This is what makes two overlapping runs land on different
+                  # versions even if the concurrency queue is bypassed.
+                  NEW_VERSION="${{ steps.calc_version.outputs.new_version }}"
                   NEW_TAG="${{ steps.calc_version.outputs.new_tag }}"
 
-                  if git rev-parse "$NEW_TAG" >/dev/null 2>&1; then
-                    echo "⚠️  Tag $NEW_TAG already exists!"
-                    echo "version_exists=true" >> $GITHUB_OUTPUT
-                  else
-                    echo "✅ Tag $NEW_TAG is available"
-                    echo "version_exists=false" >> $GITHUB_OUTPUT
+                  BRANCH_NAME="${GITHUB_REF#refs/heads/}"
+                  TAG_SUFFIX=""
+                  if [ "$BRANCH_NAME" = "main-stable-agent" ]; then
+                    TAG_SUFFIX="-agent"
                   fi
+
+                  IFS='.' read -r YEAR MAJOR MINOR <<< "${NEW_VERSION%%-*}"
+
+                  git config user.name "github-actions[bot]"
+                  git config user.email "github-actions[bot]@users.noreply.github.com"
+
+                  for attempt in $(seq 1 20); do
+                    # Push an ANNOTATED tag: it carries a unique object, so if the
+                    # tag name is taken the push is rejected even when the other
+                    # run tagged this same commit (a lightweight tag would be
+                    # silently accepted as "Everything up-to-date").
+                    git tag -f -a "$NEW_TAG-local" -m "Release $NEW_TAG" HEAD
+                    PUSH_ERR=$(git push origin "$NEW_TAG-local:refs/tags/$NEW_TAG" 2>&1) && {
+                      echo "✅ Reserved $NEW_TAG"
+                      echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+                      echo "new_tag=$NEW_TAG" >> $GITHUB_OUTPUT
+                      echo "version_exists=false" >> $GITHUB_OUTPUT
+                      exit 0
+                    }
+
+                    # Only a stale-info/rejection means "taken"; anything else
+                    # (auth, network) is a real error worth failing on.
+                    if ! echo "$PUSH_ERR" | grep -qE 'stale info|already exists|\[rejected\]'; then
+                      echo "❌ Tag push failed for a non-collision reason:"
+                      echo "$PUSH_ERR"
+                      exit 1
+                    fi
+
+                    MINOR=$((MINOR + 1))
+                    NEW_VERSION="$YEAR.$MAJOR.$MINOR"
+                    NEW_TAG="v$NEW_VERSION$TAG_SUFFIX"
+                    echo "↻ Taken, retrying with $NEW_TAG"
+                  done
+
+                  echo "❌ Could not reserve a version after 20 attempts"
+                  exit 1
 
             - name: Update package.json version
               if: steps.check_version.outputs.version_exists == 'false'
               run: |
-                  NEW_VERSION="${{ steps.calc_version.outputs.new_version }}"
+                  NEW_VERSION="${{ steps.check_version.outputs.new_version }}"
                   echo "📝 Updating package.json to version $NEW_VERSION"
 
                   # Get current package.json version
@@ -375,7 +429,7 @@ jobs:
             - name: Commit version bump
               if: steps.check_version.outputs.version_exists == 'false'
               run: |
-                  NEW_VERSION="${{ steps.calc_version.outputs.new_version }}"
+                  NEW_VERSION="${{ steps.check_version.outputs.new_version }}"
 
                   # Check if there are any changes to commit
                   if git diff --quiet src/package.json; then
@@ -388,8 +442,9 @@ jobs:
                     # Commit and push
                     git add src/package.json
                     git commit -m "chore: bump version to $NEW_VERSION [skip ci]"
+                    git pull --rebase origin "${GITHUB_REF#refs/heads/}"
                     git push
-                    
+
                     echo "✅ Version changes committed and pushed to main branch"
                   fi
 
@@ -533,8 +588,8 @@ jobs:
               if: steps.check_version.outputs.version_exists == 'false'
               uses: softprops/action-gh-release@v1
               with:
-                  name: "SIID Code Extension v${{ steps.calc_version.outputs.new_version }} (${{ steps.release_quality.outputs.quality }})"
-                  tag_name: ${{ steps.calc_version.outputs.new_tag }}
+                  name: "SIID Code Extension v${{ steps.check_version.outputs.new_version }} (${{ steps.release_quality.outputs.quality }})"
+                  tag_name: ${{ steps.check_version.outputs.new_tag }}
                   draft: false
                   prerelease: ${{ github.event.inputs.prerelease || 'false' }}
                   generate_release_notes: false
@@ -542,7 +597,7 @@ jobs:
                       ## SIID Code Extension Package
 
                       **Build Date:** ${{ steps.timestamp.outputs.build_date }}
-                      **Version:** v${{ steps.calc_version.outputs.new_version }}
+                      **Version:** v${{ steps.check_version.outputs.new_version }}
                       **Version Bump:** ${{ steps.analyze_commits.outputs.bump_type }}
                       **Release Quality:** ${{ steps.release_quality.outputs.quality }}
 
@@ -563,7 +618,7 @@ jobs:
 
                       ${{ steps.changelog.outputs.changelog }}
 
-                      **Full Changelog:** ${{ github.server_url }}/${{ github.repository }}/compare/${{ steps.get_latest_tag.outputs.latest_tag }}...${{ steps.calc_version.outputs.new_tag }}
+                      **Full Changelog:** ${{ github.server_url }}/${{ github.repository }}/compare/${{ steps.get_latest_tag.outputs.latest_tag }}...${{ steps.check_version.outputs.new_tag }}
 
                       ---
 
@@ -590,11 +645,34 @@ jobs:
               if: steps.check_version.outputs.version_exists == 'false'
               uses: actions/upload-artifact@v4
               with:
-                  name: siid-code-extension-v${{ steps.calc_version.outputs.new_version }}-${{ steps.release_quality.outputs.quality }}
+                  name: siid-code-extension-v${{ steps.check_version.outputs.new_version }}-${{ steps.release_quality.outputs.quality }}
                   path: |
                       ${{ steps.find_vsix.outputs.vsix_path }}
                       ${{ steps.find_vsix.outputs.vsix_path }}.sha256
                   retention-days: 90
+
+            - name: Release reserved tag on failure
+              # The tag is pushed early to claim the version, so a failed build
+              # would otherwise leave an orphan tag and burn that number forever.
+              # Delete it on failure/cancellation so the version is reusable.
+              if: failure() || cancelled()
+              run: |
+                  NEW_TAG="${{ steps.check_version.outputs.new_tag }}"
+                  if [ -z "$NEW_TAG" ]; then
+                    echo "No tag was reserved; nothing to clean up."
+                    exit 0
+                  fi
+
+                  # Only remove it if no release was published against it.
+                  if gh release view "$NEW_TAG" >/dev/null 2>&1; then
+                    echo "⚠️  Release exists for $NEW_TAG — keeping the tag."
+                    exit 0
+                  fi
+
+                  echo "🧹 Build failed — releasing reserved version $NEW_TAG"
+                  git push origin ":refs/tags/$NEW_TAG" || echo "Tag already gone."
+              env:
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
             - name: Summary
               if: always()
@@ -604,7 +682,7 @@ jobs:
                   echo "| Property | Value |" >> $GITHUB_STEP_SUMMARY
                   echo "|----------|-------|" >> $GITHUB_STEP_SUMMARY
                   echo "| Previous Version | \`${{ steps.get_latest_tag.outputs.latest_tag }}\` |" >> $GITHUB_STEP_SUMMARY
-                  echo "| New Version | \`${{ steps.calc_version.outputs.new_tag }}\` |" >> $GITHUB_STEP_SUMMARY
+                  echo "| New Version | \`${{ steps.check_version.outputs.new_tag }}\` |" >> $GITHUB_STEP_SUMMARY
                   echo "| Bump Type | **${{ steps.analyze_commits.outputs.bump_type }}** |" >> $GITHUB_STEP_SUMMARY
                   echo "| Build Date | ${{ steps.timestamp.outputs.build_date }} |" >> $GITHUB_STEP_SUMMARY
                   echo "| Version Exists | ${{ steps.check_version.outputs.version_exists }} |" >> $GITHUB_STEP_SUMMARY
@@ -613,8 +691,8 @@ jobs:
 
                   if [ "${{ steps.check_version.outputs.version_exists }}" == "true" ]; then
                     echo "### ⚠️ Warning" >> $GITHUB_STEP_SUMMARY
-                    echo "Version ${{ steps.calc_version.outputs.new_tag }} already exists. Build was skipped." >> $GITHUB_STEP_SUMMARY
+                    echo "Version ${{ steps.check_version.outputs.new_tag }} already exists. Build was skipped." >> $GITHUB_STEP_SUMMARY
                   else
                     echo "### ✅ Success" >> $GITHUB_STEP_SUMMARY
-                    echo "Release ${{ steps.calc_version.outputs.new_tag }} created successfully!" >> $GITHUB_STEP_SUMMARY
+                    echo "Release ${{ steps.check_version.outputs.new_tag }} created successfully!" >> $GITHUB_STEP_SUMMARY
                   fi
