@@ -53,6 +53,7 @@ import { useFileChangesBackend } from "./useFileChangesBackend"
 import ProfileViolationWarning from "./ProfileViolationWarning"
 import { CheckpointWarning } from "./CheckpointWarning"
 import QueuedMessages from "./QueuedMessages"
+import { ActiveFileIndicator } from "./ActiveFileIndicator"
 import { getLatestTodo } from "@roo/todo"
 import { QueuedMessage } from "@siid-code/types"
 
@@ -2239,6 +2240,9 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 					className="px-3.5 mb-2"
 				/>
 			)}
+			<div style={{ position: "relative" }}>
+				<ActiveFileIndicator messages={messages} isStreaming={isStreaming} />
+			</div>
 			<ChatTextArea
 				ref={textAreaRef}
 				inputValue={inputValue}
