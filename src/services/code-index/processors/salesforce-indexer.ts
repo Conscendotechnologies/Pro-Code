@@ -98,6 +98,12 @@ export class SalesforceMetadataIndexer {
 		}
 	}
 
+	public clear(): void {
+		this.registry.objects.clear()
+		this.registry.apexClasses.clear()
+		this.registry.lastUpdated = Date.now()
+	}
+
 	/**
 	 * Index a single Salesforce file on disk.
 	 */

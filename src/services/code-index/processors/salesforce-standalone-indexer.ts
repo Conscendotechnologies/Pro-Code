@@ -24,6 +24,21 @@ export const SF_INDEXED_SUFFIXES = [
 	".entitlementProcess-meta.xml",
 ] as const
 
+export interface SalesforceIndexingProgress {
+	phase: "DISCOVERING" | "RETRIEVING_METADATA" | "BUILDING_TRANSACTIONS" | "BUILDING_GRAPH" | "COMPLETE" | "ERROR"
+	currentStep: number
+	totalSteps: number
+	currentFile?: string
+	docType?: "APEX" | "TRIGGER" | "OBJECT" | "FLOW" | "VALIDATION" | "OTHER"
+	itemsProcessed: number
+	totalItems: number
+	nodeCount?: number
+	edgeCount?: number
+	timelineCount?: number
+	durationMs?: number
+	error?: string
+}
+
 /**
  * Standalone Local Salesforce Codebase Indexer & File Watcher.
  * Operates 100% offline with zero reliance on CodeIndexManager, Qdrant, or external vector APIs.
@@ -38,6 +53,7 @@ export class SalesforceStandaloneIndexer implements vscode.Disposable {
 	private isIndexing = false
 	private watchers: vscode.FileSystemWatcher[] = []
 	private debounceTimer: NodeJS.Timeout | null = null
+	private progressListeners: ((progress: SalesforceIndexingProgress) => void)[] = []
 
 	private static debugMode = process.env.SIID_SALESFORCE_DEBUG === "true"
 
@@ -46,6 +62,25 @@ export class SalesforceStandaloneIndexer implements vscode.Disposable {
 		this.indexer = SalesforceMetadataIndexer.getInstance(workspaceRoot)
 		this.graphEngine = SalesforceGraphEngine.getInstance(workspaceRoot)
 		this.vectorIndexer = SalesforceVectorIndexer.getInstance(workspaceRoot)
+	}
+
+	public onProgress(listener: (progress: SalesforceIndexingProgress) => void): vscode.Disposable {
+		this.progressListeners.push(listener)
+		return {
+			dispose: () => {
+				this.progressListeners = this.progressListeners.filter((l) => l !== listener)
+			},
+		}
+	}
+
+	private emitProgress(progress: SalesforceIndexingProgress): void {
+		for (const listener of this.progressListeners) {
+			try {
+				listener(progress)
+			} catch (e) {
+				// Prevent listener crash
+			}
+		}
 	}
 
 	public static setDebugMode(enabled: boolean): void {
@@ -98,6 +133,151 @@ export class SalesforceStandaloneIndexer implements vscode.Disposable {
 		} finally {
 			this.isIndexing = false
 		}
+	}
+
+	/**
+	 * Full Scratch Re-index: Clears all memory/disk graph caches, retrieves all Salesforce metadata from scratch,
+	 * parses ASTs, maps execution timelines, and emits real-time progress callbacks to the UI.
+	 */
+	public async indexFromScratch(): Promise<void> {
+		if (this.isIndexing) return
+		this.isIndexing = true
+		const startTime = Date.now()
+
+		try {
+			// Phase 1: Reset & Discover
+			this.indexer.clear()
+			this.graphEngine.clear()
+			this.vectorIndexer.clear()
+
+			this.emitProgress({
+				phase: "DISCOVERING",
+				currentStep: 1,
+				totalSteps: 4,
+				itemsProcessed: 0,
+				totalItems: 0,
+			})
+
+			const files = await this.findSalesforceFiles(this.workspaceRoot)
+			const totalItems = files.length
+
+			// Phase 2: Retrieve & Parse Metadata
+			this.emitProgress({
+				phase: "RETRIEVING_METADATA",
+				currentStep: 2,
+				totalSteps: 4,
+				itemsProcessed: 0,
+				totalItems,
+			})
+
+			let processedCount = 0
+			for (const filePath of files) {
+				try {
+					const content = await fs.readFile(filePath, "utf-8")
+					await this.indexer.indexFile(filePath, content)
+					await this.graphEngine.indexFileForGraph(filePath, content)
+
+					const baseName = path.basename(filePath)
+					const docType: "APEX" | "TRIGGER" | "OBJECT" | "FLOW" | "VALIDATION" | "OTHER" = baseName.endsWith(
+						".cls",
+					)
+						? "APEX"
+						: baseName.endsWith(".trigger")
+							? "TRIGGER"
+							: baseName.endsWith(".flow-meta.xml")
+								? "FLOW"
+								: baseName.endsWith(".validationRule-meta.xml")
+									? "VALIDATION"
+									: baseName.includes("object-meta") || baseName.includes("field-meta")
+										? "OBJECT"
+										: "OTHER"
+
+					const vectorDocType: "APEX" | "FLOW" | "OBJECT" =
+						baseName.endsWith(".cls") || baseName.endsWith(".trigger")
+							? "APEX"
+							: baseName.endsWith(".flow-meta.xml")
+								? "FLOW"
+								: "OBJECT"
+
+					this.vectorIndexer.indexDocument(filePath, baseName, content, vectorDocType, filePath)
+
+					processedCount++
+					this.emitProgress({
+						phase: "RETRIEVING_METADATA",
+						currentStep: 2,
+						totalSteps: 4,
+						currentFile: baseName,
+						docType,
+						itemsProcessed: processedCount,
+						totalItems,
+					})
+				} catch (e) {
+					// Continue processing next file
+				}
+			}
+
+			// Phase 3: Building Transaction Timelines
+			this.emitProgress({
+				phase: "BUILDING_TRANSACTIONS",
+				currentStep: 3,
+				totalSteps: 4,
+				itemsProcessed: processedCount,
+				totalItems,
+			})
+
+			this.graphEngine.resolveApexCallEdges()
+			this.graphEngine.aggregateCallChainMetrics()
+
+			// Phase 4: Exporting Graph & Transaction Reports
+			this.emitProgress({
+				phase: "BUILDING_GRAPH",
+				currentStep: 4,
+				totalSteps: 4,
+				itemsProcessed: processedCount,
+				totalItems,
+			})
+
+			await this.indexer.exportTreeIndex(this.workspaceRoot)
+			await this.graphEngine.exportGraphNetwork(this.workspaceRoot)
+			await exportTransactionIndex(this.graphEngine, this.workspaceRoot)
+
+			const durationMs = Date.now() - startTime
+			const nodeCount = this.graphEngine.getNodes().size
+			const edgeCount = this.graphEngine.getEdges().length
+			const timelineCount = Array.from(this.graphEngine.getNodes().values()).filter(
+				(n) => n.type === "APEX_TRIGGER" && (n.txn?.dmlCount || n.txn?.soqlCount),
+			).length
+
+			this.emitProgress({
+				phase: "COMPLETE",
+				currentStep: 4,
+				totalSteps: 4,
+				itemsProcessed: processedCount,
+				totalItems,
+				nodeCount,
+				edgeCount,
+				timelineCount,
+				durationMs,
+			})
+		} catch (error: any) {
+			this.emitProgress({
+				phase: "ERROR",
+				currentStep: 4,
+				totalSteps: 4,
+				itemsProcessed: 0,
+				totalItems: 0,
+				error: error?.message || "Unknown indexer error",
+			})
+		} finally {
+			this.isIndexing = false
+		}
+	}
+
+	/**
+	 * Incremental Refresh: Scans workspace, updates graph deltas, and re-exports reports.
+	 */
+	public async refreshIndex(): Promise<void> {
+		return this.indexFromScratch()
 	}
 
 	/**

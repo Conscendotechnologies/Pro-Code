@@ -54,6 +54,8 @@ export interface WebviewMessage {
 		| "clearTask"
 		| "didShowAnnouncement"
 		| "selectImages"
+		| "startIndexFromScratch"
+		| "refreshSalesforceIndex"
 		| "exportCurrentTask"
 		| "exportCurrentTaskDebugJson"
 		| "shareCurrentTask"

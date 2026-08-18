@@ -2079,5 +2079,49 @@ export const webviewMessageHandler = async (
 			}
 			break
 		}
+
+		case "startIndexFromScratch": {
+			const workspacePath = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath
+			if (workspacePath) {
+				const { SalesforceStandaloneIndexer } = await import(
+					"../../services/code-index/processors/salesforce-standalone-indexer"
+				)
+				const indexer = SalesforceStandaloneIndexer.getInstance(workspacePath)
+
+				indexer.onProgress((progress) => {
+					provider.postMessageToWebview({
+						type: "salesforceIndexingProgress",
+						values: progress,
+					})
+				})
+
+				indexer.indexFromScratch().catch((err) => {
+					console.error("[SalesforceIndexer] Error indexing from scratch:", err)
+				})
+			}
+			break
+		}
+
+		case "refreshSalesforceIndex": {
+			const workspacePath = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath
+			if (workspacePath) {
+				const { SalesforceStandaloneIndexer } = await import(
+					"../../services/code-index/processors/salesforce-standalone-indexer"
+				)
+				const indexer = SalesforceStandaloneIndexer.getInstance(workspacePath)
+
+				indexer.onProgress((progress) => {
+					provider.postMessageToWebview({
+						type: "salesforceIndexingProgress",
+						values: progress,
+					})
+				})
+
+				indexer.refreshIndex().catch((err) => {
+					console.error("[SalesforceIndexer] Error refreshing index:", err)
+				})
+			}
+			break
+		}
 	}
 }
