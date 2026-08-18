@@ -39,11 +39,21 @@ export class SalesforceStandaloneIndexer implements vscode.Disposable {
 	private watchers: vscode.FileSystemWatcher[] = []
 	private debounceTimer: NodeJS.Timeout | null = null
 
+	private static debugMode = process.env.SIID_SALESFORCE_DEBUG === "true"
+
 	private constructor(workspaceRoot: string) {
 		this.workspaceRoot = workspaceRoot
 		this.indexer = SalesforceMetadataIndexer.getInstance(workspaceRoot)
 		this.graphEngine = SalesforceGraphEngine.getInstance(workspaceRoot)
 		this.vectorIndexer = SalesforceVectorIndexer.getInstance(workspaceRoot)
+	}
+
+	public static setDebugMode(enabled: boolean): void {
+		this.debugMode = enabled
+	}
+
+	public static isDebugMode(): boolean {
+		return this.debugMode || process.env.SIID_SALESFORCE_DEBUG === "true"
 	}
 
 	public static getInstance(workspaceRoot: string): SalesforceStandaloneIndexer {
@@ -60,9 +70,26 @@ export class SalesforceStandaloneIndexer implements vscode.Disposable {
 	public async initialize(): Promise<void> {
 		if (this.isIndexing) return
 		this.isIndexing = true
+		const startTime = Date.now()
 		try {
+			if (SalesforceStandaloneIndexer.isDebugMode()) {
+				console.log(`[SalesforceDebug] Initializing Salesforce Indexer for workspace: ${this.workspaceRoot}`)
+			}
 			await this.scanWorkspace()
 			this.setupFileWatcher()
+
+			// Auto-export transaction index on initialize
+			const { exportTransactionIndex } = await import("./salesforce-transaction")
+			await exportTransactionIndex(this.graphEngine, this.workspaceRoot)
+
+			if (SalesforceStandaloneIndexer.isDebugMode()) {
+				const duration = Date.now() - startTime
+				const nodeCount = this.graphEngine.getNodes().size
+				const edgeCount = this.graphEngine.getEdges().length
+				console.log(
+					`[SalesforceDebug] Indexing complete in ${duration}ms. Nodes: ${nodeCount}, Edges: ${edgeCount}. Exported .siid-code/SALESFORCE_TRANSACTIONS.md`,
+				)
+			}
 		} catch (error) {
 			console.error(
 				`[SalesforceStandaloneIndexer] Failed to initialize indexer for ${this.workspaceRoot}:`,
