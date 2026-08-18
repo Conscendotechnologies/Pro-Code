@@ -65,6 +65,7 @@ export interface ExtensionMessage {
 		| "action"
 		| "state"
 		| "selectedImages"
+		| "activeEditorChanged"
 		| "theme"
 		| "workspaceUpdated"
 		| "invoke"

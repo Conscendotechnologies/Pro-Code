@@ -36,6 +36,7 @@ import { useExtensionState } from "@src/context/ExtensionStateContext"
 import { useSelectedModel } from "@src/components/ui/hooks/useSelectedModel"
 import RooHero from "@src/components/welcome/RooHero"
 import { StandardTooltip } from "@src/components/ui"
+import { convertToMentionPath } from "@src/utils/path-mentions"
 import { useAutoApprovalState } from "@src/hooks/useAutoApprovalState"
 import { useAutoApprovalToggles } from "@src/hooks/useAutoApprovalToggles"
 
@@ -53,7 +54,6 @@ import { useFileChangesBackend } from "./useFileChangesBackend"
 import ProfileViolationWarning from "./ProfileViolationWarning"
 import { CheckpointWarning } from "./CheckpointWarning"
 import QueuedMessages from "./QueuedMessages"
-import { ActiveFileIndicator } from "./ActiveFileIndicator"
 import { getLatestTodo } from "@roo/todo"
 import { QueuedMessage } from "@siid-code/types"
 
@@ -211,6 +211,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 		notificationsEnabled,
 		soundEnabled,
 		soundVolume,
+		cwd,
 	} = useExtensionState()
 
 	const selectedModel = useSelectedModel(apiConfiguration)
@@ -253,6 +254,13 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 	const [inputValue, setInputValue] = useState("")
 	const textAreaRef = useRef<HTMLTextAreaElement>(null)
 	const [sendingDisabled, setSendingDisabled] = useState(false)
+	// Path of the editor tab the user is looking at, offered as an attachment,
+	// plus the selected line range when the user has one.
+	const [activeEditorPath, setActiveEditorPath] = useState<string | undefined>(undefined)
+	const [activeEditorSelection, setActiveEditorSelection] = useState<
+		{ startLine: number; endLine: number } | undefined
+	>(undefined)
+	const [activeFileDismissed, setActiveFileDismissed] = useState(false)
 	const [selectedImages, setSelectedImages] = useState<string[]>([])
 	const [messageQueue, setMessageQueue] = useState<QueuedMessage[]>([])
 	const isProcessingQueueRef = useRef(false)
@@ -685,6 +693,18 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 		disableAutoScrollRef.current = false
 	}, [])
 
+	// The active editor offered as an attachment, as an @mention the server-side
+	// mention parser already knows how to resolve. Null once dismissed.
+	const attachedFileMention = useMemo(() => {
+		if (!activeEditorPath || activeFileDismissed) {
+			return undefined
+		}
+		const base = convertToMentionPath(activeEditorPath, cwd)
+		return activeEditorSelection
+			? `${base}:${activeEditorSelection.startLine}-${activeEditorSelection.endLine}`
+			: base
+	}, [activeEditorPath, activeEditorSelection, activeFileDismissed, cwd])
+
 	/**
 	 * Handles sending messages to the extension
 	 * @param text - The message text to send
@@ -695,6 +715,13 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 		(text: string, images: string[], fromQueue = false) => {
 			try {
 				text = text.trim()
+
+				// Prepend the attached file as an @mention so the existing mention
+				// parser resolves its contents server-side. Skip if the user already
+				// mentioned it themselves.
+				if (attachedFileMention && !text.includes(attachedFileMention)) {
+					text = text ? `${attachedFileMention} ${text}` : attachedFileMention
+				}
 
 				if (text || images.length > 0) {
 					if (sendingDisabled && !fromQueue) {
@@ -750,7 +777,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 				// but for now we'll just log it
 			}
 		},
-		[handleChatReset, markFollowUpAsAnswered, sendingDisabled, postAskResponse], // messagesRef and clineAskRef are stable
+		[handleChatReset, markFollowUpAsAnswered, sendingDisabled, postAskResponse, attachedFileMention], // messagesRef and clineAskRef are stable
 	)
 
 	useEffect(() => {
@@ -949,6 +976,19 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 							break
 					}
 					break
+				case "activeEditorChanged": {
+					const selection = message.values as { startLine: number; endLine: number } | undefined
+					setActiveEditorPath((prev) => {
+						// A new tab is a new suggestion: undo any earlier dismissal.
+						// Selection changes within the same file must not resurrect it.
+						if (prev !== message.text) {
+							setActiveFileDismissed(false)
+						}
+						return message.text
+					})
+					setActiveEditorSelection(selection)
+					break
+				}
 				case "selectedImages":
 					// Only handle selectedImages if it's not for editing context
 					// When context is "edit", ChatRow will handle the images
@@ -2240,11 +2280,12 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 					className="px-3.5 mb-2"
 				/>
 			)}
-			<div style={{ position: "relative" }}>
-				<ActiveFileIndicator messages={messages} isStreaming={isStreaming} />
-			</div>
 			<ChatTextArea
 				ref={textAreaRef}
+				attachedFile={
+					attachedFileMention ? { mention: attachedFileMention, path: activeEditorPath! } : undefined
+				}
+				onRemoveAttachedFile={() => setActiveFileDismissed(true)}
 				inputValue={inputValue}
 				setInputValue={setInputValue}
 				sendingDisabled={sendingDisabled || isProfileDisabled}
