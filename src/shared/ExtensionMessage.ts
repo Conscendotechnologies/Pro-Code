@@ -17,6 +17,7 @@ import { GitCommit } from "../utils/git"
 import { McpServer } from "./mcp"
 import { Mode } from "./modes"
 import { ModelRecord, RouterModels } from "./api"
+import type { ModelListData } from "./mode-models"
 import type { MarketplaceItem } from "@siid-code/types"
 
 // Command interface for frontend/backend communication
@@ -73,6 +74,7 @@ export interface ExtensionMessage {
 		| "commitSearchResults"
 		| "listApiConfig"
 		| "routerModels"
+		| "modeModelList"
 		| "openAiModels"
 		| "ollamaModels"
 		| "lmStudioModels"
@@ -158,6 +160,8 @@ export interface ExtensionMessage {
 	}>
 	clineMessage?: ClineMessage
 	routerModels?: RouterModels
+	/** The runtime model list, so the webview picker reflects fetched updates. */
+	modeModelList?: ModelListData
 	openAiModels?: string[]
 	ollamaModels?: string[]
 	lmStudioModels?: ModelRecord
