@@ -11,11 +11,18 @@ export const SF_INDEXED_SUFFIXES = [
 	".trigger",
 	".cmp",
 	".page",
+	".js",
+	".html",
 	".object-meta.xml",
 	".field-meta.xml",
 	".flow-meta.xml",
 	".validationRule-meta.xml",
 	".workflow-meta.xml",
+	".flexipage-meta.xml",
+	".layout-meta.xml",
+	".labels-meta.xml",
+	".permissionset-meta.xml",
+	".app-meta.xml",
 	".duplicateRule-meta.xml",
 	".assignmentRules-meta.xml",
 	".autoResponseRules-meta.xml",
@@ -29,7 +36,7 @@ export interface SalesforceIndexingProgress {
 	currentStep: number
 	totalSteps: number
 	currentFile?: string
-	docType?: "APEX" | "TRIGGER" | "OBJECT" | "FLOW" | "VALIDATION" | "OTHER"
+	docType?: "APEX" | "TRIGGER" | "OBJECT" | "FLOW" | "VALIDATION" | "LWC" | "AURA" | "FLEXIPAGE" | "LAYOUT" | "OTHER"
 	itemsProcessed: number
 	totalItems: number
 	nodeCount?: number
@@ -178,9 +185,18 @@ export class SalesforceStandaloneIndexer implements vscode.Disposable {
 					await this.graphEngine.indexFileForGraph(filePath, content)
 
 					const baseName = path.basename(filePath)
-					const docType: "APEX" | "TRIGGER" | "OBJECT" | "FLOW" | "VALIDATION" | "OTHER" = baseName.endsWith(
-						".cls",
-					)
+					const lowerPath = filePath.toLowerCase()
+					const docType:
+						| "APEX"
+						| "TRIGGER"
+						| "OBJECT"
+						| "FLOW"
+						| "VALIDATION"
+						| "LWC"
+						| "AURA"
+						| "FLEXIPAGE"
+						| "LAYOUT"
+						| "OTHER" = baseName.endsWith(".cls")
 						? "APEX"
 						: baseName.endsWith(".trigger")
 							? "TRIGGER"
@@ -190,7 +206,15 @@ export class SalesforceStandaloneIndexer implements vscode.Disposable {
 									? "VALIDATION"
 									: baseName.includes("object-meta") || baseName.includes("field-meta")
 										? "OBJECT"
-										: "OTHER"
+										: lowerPath.includes("/lwc/")
+											? "LWC"
+											: lowerPath.includes("/aura/") || baseName.endsWith(".cmp")
+												? "AURA"
+												: baseName.endsWith(".flexipage-meta.xml")
+													? "FLEXIPAGE"
+													: baseName.endsWith(".layout-meta.xml")
+														? "LAYOUT"
+														: "OTHER"
 
 					const vectorDocType: "APEX" | "FLOW" | "OBJECT" =
 						baseName.endsWith(".cls") || baseName.endsWith(".trigger")

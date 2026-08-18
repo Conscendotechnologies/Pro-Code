@@ -29,7 +29,7 @@ import { useEscapeKey } from "@src/hooks/useEscapeKey"
 import type { EmbedderProvider } from "@roo/embeddingModels"
 import type { IndexingStatus } from "@roo/ExtensionMessage"
 import { CODEBASE_INDEX_DEFAULTS } from "@siid-code/types"
-import { SalesforceIndexLoader, type SalesforceIndexingProgress } from "./SalesforceIndexLoader"
+import { SalesforceFullOverlayLoader, type SalesforceIndexingProgress } from "./SalesforceFullOverlayLoader"
 
 interface CodeIndexPopoverProps {
 	children: React.ReactNode
@@ -50,6 +50,7 @@ interface LocalCodeIndexSettings {
 	// Salesforce Indexing Options
 	salesforceTransactionIndexEnabled?: boolean
 	salesforceGraphIndexEnabled?: boolean
+	salesforceSymbolIndexEnabled?: boolean
 
 	// Secret settings (start empty, will be loaded separately)
 	codeIndexOpenAiKey?: string
@@ -623,11 +624,26 @@ export const CodeIndexPopover: React.FC<CodeIndexPopoverProps> = ({
 										<span className="codicon codicon-info text-xs text-vscode-descriptionForeground cursor-help" />
 									</StandardTooltip>
 								</div>
+
+								<div className="flex items-center gap-2">
+									<VSCodeCheckbox
+										checked={currentSettings.salesforceSymbolIndexEnabled ?? true}
+										onChange={(e: any) =>
+											updateSetting("salesforceSymbolIndexEnabled", e.target.checked)
+										}>
+										<span className="font-medium text-xs text-vscode-foreground">
+											Symbol & Vector Search Indexing
+										</span>
+									</VSCodeCheckbox>
+									<StandardTooltip content="Indexes fast symbol definitions and offline vector code search">
+										<span className="codicon codicon-info text-xs text-vscode-descriptionForeground cursor-help" />
+									</StandardTooltip>
+								</div>
 							</div>
 						</div>
 
-						{/* High-Tech Salesforce Animated Polygon / Construction Loader */}
-						<SalesforceIndexLoader
+						{/* Full Viewport Salesforce Lightning Honeycomb Loader Overlay */}
+						<SalesforceFullOverlayLoader
 							progress={salesforceProgress}
 							onClose={() => setSalesforceProgress(null)}
 						/>
