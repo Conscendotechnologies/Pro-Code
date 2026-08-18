@@ -22,13 +22,21 @@ export const SF_INDEXED_SUFFIXES = [
 	".layout-meta.xml",
 	".labels-meta.xml",
 	".permissionset-meta.xml",
+	".permissionsetgroup-meta.xml",
+	".tab-meta.xml",
+	".pathAssistant-meta.xml",
 	".app-meta.xml",
 	".duplicateRule-meta.xml",
+	".matchingRule-meta.xml",
 	".assignmentRules-meta.xml",
 	".autoResponseRules-meta.xml",
 	".escalationRules-meta.xml",
 	".sharingRules-meta.xml",
 	".entitlementProcess-meta.xml",
+	".resource-meta.xml",
+	".genAiPlanner-meta.xml",
+	".genAiAgent-meta.xml",
+	".bot-meta.xml",
 ] as const
 
 export interface SalesforceIndexingProgress {
@@ -169,29 +177,72 @@ export class SalesforceStandaloneIndexer implements vscode.Disposable {
 			// Check for sfdx-project.json and attempt SF CLI org retrieval if connected
 			try {
 				const sfdxProjectPath = path.join(this.workspaceRoot, "sfdx-project.json")
+				const manifestPath = path.join(this.workspaceRoot, "manifest", "package.xml")
 				const hasSfdxProject = await fs
 					.stat(sfdxProjectPath)
 					.then(() => true)
 					.catch(() => false)
+
 				if (hasSfdxProject) {
+					const hasManifest = await fs
+						.stat(manifestPath)
+						.then(() => true)
+						.catch(() => false)
+
+					const metadataList = [
+						"ApexClass",
+						"ApexTrigger",
+						"CustomObject",
+						"CustomField",
+						"LightningComponentBundle",
+						"AuraDefinitionBundle",
+						"Flow",
+						"ValidationRule",
+						"Workflow",
+						"DuplicateRule",
+						"MatchingRule",
+						"AssignmentRules",
+						"AutoResponseRules",
+						"EscalationRules",
+						"SharingRules",
+						"EntitlementProcess",
+						"FlexiPage",
+						"Layout",
+						"PermissionSet",
+						"PermissionSetGroup",
+						"CustomTab",
+						"PathAssistant",
+						"ApexPage",
+						"StaticResource",
+						"CustomLabel",
+						"GenAiPlanner",
+						"GenAiAgent",
+						"Bot",
+					].join(",")
+
+					const cmd = hasManifest
+						? "sf project retrieve start --manifest manifest/package.xml --json"
+						: `sf project retrieve start --metadata "${metadataList}" --json`
+
 					this.emitProgress({
 						phase: "DISCOVERING",
 						currentStep: 1,
 						totalSteps: 4,
-						currentFile: "Executing sf project retrieve start...",
+						currentFile: `Executing SF CLI retrieval (${hasManifest ? "manifest/package.xml" : "28 metadata types"})...`,
 						itemsProcessed: 0,
 						totalItems: 0,
 					})
+
 					const { exec } = await import("child_process")
 					const { promisify } = await import("util")
 					const execAsync = promisify(exec)
-					await execAsync("sf project retrieve start --json", {
+					await execAsync(cmd, {
 						cwd: this.workspaceRoot,
-						timeout: 15000,
+						timeout: 30000,
 					}).catch(() => null)
 				}
 			} catch (e) {
-				// Fallback to local files if CLI is unauthenticated
+				// Fallback to local files if CLI is unauthenticated or times out
 			}
 
 			const files = await this.findSalesforceFiles(this.workspaceRoot)
