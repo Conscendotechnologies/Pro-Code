@@ -188,6 +188,25 @@ export class CodeIndexManager {
 		}
 
 		this.assertInitialized()
+
+		// Trigger Salesforce GraphRAG indexing alongside main codebase orchestrator
+		const workspacePath = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath
+		if (workspacePath) {
+			try {
+				const { SalesforceStandaloneIndexer } = await import("./processors/salesforce-standalone-indexer")
+				SalesforceStandaloneIndexer.getInstance(workspacePath)
+					.initialize()
+					.catch((err) => {
+						console.error(
+							"[SalesforceIndexer] Error initializing standalone indexer on startIndexing:",
+							err,
+						)
+					})
+			} catch (e) {
+				// Fallback
+			}
+		}
+
 		await this._orchestrator!.startIndexing()
 	}
 
