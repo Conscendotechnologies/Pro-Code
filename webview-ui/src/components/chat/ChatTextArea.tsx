@@ -60,6 +60,9 @@ interface ChatTextAreaProps {
 	onCondenseContext?: () => void
 	isCondensing?: boolean
 	taskId?: string
+	// Active editor offered as context for the next message
+	attachedFile?: { mention: string; path: string }
+	onRemoveAttachedFile?: () => void
 }
 
 const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
@@ -86,6 +89,8 @@ const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
 			onCondenseContext,
 			isCondensing = false,
 			taskId,
+			attachedFile,
+			onRemoveAttachedFile,
 		},
 		ref,
 	) => {
@@ -1208,6 +1213,22 @@ const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
 					"mr-auto",
 					"box-border",
 				)}>
+				{attachedFile && !isEditMode && (
+					<div className="flex flex-wrap gap-1 px-1">
+						<StandardTooltip content={attachedFile.path}>
+							<div className="flex items-center gap-1 max-w-full px-1.5 py-0.5 rounded border border-vscode-input-border bg-vscode-badge-background text-vscode-badge-foreground text-xs">
+								<span className="codicon codicon-file text-[12px] shrink-0" />
+								<span className="truncate">{attachedFile.mention.replace(/^@/, "")}</span>
+								<button
+									onClick={onRemoveAttachedFile}
+									aria-label={`Remove ${attachedFile.path} from context`}
+									className="shrink-0 opacity-60 hover:opacity-100 cursor-pointer bg-transparent border-none p-0 text-inherit">
+									<span className="codicon codicon-close text-[12px]" />
+								</button>
+							</div>
+						</StandardTooltip>
+					</div>
+				)}
 				<div className="relative">
 					<div
 						className={cn("chat-text-area", "relative", "flex", "flex-col", "outline-none")}
