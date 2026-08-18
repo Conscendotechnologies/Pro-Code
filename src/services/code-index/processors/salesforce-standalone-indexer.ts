@@ -152,7 +152,7 @@ export class SalesforceStandaloneIndexer implements vscode.Disposable {
 		const startTime = Date.now()
 
 		try {
-			// Phase 1: Reset & Discover
+			// Phase 1: Reset & Discover Org Metadata via SF CLI or Workspace
 			this.indexer.clear()
 			this.graphEngine.clear()
 			this.vectorIndexer.clear()
@@ -161,9 +161,38 @@ export class SalesforceStandaloneIndexer implements vscode.Disposable {
 				phase: "DISCOVERING",
 				currentStep: 1,
 				totalSteps: 4,
+				currentFile: "Discovering connected Salesforce Org...",
 				itemsProcessed: 0,
 				totalItems: 0,
 			})
+
+			// Check for sfdx-project.json and attempt SF CLI org retrieval if connected
+			try {
+				const sfdxProjectPath = path.join(this.workspaceRoot, "sfdx-project.json")
+				const hasSfdxProject = await fs
+					.stat(sfdxProjectPath)
+					.then(() => true)
+					.catch(() => false)
+				if (hasSfdxProject) {
+					this.emitProgress({
+						phase: "DISCOVERING",
+						currentStep: 1,
+						totalSteps: 4,
+						currentFile: "Executing sf project retrieve start...",
+						itemsProcessed: 0,
+						totalItems: 0,
+					})
+					const { exec } = await import("child_process")
+					const { promisify } = await import("util")
+					const execAsync = promisify(exec)
+					await execAsync("sf project retrieve start --json", {
+						cwd: this.workspaceRoot,
+						timeout: 15000,
+					}).catch(() => null)
+				}
+			} catch (e) {
+				// Fallback to local files if CLI is unauthenticated
+			}
 
 			const files = await this.findSalesforceFiles(this.workspaceRoot)
 			const totalItems = files.length

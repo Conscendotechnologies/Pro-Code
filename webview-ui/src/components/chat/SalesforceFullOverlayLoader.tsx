@@ -43,11 +43,11 @@ export const SalesforceFullOverlayLoader: React.FC<SalesforceFullOverlayLoaderPr
 		if (isComplete) {
 			return (
 				<svg
-					className="w-12 h-12 text-white animate-bounce"
+					className="w-10 h-10 text-white animate-pulse"
 					fill="none"
 					viewBox="0 0 24 24"
 					stroke="currentColor"
-					strokeWidth={2.5}>
+					strokeWidth={2.8}>
 					<path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
 				</svg>
 			)
@@ -55,55 +55,42 @@ export const SalesforceFullOverlayLoader: React.FC<SalesforceFullOverlayLoaderPr
 		if (isError) {
 			return (
 				<svg
-					className="w-12 h-12 text-red-100"
+					className="w-10 h-10 text-white"
 					fill="none"
 					viewBox="0 0 24 24"
 					stroke="currentColor"
-					strokeWidth={2.5}>
-					<path
-						strokeLinecap="round"
-						strokeLinejoin="round"
-						d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-					/>
+					strokeWidth={2.8}>
+					<path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
 				</svg>
 			)
 		}
 
 		switch (progress.docType) {
 			case "APEX":
-				return (
-					<svg
-						className="w-10 h-10 text-white"
-						fill="none"
-						viewBox="0 0 24 24"
-						stroke="currentColor"
-						strokeWidth={2}>
-						<path strokeLinecap="round" strokeLinejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
-					</svg>
-				)
+				return <span className="text-white text-2xl font-bold font-mono">@</span>
 			case "TRIGGER":
 				return (
 					<svg
-						className="w-10 h-10 text-white"
+						className="w-9 h-9 text-white"
 						fill="none"
 						viewBox="0 0 24 24"
 						stroke="currentColor"
-						strokeWidth={2}>
+						strokeWidth={2.2}>
 						<path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
 					</svg>
 				)
 			case "OBJECT":
 				return (
 					<svg
-						className="w-10 h-10 text-white"
+						className="w-9 h-9 text-white"
 						fill="none"
 						viewBox="0 0 24 24"
 						stroke="currentColor"
-						strokeWidth={2}>
+						strokeWidth={2.2}>
 						<path
 							strokeLinecap="round"
 							strokeLinejoin="round"
-							d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8-4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"
+							d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"
 						/>
 					</svg>
 				)
@@ -111,11 +98,11 @@ export const SalesforceFullOverlayLoader: React.FC<SalesforceFullOverlayLoaderPr
 			case "AURA":
 				return (
 					<svg
-						className="w-10 h-10 text-white"
+						className="w-9 h-9 text-white"
 						fill="none"
 						viewBox="0 0 24 24"
 						stroke="currentColor"
-						strokeWidth={2}>
+						strokeWidth={2.2}>
 						<path
 							strokeLinecap="round"
 							strokeLinejoin="round"
@@ -126,11 +113,11 @@ export const SalesforceFullOverlayLoader: React.FC<SalesforceFullOverlayLoaderPr
 			case "FLOW":
 				return (
 					<svg
-						className="w-10 h-10 text-white"
+						className="w-9 h-9 text-white"
 						fill="none"
 						viewBox="0 0 24 24"
 						stroke="currentColor"
-						strokeWidth={2}>
+						strokeWidth={2.2}>
 						<path
 							strokeLinecap="round"
 							strokeLinejoin="round"
@@ -142,11 +129,11 @@ export const SalesforceFullOverlayLoader: React.FC<SalesforceFullOverlayLoaderPr
 			case "LAYOUT":
 				return (
 					<svg
-						className="w-10 h-10 text-white"
+						className="w-9 h-9 text-white"
 						fill="none"
 						viewBox="0 0 24 24"
 						stroke="currentColor"
-						strokeWidth={2}>
+						strokeWidth={2.2}>
 						<path
 							strokeLinecap="round"
 							strokeLinejoin="round"
@@ -157,11 +144,11 @@ export const SalesforceFullOverlayLoader: React.FC<SalesforceFullOverlayLoaderPr
 			case "VALIDATION":
 				return (
 					<svg
-						className="w-10 h-10 text-white"
+						className="w-9 h-9 text-white"
 						fill="none"
 						viewBox="0 0 24 24"
 						stroke="currentColor"
-						strokeWidth={2}>
+						strokeWidth={2.2}>
 						<path
 							strokeLinecap="round"
 							strokeLinejoin="round"
@@ -172,230 +159,219 @@ export const SalesforceFullOverlayLoader: React.FC<SalesforceFullOverlayLoaderPr
 			default:
 				return (
 					<svg
-						className="w-10 h-10 text-white animate-spin"
+						className="w-9 h-9 text-white animate-spin"
 						fill="none"
 						viewBox="0 0 24 24"
 						stroke="currentColor"
-						strokeWidth={2}>
+						strokeWidth={2.2}>
 						<path
 							strokeLinecap="round"
 							strokeLinejoin="round"
-							d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+							d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
 						/>
-						<path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
 					</svg>
 				)
 		}
 	}
 
 	return (
-		<div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-slate-950/90 backdrop-blur-xl transition-all duration-300 font-sans text-slate-100 p-6 overflow-hidden">
-			{/* Salesforce Lightning Soft Background Grid Glow */}
-			<div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(1,118,211,0.18)_0%,transparent_65%)] pointer-events-none" />
+		<div className="fixed inset-0 z-[99999] flex flex-col items-center justify-center bg-gradient-to-b from-[#EEF4FB] via-[#F4F8FC] to-[#E8F0FA] text-[#2C3E60] font-sans p-6 select-none overflow-hidden animate-fadeIn">
+			{/* Soft Subtle Hexagon Pattern Background */}
+			<div
+				className="absolute inset-0 opacity-[0.25] pointer-events-none"
+				style={{
+					backgroundImage: `radial-gradient(#3B62D1 0.75px, transparent 0.75px), radial-gradient(#3B62D1 0.75px, #EEF4FB 0.75px)`,
+					backgroundSize: `30px 30px`,
+					backgroundPosition: `0 0, 15px 15px`,
+				}}
+			/>
 
-			{/* Main Content Modal Container */}
-			<div className="relative z-10 flex flex-col items-center max-w-lg w-full text-center">
-				{/* 7-Hexagon Salesforce Honeycomb Grid Visualizer */}
-				<div className="relative w-72 h-64 mb-6 flex items-center justify-center">
-					{/* Honeycomb Center Active Hexagon */}
-					<div className="absolute z-20 w-28 h-32 flex items-center justify-center shadow-[0_0_35px_rgba(1,118,211,0.6)] transition-all duration-500 scale-105">
-						<svg
-							className="absolute inset-0 w-full h-full filter drop-shadow-md"
-							viewBox="0 0 100 115"
-							fill="none">
-							<defs>
-								<linearGradient id="sfHexGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-									<stop offset="0%" stopColor="#0176D3" />
-									<stop offset="100%" stopColor="#0B5CAB" />
-								</linearGradient>
-							</defs>
-							<polygon
-								points="50,2 98,28 98,87 50,113 2,87 2,28"
-								fill="url(#sfHexGradient)"
-								stroke="#38BDF8"
-								strokeWidth="2.5"
-							/>
-						</svg>
+			{/* Main Centered Content */}
+			<div className="relative z-10 flex flex-col items-center max-w-md w-full text-center">
+				{/* 7-Hexagon Honeycomb Visualizer Matching Reference Image */}
+				<div className="relative w-80 h-72 mb-8 flex items-center justify-center">
+					{/* SVG Honeycomb Net Render */}
+					<svg
+						className="w-full h-full filter drop-shadow-[0_12px_24px_rgba(59,98,209,0.12)]"
+						viewBox="0 0 300 270"
+						fill="none">
+						{/* Outer Surrounding Soft White 3D Hexagons */}
+						{/* Top Left (x: 75, y: 60) */}
+						<polygon
+							points="75,15 120,40 120,90 75,115 30,90 30,40"
+							fill="#FFFFFF"
+							stroke="#E2ECFA"
+							strokeWidth="2.5"
+						/>
+						{/* Top Right (x: 225, y: 60) */}
+						<polygon
+							points="225,15 270,40 270,90 225,115 180,90 180,40"
+							fill="#FFFFFF"
+							stroke="#E2ECFA"
+							strokeWidth="2.5"
+						/>
+						{/* Left (x: 25, y: 135) */}
+						<polygon
+							points="25,90 70,115 70,165 25,190 -20,165 -20,115"
+							fill="#FFFFFF"
+							stroke="#E2ECFA"
+							strokeWidth="2.5"
+						/>
+						{/* Right (x: 275, y: 135) */}
+						<polygon
+							points="275,90 320,115 320,165 275,190 230,165 230,115"
+							fill="#FFFFFF"
+							stroke="#E2ECFA"
+							strokeWidth="2.5"
+						/>
+						{/* Bottom Left (x: 75, y: 210) */}
+						<polygon
+							points="75,165 120,190 120,240 75,265 30,240 30,190"
+							fill="#FFFFFF"
+							stroke="#E2ECFA"
+							strokeWidth="2.5"
+						/>
+						{/* Bottom Right (x: 225, y: 210) */}
+						<polygon
+							points="225,165 270,190 270,240 225,265 180,240 180,190"
+							fill="#FFFFFF"
+							stroke="#E2ECFA"
+							strokeWidth="2.5"
+						/>
 
-						{/* Node Vertices Dots */}
-						<div className="absolute -top-1 left-1/2 -translate-x-1/2 w-3.5 h-3.5 rounded-full bg-white border-2 border-sky-400 shadow-[0_0_8px_#38BDF8]" />
-						<div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-3.5 h-3.5 rounded-full bg-white border-2 border-sky-400 shadow-[0_0_8px_#38BDF8]" />
-						<div className="absolute top-7 -left-1 w-3.5 h-3.5 rounded-full bg-white border-2 border-sky-400 shadow-[0_0_8px_#38BDF8]" />
-						<div className="absolute top-7 -right-1 w-3.5 h-3.5 rounded-full bg-white border-2 border-sky-400 shadow-[0_0_8px_#38BDF8]" />
-						<div className="absolute bottom-7 -left-1 w-3.5 h-3.5 rounded-full bg-white border-2 border-sky-400 shadow-[0_0_8px_#38BDF8]" />
-						<div className="absolute bottom-7 -right-1 w-3.5 h-3.5 rounded-full bg-white border-2 border-sky-400 shadow-[0_0_8px_#38BDF8]" />
+						{/* Central Active Royal Blue Hexagon (Center at x: 150, y: 135) */}
+						<polygon
+							points="150,75 200,103 200,167 150,195 100,167 100,103"
+							fill="url(#royalBlueGrad)"
+							stroke="#4F79F6"
+							strokeWidth="3"
+						/>
 
-						{/* Dynamic Icon */}
-						<div className="relative z-10 flex items-center justify-center">{renderCenterIcon()}</div>
+						{/* Concentric Node Dots at Vertices of Central Hexagon */}
+						<g>
+							{/* Top Center Node */}
+							<circle cx="150" cy="75" r="6" fill="#FFFFFF" stroke="#3B62D1" strokeWidth="3" />
+							<circle cx="150" cy="75" r="2" fill="#3B62D1" />
+
+							{/* Bottom Center Node */}
+							<circle cx="150" cy="195" r="6" fill="#FFFFFF" stroke="#3B62D1" strokeWidth="3" />
+							<circle cx="150" cy="195" r="2" fill="#3B62D1" />
+
+							{/* Top Right Node */}
+							<circle cx="200" cy="103" r="6" fill="#FFFFFF" stroke="#3B62D1" strokeWidth="3" />
+							<circle cx="200" cy="103" r="2" fill="#3B62D1" />
+
+							{/* Bottom Right Node */}
+							<circle cx="200" cy="167" r="6" fill="#FFFFFF" stroke="#3B62D1" strokeWidth="3" />
+							<circle cx="200" cy="167" r="2" fill="#3B62D1" />
+
+							{/* Top Left Node */}
+							<circle cx="100" cy="103" r="6" fill="#FFFFFF" stroke="#3B62D1" strokeWidth="3" />
+							<circle cx="100" cy="103" r="2" fill="#3B62D1" />
+
+							{/* Bottom Left Node */}
+							<circle cx="100" cy="167" r="6" fill="#FFFFFF" stroke="#3B62D1" strokeWidth="3" />
+							<circle cx="100" cy="167" r="2" fill="#3B62D1" />
+						</g>
+
+						{/* Linear Gradient Definitions */}
+						<defs>
+							<linearGradient id="royalBlueGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+								<stop offset="0%" stopColor="#436BF0" />
+								<stop offset="100%" stopColor="#3155C4" />
+							</linearGradient>
+						</defs>
+					</svg>
+
+					{/* Center Icon Overlay */}
+					<div className="absolute z-30 inset-0 flex items-center justify-center pointer-events-none">
+						{renderCenterIcon()}
 					</div>
 
-					{/* Surrounding Honeycomb Tile: Top Left (Apex) */}
-					<div className="absolute -top-2 left-6 w-20 h-24 opacity-80 transition-all duration-300">
-						<svg className="w-full h-full" viewBox="0 0 100 115" fill="none">
-							<polygon
-								points="50,2 98,28 98,87 50,113 2,87 2,28"
-								fill="#1E293B"
-								stroke="#334155"
-								strokeWidth="2"
+					{/* Surrounding Hexagon Icons */}
+					<div className="absolute top-10 left-[70px] text-[#6B7DA4] pointer-events-none">
+						<svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+							<path
+								strokeLinecap="round"
+								strokeLinejoin="round"
+								d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
 							/>
 						</svg>
-						<div className="absolute inset-0 flex items-center justify-center text-sky-400 opacity-60">
-							<span className="text-xs font-mono font-bold">&lt;/&gt;</span>
-						</div>
 					</div>
 
-					{/* Surrounding Honeycomb Tile: Top Right (Triggers) */}
-					<div className="absolute -top-2 right-6 w-20 h-24 opacity-80 transition-all duration-300">
-						<svg className="w-full h-full" viewBox="0 0 100 115" fill="none">
-							<polygon
-								points="50,2 98,28 98,87 50,113 2,87 2,28"
-								fill="#1E293B"
-								stroke="#334155"
-								strokeWidth="2"
+					<div className="absolute top-10 right-[70px] text-[#6B7DA4] pointer-events-none">
+						<svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+							<path
+								strokeLinecap="round"
+								strokeLinejoin="round"
+								d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
 							/>
 						</svg>
-						<div className="absolute inset-0 flex items-center justify-center text-amber-400 opacity-60">
-							<span className="text-sm">⚡</span>
-						</div>
 					</div>
 
-					{/* Surrounding Honeycomb Tile: Left (SObjects) */}
-					<div className="absolute top-20 -left-4 w-20 h-24 opacity-80 transition-all duration-300">
-						<svg className="w-full h-full" viewBox="0 0 100 115" fill="none">
-							<polygon
-								points="50,2 98,28 98,87 50,113 2,87 2,28"
-								fill="#1E293B"
-								stroke="#334155"
-								strokeWidth="2"
+					<div className="absolute bottom-10 left-[70px] text-[#6B7DA4] pointer-events-none">
+						<svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+							<path
+								strokeLinecap="round"
+								strokeLinejoin="round"
+								d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
 							/>
 						</svg>
-						<div className="absolute inset-0 flex items-center justify-center text-emerald-400 opacity-60">
-							<span className="text-sm">📊</span>
-						</div>
 					</div>
 
-					{/* Surrounding Honeycomb Tile: Right (LWC / UI) */}
-					<div className="absolute top-20 -right-4 w-20 h-24 opacity-80 transition-all duration-300">
-						<svg className="w-full h-full" viewBox="0 0 100 115" fill="none">
-							<polygon
-								points="50,2 98,28 98,87 50,113 2,87 2,28"
-								fill="#1E293B"
-								stroke="#334155"
-								strokeWidth="2"
+					<div className="absolute bottom-10 right-[70px] text-[#6B7DA4] pointer-events-none">
+						<svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+							<path
+								strokeLinecap="round"
+								strokeLinejoin="round"
+								d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
 							/>
 						</svg>
-						<div className="absolute inset-0 flex items-center justify-center text-purple-400 opacity-60">
-							<span className="text-sm">💻</span>
-						</div>
-					</div>
-
-					{/* Surrounding Honeycomb Tile: Bottom Left (Flows) */}
-					<div className="absolute -bottom-2 left-6 w-20 h-24 opacity-80 transition-all duration-300">
-						<svg className="w-full h-full" viewBox="0 0 100 115" fill="none">
-							<polygon
-								points="50,2 98,28 98,87 50,113 2,87 2,28"
-								fill="#1E293B"
-								stroke="#334155"
-								strokeWidth="2"
-							/>
-						</svg>
-						<div className="absolute inset-0 flex items-center justify-center text-cyan-400 opacity-60">
-							<span className="text-sm">🔀</span>
-						</div>
-					</div>
-
-					{/* Surrounding Honeycomb Tile: Bottom Right (Validation) */}
-					<div className="absolute -bottom-2 right-6 w-20 h-24 opacity-80 transition-all duration-300">
-						<svg className="w-full h-full" viewBox="0 0 100 115" fill="none">
-							<polygon
-								points="50,2 98,28 98,87 50,113 2,87 2,28"
-								fill="#1E293B"
-								stroke="#334155"
-								strokeWidth="2"
-							/>
-						</svg>
-						<div className="absolute inset-0 flex items-center justify-center text-pink-400 opacity-60">
-							<span className="text-sm">🛡️</span>
-						</div>
 					</div>
 				</div>
 
-				{/* Title & Phase Status */}
-				<h2 className="text-xl font-medium tracking-wide text-slate-100 mb-1">
+				{/* Title Matching Reference Design ("Verifying emails" / "Cleaning prospect data") */}
+				<h2 className="text-2xl font-normal text-[#2D3F65] mb-2 tracking-tight">
 					{isComplete
 						? "Salesforce Indexing Complete"
 						: isError
 							? "Indexing Error Occurred"
 							: progress.phase === "DISCOVERING"
-								? "Discovering Salesforce Metadata Files..."
+								? "Executing SF CLI Org Retrieval..."
 								: progress.phase === "RETRIEVING_METADATA"
-									? "Retrieving & Parsing Salesforce Metadata..."
+									? "Retrieving org metadata..."
 									: progress.phase === "BUILDING_TRANSACTIONS"
-										? "Mapping 21-Step Execution Order Timelines..."
+										? "Mapping 21-step transaction timelines"
 										: progress.phase === "BUILDING_GRAPH"
-											? "Building Dependency Call Graph..."
-											: "Indexing Salesforce Org..."}
+											? "Building dependency call graph"
+											: "Indexing Salesforce Org"}
 				</h2>
 
-				{/* Live Streaming File Badge */}
+				{/* Live Badge for Current Item */}
 				{progress.currentFile && !isComplete && (
-					<div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900/80 border border-slate-800 text-xs font-mono text-sky-300 max-w-md truncate mb-4 shadow-sm">
-						<span className="w-2 h-2 rounded-full bg-sky-400 animate-ping" />
-						<span className="truncate">{progress.currentFile}</span>
+					<div className="text-xs font-mono text-[#5C729F] mb-6 max-w-sm truncate">
+						{progress.currentFile}
 					</div>
 				)}
 
-				{/* Salesforce Blue Pill Progress Bar */}
-				<div className="w-full bg-slate-900 border border-slate-800 rounded-full h-3 mb-2 overflow-hidden relative shadow-inner">
+				{/* Reference Image Smooth Light Blue Progress Bar Pill */}
+				<div className="w-64 bg-[#DCE5F2] rounded-full h-2 mb-6 overflow-hidden relative">
 					<div
-						className="bg-gradient-to-r from-sky-600 via-sky-500 to-blue-600 h-full rounded-full transition-all duration-300 relative"
-						style={{ width: `${progressPercentage}%` }}>
-						<div className="absolute inset-0 bg-white/20 animate-pulse" />
-					</div>
+						className="bg-[#3B62D1] h-full rounded-full transition-all duration-300 relative"
+						style={{ width: `${progressPercentage}%` }}
+					/>
 				</div>
 
-				{/* Progress Numbers & Percentage */}
-				<div className="flex justify-between w-full text-xs text-slate-400 mb-6 font-mono">
+				{/* Stats Row */}
+				<div className="flex items-center justify-center gap-6 text-xs text-[#5C729F] mb-6 font-mono">
 					<span>
-						{progress.itemsProcessed} / {progress.totalItems} metadata items
+						{progress.itemsProcessed} / {progress.totalItems} items
 					</span>
-					<span className="font-bold text-sky-400">{progressPercentage}%</span>
+					<span className="font-semibold text-[#3B62D1]">{progressPercentage}%</span>
 				</div>
 
-				{/* Summary Metrics Grid (Visible on Complete or Active) */}
-				{(isComplete || (progress.nodeCount && progress.nodeCount > 0)) && (
-					<div className="grid grid-cols-4 gap-2 w-full mb-6 text-left">
-						<div className="p-2.5 rounded-lg bg-slate-900/90 border border-slate-800 text-center">
-							<div className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">
-								Nodes
-							</div>
-							<div className="text-sm font-bold text-sky-400">{progress.nodeCount || 0}</div>
-						</div>
-						<div className="p-2.5 rounded-lg bg-slate-900/90 border border-slate-800 text-center">
-							<div className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">
-								Timelines
-							</div>
-							<div className="text-sm font-bold text-emerald-400">{progress.timelineCount || 0}</div>
-						</div>
-						<div className="p-2.5 rounded-lg bg-slate-900/90 border border-slate-800 text-center">
-							<div className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">
-								Call Edges
-							</div>
-							<div className="text-sm font-bold text-purple-400">{progress.edgeCount || 0}</div>
-						</div>
-						<div className="p-2.5 rounded-lg bg-slate-900/90 border border-slate-800 text-center">
-							<div className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">
-								Time
-							</div>
-							<div className="text-sm font-bold text-amber-400">
-								{progress.durationMs ? `${(progress.durationMs / 1000).toFixed(1)}s` : "..."}
-							</div>
-						</div>
-					</div>
-				)}
-
-				{/* Close / Run in Background Button */}
-				<div className="flex gap-3">
+				{/* Close / Background Button */}
+				<div>
 					<VSCodeButton appearance={isComplete ? "primary" : "secondary"} onClick={onClose}>
 						{isComplete ? "Done" : "Run in Background"}
 					</VSCodeButton>

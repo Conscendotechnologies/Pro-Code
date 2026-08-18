@@ -21,6 +21,10 @@ import ErrorBoundary from "./components/ErrorBoundary"
 import { useAddNonInteractiveClickListener } from "./components/ui/hooks/useNonInteractiveClick"
 import { TooltipProvider } from "./components/ui/tooltip"
 import { STANDARD_TOOLTIP_DELAY } from "./components/ui/standard-tooltip"
+import {
+	SalesforceFullOverlayLoader,
+	type SalesforceIndexingProgress,
+} from "./components/chat/SalesforceFullOverlayLoader"
 
 type Tab = "settings" | "history" | "mcp" | "modes" | "chat"
 
@@ -90,6 +94,8 @@ const App = () => {
 		text: "",
 		images: [],
 	})
+
+	const [salesforceProgress, setSalesforceProgress] = useState<SalesforceIndexingProgress | null>(null)
 
 	const settingsRef = useRef<SettingsViewRef>(null)
 	const chatViewRef = useRef<ChatViewRef>(null)
@@ -187,8 +193,8 @@ const App = () => {
 				})
 			}
 
-			if (message.type === "acceptInput") {
-				chatViewRef.current?.acceptInput()
+			if (message.type === "salesforceIndexingProgress" && message.values) {
+				setSalesforceProgress(message.values as SalesforceIndexingProgress)
 			}
 		},
 		[switchTab, notificationsEnabled],
@@ -297,6 +303,7 @@ const App = () => {
 					setEditMessageDialogState((prev) => ({ ...prev, isOpen: false }))
 				}}
 			/>
+			<SalesforceFullOverlayLoader progress={salesforceProgress} onClose={() => setSalesforceProgress(null)} />
 		</>
 	)
 }
