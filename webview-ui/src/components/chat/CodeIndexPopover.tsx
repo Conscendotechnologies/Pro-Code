@@ -29,7 +29,8 @@ import { useEscapeKey } from "@src/hooks/useEscapeKey"
 import type { EmbedderProvider } from "@roo/embeddingModels"
 import type { IndexingStatus } from "@roo/ExtensionMessage"
 import { CODEBASE_INDEX_DEFAULTS } from "@siid-code/types"
-import { SalesforceFullOverlayLoader, type SalesforceIndexingProgress } from "./SalesforceFullOverlayLoader"
+import { SalesforceIndexLoader } from "./SalesforceIndexLoader"
+import { type SalesforceIndexingProgress } from "./SalesforceFullOverlayLoader"
 
 interface CodeIndexPopoverProps {
 	children: React.ReactNode
@@ -642,11 +643,8 @@ export const CodeIndexPopover: React.FC<CodeIndexPopoverProps> = ({
 							</div>
 						</div>
 
-						{/* Full Viewport Salesforce Lightning Honeycomb Loader Overlay */}
-						<SalesforceFullOverlayLoader
-							progress={salesforceProgress}
-							onClose={() => setSalesforceProgress(null)}
-						/>
+						{/* Inline Salesforce Honeycomb Index Loader for Popover Tab */}
+						<SalesforceIndexLoader progress={salesforceProgress} />
 
 						{/* Action Buttons */}
 						<div className="flex items-center justify-between gap-2 pt-4">

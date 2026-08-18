@@ -96,6 +96,7 @@ const App = () => {
 	})
 
 	const [salesforceProgress, setSalesforceProgress] = useState<SalesforceIndexingProgress | null>(null)
+	const [isOverlayMinimized, setIsOverlayMinimized] = useState(false)
 
 	const settingsRef = useRef<SettingsViewRef>(null)
 	const chatViewRef = useRef<ChatViewRef>(null)
@@ -194,7 +195,11 @@ const App = () => {
 			}
 
 			if (message.type === "salesforceIndexingProgress" && message.values) {
-				setSalesforceProgress(message.values as SalesforceIndexingProgress)
+				const progress = message.values as SalesforceIndexingProgress
+				if (progress.phase === "DISCOVERING" || progress.phase === "RETRIEVING_METADATA") {
+					setIsOverlayMinimized(false)
+				}
+				setSalesforceProgress(progress)
 			}
 		},
 		[switchTab, notificationsEnabled],
@@ -303,7 +308,10 @@ const App = () => {
 					setEditMessageDialogState((prev) => ({ ...prev, isOpen: false }))
 				}}
 			/>
-			<SalesforceFullOverlayLoader progress={salesforceProgress} onClose={() => setSalesforceProgress(null)} />
+			<SalesforceFullOverlayLoader
+				progress={!isOverlayMinimized ? salesforceProgress : null}
+				onClose={() => setIsOverlayMinimized(true)}
+			/>
 		</>
 	)
 }
