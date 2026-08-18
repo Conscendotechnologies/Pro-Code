@@ -130,7 +130,7 @@ describe("CodeParser", () => {
 
 	describe("isSupportedLanguage", () => {
 		it("should return true for supported extensions", () => {
-			expect(parser["isSupportedLanguage"](".js")).toBe(true)
+			expect(parser["isSupportedLanguage"]("test.js")).toBe(true)
 		})
 
 		it("should return false for unsupported extensions", () => {

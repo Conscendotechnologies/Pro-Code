@@ -42,6 +42,8 @@ export const toolNames = [
 	"assign_field_permissions",
 	"generate_apex_class",
 	"generate_apex_trigger",
+	"search_salesforce_symbols",
+	"search_salesforce_graph",
 ] as const
 
 export const toolNamesSchema = z.enum(toolNames)

@@ -13,6 +13,8 @@ export const REASONING_ALLOWED_TOOLS: readonly ToolName[] = [
 	"list_code_definition_names",
 	"get_task_guides",
 	"retrieve_sf_metadata",
+	"search_salesforce_symbols",
+	"search_salesforce_graph",
 ] as const
 
 /**
