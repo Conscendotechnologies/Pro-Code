@@ -63,6 +63,10 @@ interface LocalCodeIndexSettings {
 	codebaseIndexSearchMaxResults?: number
 	codebaseIndexSearchMinScore?: number
 
+	// Salesforce Indexing Options
+	salesforceTransactionIndexEnabled?: boolean
+	salesforceGraphIndexEnabled?: boolean
+
 	// Secret settings (start empty, will be loaded separately)
 	codeIndexOpenAiKey?: string
 	codeIndexQdrantApiKey?: string
@@ -76,10 +80,7 @@ interface LocalCodeIndexSettings {
 const createValidationSchema = (provider: EmbedderProvider, t: any) => {
 	const baseSchema = z.object({
 		codebaseIndexEnabled: z.boolean(),
-		codebaseIndexQdrantUrl: z
-			.string()
-			.min(1, t("settings:codeIndex.validation.qdrantUrlRequired"))
-			.url(t("settings:codeIndex.validation.invalidQdrantUrl")),
+		codebaseIndexQdrantUrl: z.string().optional(),
 		codeIndexQdrantApiKey: z.string().optional(),
 	})
 
@@ -174,6 +175,8 @@ export const CodeIndexPopover: React.FC<CodeIndexPopoverProps> = ({
 		codebaseIndexEmbedderModelDimension: undefined,
 		codebaseIndexSearchMaxResults: CODEBASE_INDEX_DEFAULTS.DEFAULT_SEARCH_RESULTS,
 		codebaseIndexSearchMinScore: CODEBASE_INDEX_DEFAULTS.DEFAULT_SEARCH_MIN_SCORE,
+		salesforceTransactionIndexEnabled: true,
+		salesforceGraphIndexEnabled: true,
 		codeIndexOpenAiKey: "",
 		codeIndexQdrantApiKey: "",
 		codebaseIndexOpenAiCompatibleBaseUrl: "",
@@ -208,6 +211,8 @@ export const CodeIndexPopover: React.FC<CodeIndexPopoverProps> = ({
 					codebaseIndexConfig.codebaseIndexSearchMaxResults ?? CODEBASE_INDEX_DEFAULTS.DEFAULT_SEARCH_RESULTS,
 				codebaseIndexSearchMinScore:
 					codebaseIndexConfig.codebaseIndexSearchMinScore ?? CODEBASE_INDEX_DEFAULTS.DEFAULT_SEARCH_MIN_SCORE,
+				salesforceTransactionIndexEnabled: codebaseIndexConfig.salesforceTransactionIndexEnabled ?? true,
+				salesforceGraphIndexEnabled: codebaseIndexConfig.salesforceGraphIndexEnabled ?? true,
 				codeIndexOpenAiKey: "",
 				codeIndexQdrantApiKey: "",
 				codebaseIndexOpenAiCompatibleBaseUrl: codebaseIndexConfig.codebaseIndexOpenAiCompatibleBaseUrl || "",
@@ -594,6 +599,52 @@ export const CodeIndexPopover: React.FC<CodeIndexPopoverProps> = ({
 									</ProgressPrimitive.Root>
 								</div>
 							)}
+						</div>
+
+						{/* Salesforce Indexing Options */}
+						<div className="mt-4 p-3 rounded border border-vscode-panel-border bg-vscode-sideBar-background/50 space-y-3">
+							<div className="flex items-center justify-between">
+								<h4 className="text-sm font-semibold text-vscode-foreground m-0 flex items-center gap-1.5">
+									<span className="codicon codicon-symbol-structure text-vscode-symbolIcon-classForeground" />
+									Salesforce Indexing Options
+								</h4>
+							</div>
+							<p className="text-xs text-vscode-descriptionForeground my-0">
+								Select local Salesforce indexing engines (runs offline with zero external vector
+								database required).
+							</p>
+
+							<div className="space-y-2 pt-1">
+								<div className="flex items-center gap-2">
+									<VSCodeCheckbox
+										checked={currentSettings.salesforceTransactionIndexEnabled ?? true}
+										onChange={(e: any) =>
+											updateSetting("salesforceTransactionIndexEnabled", e.target.checked)
+										}>
+										<span className="font-medium text-xs text-vscode-foreground">
+											Transactional Indexing
+										</span>
+									</VSCodeCheckbox>
+									<StandardTooltip content="Indexes 21-Step Salesforce Order of Execution timelines & auto-exports .siid-code/SALESFORCE_TRANSACTIONS.md">
+										<span className="codicon codicon-info text-xs text-vscode-descriptionForeground cursor-help" />
+									</StandardTooltip>
+								</div>
+
+								<div className="flex items-center gap-2">
+									<VSCodeCheckbox
+										checked={currentSettings.salesforceGraphIndexEnabled ?? true}
+										onChange={(e: any) =>
+											updateSetting("salesforceGraphIndexEnabled", e.target.checked)
+										}>
+										<span className="font-medium text-xs text-vscode-foreground">
+											Graph Indexing
+										</span>
+									</VSCodeCheckbox>
+									<StandardTooltip content="Indexes Salesforce Metadata Symbol Graph, AST Apex Call Graph, and Dependency Blast-Radius">
+										<span className="codicon codicon-info text-xs text-vscode-descriptionForeground cursor-help" />
+									</StandardTooltip>
+								</div>
+							</div>
 						</div>
 
 						{/* Setup Settings Disclosure */}
@@ -1196,16 +1247,15 @@ export const CodeIndexPopover: React.FC<CodeIndexPopoverProps> = ({
 
 						{/* Action Buttons */}
 						<div className="flex items-center justify-between gap-2 pt-6">
-							<div className="flex gap-2">
-								{currentSettings.codebaseIndexEnabled &&
-									(indexingStatus.systemStatus === "Error" ||
-										indexingStatus.systemStatus === "Standby") && (
-										<VSCodeButton
-											onClick={() => vscode.postMessage({ type: "startIndexing" })}
-											disabled={saveStatus === "saving" || hasUnsavedChanges}>
-											{t("settings:codeIndex.startIndexingButton")}
-										</VSCodeButton>
-									)}
+							<div className="flex gap-2 flex-wrap">
+								{currentSettings.codebaseIndexEnabled && (
+									<VSCodeButton
+										onClick={() => vscode.postMessage({ type: "startIndexing" })}
+										disabled={saveStatus === "saving"}>
+										<span className="codicon codicon-refresh mr-1" />
+										Refresh Index
+									</VSCodeButton>
+								)}
 
 								{currentSettings.codebaseIndexEnabled &&
 									(indexingStatus.systemStatus === "Indexed" ||

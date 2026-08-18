@@ -1966,6 +1966,8 @@ export class ClineProvider
 				codebaseIndexOpenAiCompatibleBaseUrl: codebaseIndexConfig?.codebaseIndexOpenAiCompatibleBaseUrl,
 				codebaseIndexSearchMaxResults: codebaseIndexConfig?.codebaseIndexSearchMaxResults,
 				codebaseIndexSearchMinScore: codebaseIndexConfig?.codebaseIndexSearchMinScore,
+				salesforceTransactionIndexEnabled: codebaseIndexConfig?.salesforceTransactionIndexEnabled ?? true,
+				salesforceGraphIndexEnabled: codebaseIndexConfig?.salesforceGraphIndexEnabled ?? true,
 			},
 			mdmCompliant: this.checkMdmCompliance(),
 			profileThresholds: profileThresholds ?? {},
@@ -2179,6 +2181,9 @@ export class ClineProvider
 					stateValues.codebaseIndexConfig?.codebaseIndexOpenAiCompatibleBaseUrl,
 				codebaseIndexSearchMaxResults: stateValues.codebaseIndexConfig?.codebaseIndexSearchMaxResults,
 				codebaseIndexSearchMinScore: stateValues.codebaseIndexConfig?.codebaseIndexSearchMinScore,
+				salesforceTransactionIndexEnabled:
+					stateValues.codebaseIndexConfig?.salesforceTransactionIndexEnabled ?? true,
+				salesforceGraphIndexEnabled: stateValues.codebaseIndexConfig?.salesforceGraphIndexEnabled ?? true,
 			},
 			profileThresholds: stateValues.profileThresholds ?? {},
 			// Add diagnostic message settings

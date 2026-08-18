@@ -44,7 +44,7 @@ export interface ExtensionStateContextType extends ExtensionState {
 	mdmCompliant?: boolean
 	hasOpenedModeSelector: boolean // New property to track if user has opened mode selector
 	setHasOpenedModeSelector: (value: boolean) => void // Setter for the new property
-	
+
 	condensingApiConfigId?: string
 	setCondensingApiConfigId: (value: string) => void
 	customCondensingPrompt?: string
@@ -139,7 +139,7 @@ export interface ExtensionStateContextType extends ExtensionState {
 	autoCondenseContextPercent: number
 	setAutoCondenseContextPercent: (value: number) => void
 	routerModels?: RouterModels
-	
+
 	alwaysAllowDeploySfMetadata?: boolean
 	setAlwaysAllowDeploySfMetadata: (value: boolean) => void
 	alwaysAllowRetrieveSfMetadata?: boolean
@@ -249,9 +249,11 @@ export const ExtensionStateContextProvider: React.FC<{ children: React.ReactNode
 			codebaseIndexEmbedderModelId: "",
 			codebaseIndexSearchMaxResults: undefined,
 			codebaseIndexSearchMinScore: undefined,
+			salesforceTransactionIndexEnabled: true,
+			salesforceGraphIndexEnabled: true,
 		},
 		codebaseIndexModels: { ollama: {}, openai: {} },
-		
+
 		includeDiagnosticMessages: true,
 		maxDiagnosticMessages: 50,
 		developerMode: false,
@@ -310,9 +312,7 @@ export const ExtensionStateContextProvider: React.FC<{ children: React.ReactNode
 					setShowLogin(shouldShowLogin)
 					setShowWelcome(shouldShowWelcome)
 					setDidHydrateState(true)
-					
-					
-					
+
 					// Update includeTaskHistoryInEnhance if present in state message
 					if ((newState as any).includeTaskHistoryInEnhance !== undefined) {
 						setIncludeTaskHistoryInEnhance((newState as any).includeTaskHistoryInEnhance)
@@ -431,7 +431,7 @@ export const ExtensionStateContextProvider: React.FC<{ children: React.ReactNode
 		marketplaceItems,
 		marketplaceInstalledMetadata,
 		profileThresholds: state.profileThresholds ?? {},
-	
+
 		setShowWelcome(value: boolean) {
 			setShowWelcome(value)
 		},
@@ -450,8 +450,7 @@ export const ExtensionStateContextProvider: React.FC<{ children: React.ReactNode
 		setAlwaysAllowMcp: (value) => setState((prevState) => ({ ...prevState, alwaysAllowMcp: value })),
 		setAlwaysAllowModeSwitch: (value) => setState((prevState) => ({ ...prevState, alwaysAllowModeSwitch: value })),
 		setAlwaysAllowSubtasks: (value) => setState((prevState) => ({ ...prevState, alwaysAllowSubtasks: value })),
-		
-		
+
 		setShowAnnouncement: (value) => setState((prevState) => ({ ...prevState, shouldShowAnnouncement: value })),
 		setAllowedCommands: (value) => setState((prevState) => ({ ...prevState, allowedCommands: value })),
 		setDeniedCommands: (value) => setState((prevState) => ({ ...prevState, deniedCommands: value })),
@@ -529,7 +528,7 @@ export const ExtensionStateContextProvider: React.FC<{ children: React.ReactNode
 		setCustomCondensingPrompt: (value) =>
 			setState((prevState) => ({ ...prevState, customCondensingPrompt: value })),
 		setProfileThresholds: (value) => setState((prevState) => ({ ...prevState, profileThresholds: value })),
-		
+
 		alwaysAllowDeploySfMetadata: state.alwaysAllowDeploySfMetadata,
 		setAlwaysAllowDeploySfMetadata: (value) => {
 			setState((prevState) => ({ ...prevState, alwaysAllowDeploySfMetadata: value }))

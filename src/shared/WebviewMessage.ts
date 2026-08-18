@@ -43,11 +43,9 @@ export interface WebviewMessage {
 		| "alwaysAllowWriteOutsideWorkspace"
 		| "alwaysAllowWriteProtected"
 		| "alwaysAllowExecute"
-		
 		| "alwaysAllowDeploySfMetadata"
 		| "alwaysAllowRetrieveSfMetadata"
 		| "useFreeModels"
-		
 		| "webviewDidLaunch"
 		| "debugStopTimer"
 		| "newTask"
@@ -87,7 +85,6 @@ export interface WebviewMessage {
 		| "allowedMaxRequests"
 		| "allowedMaxCost"
 		| "alwaysAllowSubtasks"
-	
 		| "alwaysAllowDeploySfMetadata"
 		| "alwaysAllowRetrieveSfMetadata"
 		| "autoCondenseContext"
@@ -288,6 +285,10 @@ export interface WebviewMessage {
 		codebaseIndexOpenAiCompatibleBaseUrl?: string
 		codebaseIndexSearchMaxResults?: number
 		codebaseIndexSearchMinScore?: number
+
+		// Salesforce Indexing Options
+		salesforceTransactionIndexEnabled?: boolean
+		salesforceGraphIndexEnabled?: boolean
 
 		// Secret settings
 		codeIndexOpenAiKey?: string
