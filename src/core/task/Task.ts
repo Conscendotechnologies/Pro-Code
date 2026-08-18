@@ -50,6 +50,7 @@ import { getApiMetrics } from "../../shared/getApiMetrics"
 import { ClineAskResponse } from "../../shared/WebviewMessage"
 import { defaultModeSlug } from "../../shared/modes"
 import { DiffStrategy } from "../../shared/tools"
+import { isModelUnavailableError, refreshModelList } from "../../services/model-list"
 import {
 	is429Error,
 	getNextModelOnError,
@@ -2804,6 +2805,14 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 			// Only the timeout check and 429 errors trigger model switches
 		} catch (error) {
 			this.isWaitingForFirstChunk = false
+
+			// A model the provider no longer serves means our list is stale, so
+			// refresh it: the replacement may already be published. The user is
+			// not switched automatically — the picker shows the list is short.
+			if (isModelUnavailableError(error)) {
+				refreshModelList(true).catch(() => {})
+			}
+
 			// Handle 429 errors with automatic model toggle (GLM <-> Qwen)
 			if (is429Error(error)) {
 				// Show 429 error message to user

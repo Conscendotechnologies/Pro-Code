@@ -1,6 +1,16 @@
-import { describe, it, expect } from "vitest"
+import { describe, it, expect, afterEach } from "vitest"
 
-import { MODE_TO_MODELS, getModelsForMode, getDefaultModelForMode, isModelAvailableForMode } from "../mode-models"
+import {
+	getAllModeModels,
+	getModelsForMode,
+	getDefaultModelForMode,
+	getRecommendedModelForMode,
+	isModelAvailableForMode,
+	setModelList,
+	getBundledModelList,
+	getDefaultModelId,
+} from "../mode-models"
+import { getFallbackChain, getPrimaryModel } from "../model-fallback"
 
 describe("mode-models", () => {
 	describe("getModelsForMode", () => {
@@ -18,21 +28,21 @@ describe("mode-models", () => {
 		})
 
 		it("does not fall back to a wildcard entry", () => {
-			expect(MODE_TO_MODELS["*"]).toBeUndefined()
+			expect(getAllModeModels()["*"]).toBeUndefined()
 		})
 	})
 
 	describe("list integrity", () => {
 		it("has no duplicate model ids within a mode", () => {
-			for (const mode of Object.keys(MODE_TO_MODELS)) {
-				const ids = MODE_TO_MODELS[mode].map((m) => m.modelId)
+			for (const mode of Object.keys(getAllModeModels())) {
+				const ids = getAllModeModels()[mode].map((m) => m.modelId)
 				expect(new Set(ids).size).toBe(ids.length)
 			}
 		})
 
 		it("gives every model a non-empty id and display name", () => {
-			for (const mode of Object.keys(MODE_TO_MODELS)) {
-				for (const model of MODE_TO_MODELS[mode]) {
+			for (const mode of Object.keys(getAllModeModels())) {
+				for (const model of getAllModeModels()[mode]) {
 					expect(model.modelId).toBeTruthy()
 					expect(model.displayName).toBeTruthy()
 				}
@@ -40,8 +50,8 @@ describe("mode-models", () => {
 		})
 
 		it("keeps at least one free model so the fallback chain is never empty", () => {
-			for (const mode of Object.keys(MODE_TO_MODELS)) {
-				expect(MODE_TO_MODELS[mode].some((m) => m.tier === "Free")).toBe(true)
+			for (const mode of Object.keys(getAllModeModels())) {
+				expect(getAllModeModels()[mode].some((m) => m.tier === "Free")).toBe(true)
 			}
 		})
 	})
@@ -71,5 +81,47 @@ describe("mode-models", () => {
 			const first = getModelsForMode("code")[0]
 			expect(isModelAvailableForMode("no-such-mode", first.modelId)).toBe(false)
 		})
+	})
+})
+
+describe("runtime list replacement", () => {
+	const bundled = getBundledModelList()
+
+	afterEach(() => setModelList(bundled))
+
+	it("serves the swapped list to every accessor", () => {
+		setModelList({
+			version: 1,
+			defaultModelId: "vendor/new",
+			models: [{ modelId: "vendor/new", displayName: "New", tier: "Free" }],
+			modes: { code: { recommended: "vendor/new", models: ["vendor/new"] } },
+		})
+
+		expect(getModelsForMode("code").map((m) => m.modelId)).toEqual(["vendor/new"])
+		expect(getDefaultModelForMode("code")?.modelId).toBe("vendor/new")
+		expect(getRecommendedModelForMode("code")).toBe("vendor/new")
+		expect(getDefaultModelId()).toBe("vendor/new")
+		// Modes dropped from the new list must stop offering models.
+		expect(getModelsForMode("orchestrator")).toEqual([])
+	})
+
+	it("drops a delisted model from the fallback chain", () => {
+		const before = getFallbackChain("code")
+		expect(before.length).toBeGreaterThan(1)
+
+		setModelList({
+			version: 1,
+			defaultModelId: before[1],
+			models: bundled.models.filter((m) => m.modelId !== before[0]),
+			modes: { code: { models: bundled.modes.code.models.filter((id) => id !== before[0]) } },
+		})
+
+		expect(getFallbackChain("code")).not.toContain(before[0])
+		expect(getPrimaryModel("code")).toBe(before[1])
+	})
+
+	it("restores the bundled list", () => {
+		setModelList(bundled)
+		expect(getModelsForMode("code").length).toBe(bundled.modes.code.models.length)
 	})
 })

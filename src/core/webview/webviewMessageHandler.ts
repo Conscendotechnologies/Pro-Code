@@ -46,7 +46,8 @@ import { TelemetrySetting } from "../../shared/TelemetrySetting"
 import { getWorkspacePath } from "../../utils/path"
 import { ensureSettingsDirectoryExists } from "../../utils/globalContext"
 import { Mode, defaultModeSlug } from "../../shared/modes"
-import { getModelsForMode } from "../../shared/mode-models"
+import { getModelsForMode, getModelList } from "../../shared/mode-models"
+import { refreshModelList } from "../../services/model-list"
 import { getModels, flushModels } from "../../api/providers/fetchers/modelCache"
 import { GetModelsOptions } from "../../shared/api"
 import { generateSystemPrompt } from "./generateSystemPrompt"
@@ -669,6 +670,13 @@ export const webviewMessageHandler = async (
 			const routerNameFlush: RouterName = toRouterName(message.text)
 			await flushModels(routerNameFlush)
 			break
+		case "refreshModeModelList": {
+			// Sent when the model picker opens. The fetch is throttled, so this
+			// usually returns the list already in memory.
+			await refreshModelList()
+			await provider.postMessageToWebview({ type: "modeModelList", modeModelList: getModelList() })
+			break
+		}
 		case "requestRouterModels":
 			const { apiConfiguration } = await provider.getState()
 

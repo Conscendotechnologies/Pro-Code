@@ -1,5 +1,5 @@
 import React from "react"
-import { render, screen } from "@/utils/test-utils"
+import { render, screen, fireEvent } from "@/utils/test-utils"
 import { describe, test, expect, vi, beforeEach } from "vitest"
 
 import { ModelSelector } from "../ModelSelector"
@@ -12,8 +12,23 @@ vi.mock("@/components/ui/hooks/useRooPortal", () => ({
 	useRooPortal: () => document.body,
 }))
 
+vi.mock("@/context/ExtensionStateContext", () => ({
+	useExtensionState: () => ({ modeModelListVersion: 0 }),
+}))
+
+const { mockPostMessage } = vi.hoisted(() => ({ mockPostMessage: vi.fn() }))
+
+vi.mock("@/utils/vscode", () => ({
+	vscode: { postMessage: mockPostMessage },
+}))
+
 vi.mock("@/components/ui", () => ({
-	Popover: ({ children }: any) => <div>{children}</div>,
+	Popover: ({ children, onOpenChange }: any) => (
+		<div>
+			<button data-testid="open-popover" onClick={() => onOpenChange?.(true)} />
+			{children}
+		</div>
+	),
 	PopoverTrigger: ({ children, disabled }: any) => <div data-disabled={disabled}>{children}</div>,
 	PopoverContent: ({ children }: any) => <div>{children}</div>,
 	StandardTooltip: ({ children }: any) => <>{children}</>,
@@ -91,7 +106,10 @@ describe("ModelSelector", () => {
 		// stored id and needs a visible prompt to choose again.
 		test("still renders when the stored model is no longer in the list", () => {
 			renderSelector({ value: "vendor/removed-model" })
-			expect(screen.getAllByText("vendor/removed-model").length).toBeGreaterThan(0)
+			// Prompts for a new pick rather than showing a bare id, and does not
+			// silently switch the user to another model.
+			expect(screen.getAllByText("chat:modelSelector.selectModel").length).toBeGreaterThan(0)
+			expect(screen.queryByText("vendor/removed-model")).toBeNull()
 		})
 
 		// A model that moved from free to paid drops out of the free-only list,
@@ -111,6 +129,18 @@ describe("ModelSelector", () => {
 			mockGetModelsForMode.mockReturnValue([PAID])
 			const { container } = renderSelector({ useFreeModels: true })
 			expect(container).toBeEmptyDOMElement()
+		})
+	})
+	// Opening the picker is what triggers a refresh, so a list that went stale
+	// while the window sat open is corrected at the moment it is looked at.
+	describe("refresh on open", () => {
+		test("asks the extension to refresh the list when opened", () => {
+			renderSelector()
+			expect(mockPostMessage).not.toHaveBeenCalled()
+
+			fireEvent.click(screen.getByTestId("open-popover"))
+
+			expect(mockPostMessage).toHaveBeenCalledWith({ type: "refreshModeModelList" })
 		})
 	})
 })

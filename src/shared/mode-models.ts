@@ -1,7 +1,17 @@
 /**
  * Mode-to-Models mapping
- * Defines which models are available for each mode
+ *
+ * The model list is data, not code: providers move models between free and paid,
+ * grant free access for limited windows, and delist them outright. The list is
+ * fetched at runtime (see `model-list-source.ts`) so those changes reach users
+ * without a release.
+ *
+ * The bundled JSON below is the floor, not the source of truth — it is what a
+ * fresh offline install falls back to. `setModelList` replaces it once a cached
+ * or fetched list is available.
  */
+
+import bundledModelList from "./mode-models.json"
 
 export interface ModeModelInfo {
 	modelId: string
@@ -10,82 +20,73 @@ export interface ModeModelInfo {
 	tier?: "Free" | "Basic" | "Medium" | "Advanced" | "Premium"
 }
 
-/**
- * The curated model list, in priority order: the first entry is the default and
- * the free-tier entries form the 429 fallback chain (see `model-fallback.ts`).
- * Array order IS the priority — there is no separate priority field to keep in sync.
- */
-const MODELS: ModeModelInfo[] = [
-	{ modelId: "z-ai/glm-4.5-air:free", displayName: "GLM 4.5 Air (Free)", provider: "openrouter", tier: "Free" },
-	{ modelId: "qwen/qwen3-coder:free", displayName: "Qwen3 Coder (Free)", provider: "openrouter", tier: "Free" },
-	{
-		modelId: "openai/gpt-oss-120b:free",
-		displayName: "OpenAI: gpt-oss-120b (Free)",
-		provider: "openrouter",
-		tier: "Free",
-	},
-	{
-		modelId: "openai/gpt-oss-20b:free",
-		displayName: "OpenAI: gpt-oss-20b (Free)",
-		provider: "openrouter",
-		tier: "Free",
-	},
-	{ modelId: "openai/gpt-5.4-nano", displayName: "GPT-5.4 Nano", provider: "openrouter", tier: "Medium" },
-	{ modelId: "moonshotai/kimi-k2.5", displayName: "Kimi K2.5", provider: "openrouter", tier: "Medium" },
-	{ modelId: "qwen/qwen3-32b:nitro", displayName: "Qwen3 32B (nitro)", provider: "openrouter", tier: "Medium" },
-	{
-		modelId: "meta-llama/llama-3.3-70b-instruct:nitro",
-		displayName: "Llama 3.3 70B Instruct (nitro)",
-		provider: "openrouter",
-		tier: "Medium",
-	},
-	{ modelId: "deepseek/deepseek-v3.2", displayName: "DeepSeek V3.2", provider: "openrouter", tier: "Medium" },
-	{ modelId: "openai/gpt-5-mini", displayName: "GPT-5 Mini", provider: "openrouter", tier: "Advanced" },
-	{ modelId: "openai/gpt-5.4-mini", displayName: "GPT-5.4 Mini", provider: "openrouter", tier: "Advanced" },
-	{
-		modelId: "google/gemini-3-flash-preview",
-		displayName: "Gemini 3 Flash Preview",
-		provider: "openrouter",
-		tier: "Advanced",
-	},
-	{
-		modelId: "anthropic/claude-sonnet-4.5",
-		displayName: "Claude Sonnet 4.5",
-		provider: "openrouter",
-		tier: "Premium",
-	},
-	{ modelId: "anthropic/claude-haiku-4.5", displayName: "Claude Haiku 4.5", provider: "openrouter", tier: "Premium" },
-	{ modelId: "openai/gpt-5.1", displayName: "GPT-5.1", provider: "openrouter", tier: "Premium" },
-	{ modelId: "openai/gpt-5.4", displayName: "GPT-5.4", provider: "openrouter", tier: "Premium" },
-	{ modelId: "openai/gpt-5.2-codex", displayName: "GPT-5.2 Codex", provider: "openrouter", tier: "Premium" },
-]
+/** A mode's offering: model ids in priority order, plus which one it recommends. */
+export interface ModeModelConfig {
+	recommended?: string
+	models: string[]
+}
 
-/**
- * Maps mode slugs to available models.
- * All modes currently share one list; keys stay explicit so an unknown mode
- * still resolves to an empty list rather than inheriting every model.
- */
-export const MODE_TO_MODELS: Record<string, ModeModelInfo[]> = {
-	"salesforce-agent": MODELS,
-	code: MODELS,
-	orchestrator: MODELS,
+/** The shape of the model list JSON, bundled or fetched. */
+export interface ModelListData {
+	version: number
+	defaultModelId: string
+	defaultPaidModelId?: string
+	models: ModeModelInfo[]
+	modes: Record<string, ModeModelConfig>
 }
 
 /**
- * The model each mode recommends. Kept out of the shared list because it is
- * per-mode presentation: the UI appends the suffix.
+ * The active list. Starts as the bundled copy so lookups work before any
+ * network call, and is swapped wholesale by `setModelList`.
  */
-const MODE_RECOMMENDED_MODEL: Record<string, string> = {
-	"salesforce-agent": "qwen/qwen3-coder:free",
-	code: "qwen/qwen3-coder:free",
-	orchestrator: "qwen/qwen3-coder:free",
+let activeList: ModelListData = bundledModelList as ModelListData
+
+/** Resolved per mode and rebuilt on swap, since lookups happen on hot paths. */
+let modelsByMode: Record<string, ModeModelInfo[]> = {}
+
+function rebuildIndex() {
+	const byId = new Map(activeList.models.map((model) => [model.modelId, model]))
+	const next: Record<string, ModeModelInfo[]> = {}
+
+	for (const [mode, config] of Object.entries(activeList.modes)) {
+		next[mode] = config.models
+			.map((modelId) => byId.get(modelId))
+			.filter((model): model is ModeModelInfo => model !== undefined)
+			// The list omits `provider` when it is the default.
+			.map((model) => ({ provider: "openrouter" as const, ...model }))
+	}
+
+	modelsByMode = next
+}
+
+rebuildIndex()
+
+/**
+ * Replace the active model list. Callers are responsible for validating the
+ * data first (see `parseModelList`); this trusts what it is given.
+ */
+export function setModelList(data: ModelListData): void {
+	activeList = data
+	rebuildIndex()
+}
+
+/** The list currently in use, for diagnostics. */
+export function getModelList(): ModelListData {
+	return activeList
+}
+
+/** The list compiled into this build, used as the offline floor. */
+export function getBundledModelList(): ModelListData {
+	return bundledModelList as ModelListData
 }
 
 /**
- * Get the model id a mode recommends, if any
+ * Every mode that offers models, mapped to its list. The key set is the
+ * allowlist: a mode absent from it resolves to an empty array, which callers
+ * read as "no model picker here".
  */
-export function getRecommendedModelForMode(modeSlug: string): string | undefined {
-	return MODE_RECOMMENDED_MODEL[modeSlug]
+export function getAllModeModels(): Record<string, ModeModelInfo[]> {
+	return modelsByMode
 }
 
 /**
@@ -93,7 +94,7 @@ export function getRecommendedModelForMode(modeSlug: string): string | undefined
  * Returns empty array if mode not found
  */
 export function getModelsForMode(modeSlug: string): ModeModelInfo[] {
-	return MODE_TO_MODELS[modeSlug] || []
+	return modelsByMode[modeSlug] || []
 }
 
 /**
@@ -101,14 +102,33 @@ export function getModelsForMode(modeSlug: string): ModeModelInfo[] {
  * Returns undefined if mode not found or no models available
  */
 export function getDefaultModelForMode(modeSlug: string): ModeModelInfo | undefined {
-	const models = getModelsForMode(modeSlug)
-	return models[0]
+	return getModelsForMode(modeSlug)[0]
+}
+
+/**
+ * Get the model id a mode recommends, if any
+ */
+export function getRecommendedModelForMode(modeSlug: string): string | undefined {
+	return activeList.modes[modeSlug]?.recommended
 }
 
 /**
  * Check if a model is available for a mode
  */
 export function isModelAvailableForMode(modeSlug: string, modelId: string): boolean {
-	const models = getModelsForMode(modeSlug)
-	return models.some((m) => m.modelId === modelId)
+	return getModelsForMode(modeSlug).some((m) => m.modelId === modelId)
+}
+
+/**
+ * The model a fresh install starts on
+ */
+export function getDefaultModelId(): string {
+	return activeList.defaultModelId
+}
+
+/**
+ * The model a fresh install starts on for the paid profile
+ */
+export function getDefaultPaidModelId(): string | undefined {
+	return activeList.defaultPaidModelId
 }

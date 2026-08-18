@@ -5,6 +5,8 @@ import { useRooPortal } from "@/components/ui/hooks/useRooPortal"
 import { Popover, PopoverContent, PopoverTrigger, StandardTooltip } from "@/components/ui"
 import { useAppTranslation } from "@/i18n/TranslationContext"
 import { getModelsForMode, getRecommendedModelForMode } from "@roo/mode-models"
+import { useExtensionState } from "@/context/ExtensionStateContext"
+import { vscode } from "@/utils/vscode"
 import { Mode } from "@roo/modes"
 
 interface ModelSelectorProps {
@@ -31,6 +33,16 @@ export const ModelSelector = ({
 	const [open, setOpen] = React.useState(false)
 	const portalContainer = useRooPortal("roo-portal")
 	const { t } = useAppTranslation()
+	const { modeModelListVersion } = useExtensionState()
+
+	// Opening the picker is the moment the list has to be right, so it doubles
+	// as the refresh trigger. The extension throttles, so reopening is cheap.
+	const handleOpenChange = React.useCallback((isOpen: boolean) => {
+		setOpen(isOpen)
+		if (isOpen) {
+			vscode.postMessage({ type: "refreshModeModelList" })
+		}
+	}, [])
 	const formatTierLabel = React.useCallback((tier: string) => {
 		if (!tier) return tier
 		return tier.charAt(0).toUpperCase() + tier.slice(1)
@@ -62,7 +74,9 @@ export const ModelSelector = ({
 		// Show only free tier models when useFreeModels is enabled,
 		// otherwise show everything (free and paid)
 		return useFreeModels === true ? labelled.filter((model) => model.tier === "Free") : labelled
-	}, [mode, useFreeModels, developerMode])
+		// modeModelListVersion is the signal that the shared list was replaced.
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [mode, useFreeModels, developerMode, modeModelListVersion])
 
 	// Find the selected model info
 	const selectedModel = React.useMemo(() => {
@@ -82,7 +96,10 @@ export const ModelSelector = ({
 		return null
 	}
 
-	const displayName = selectedModel?.displayName || value
+	// A stored model that is no longer offered (delisted by the provider, or
+	// filtered out) has no entry to name. Prompt for a new one rather than
+	// showing a bare id, and never switch on the user's behalf.
+	const displayName = selectedModel?.displayName || t("chat:modelSelector.selectModel")
 
 	const triggerContent = (
 		<PopoverTrigger
@@ -109,7 +126,7 @@ export const ModelSelector = ({
 	)
 
 	return (
-		<Popover open={open} onOpenChange={setOpen}>
+		<Popover open={open} onOpenChange={handleOpenChange}>
 			{title ? <StandardTooltip content={title}>{triggerContent}</StandardTooltip> : triggerContent}
 			<PopoverContent
 				align="start"

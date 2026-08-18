@@ -1,0 +1,160 @@
+{
+	"version": 1,
+	"defaultModelId": "z-ai/glm-4.5-air:free",
+	"defaultPaidModelId": "openai/gpt-5-mini",
+	"models": [
+		{
+			"modelId": "z-ai/glm-4.5-air:free",
+			"displayName": "GLM 4.5 Air (Free)",
+			"tier": "Free"
+		},
+		{
+			"modelId": "qwen/qwen3-coder:free",
+			"displayName": "Qwen3 Coder (Free)",
+			"tier": "Free"
+		},
+		{
+			"modelId": "openai/gpt-oss-120b:free",
+			"displayName": "OpenAI: gpt-oss-120b (Free)",
+			"tier": "Free"
+		},
+		{
+			"modelId": "openai/gpt-oss-20b:free",
+			"displayName": "OpenAI: gpt-oss-20b (Free)",
+			"tier": "Free"
+		},
+		{
+			"modelId": "openai/gpt-5.4-nano",
+			"displayName": "GPT-5.4 Nano",
+			"tier": "Medium"
+		},
+		{
+			"modelId": "moonshotai/kimi-k2.5",
+			"displayName": "Kimi K2.5",
+			"tier": "Medium"
+		},
+		{
+			"modelId": "qwen/qwen3-32b:nitro",
+			"displayName": "Qwen3 32B (nitro)",
+			"tier": "Medium"
+		},
+		{
+			"modelId": "meta-llama/llama-3.3-70b-instruct:nitro",
+			"displayName": "Llama 3.3 70B Instruct (nitro)",
+			"tier": "Medium"
+		},
+		{
+			"modelId": "deepseek/deepseek-v3.2",
+			"displayName": "DeepSeek V3.2",
+			"tier": "Medium"
+		},
+		{
+			"modelId": "openai/gpt-5-mini",
+			"displayName": "GPT-5 Mini",
+			"tier": "Advanced"
+		},
+		{
+			"modelId": "openai/gpt-5.4-mini",
+			"displayName": "GPT-5.4 Mini",
+			"tier": "Advanced"
+		},
+		{
+			"modelId": "google/gemini-3-flash-preview",
+			"displayName": "Gemini 3 Flash Preview",
+			"tier": "Advanced"
+		},
+		{
+			"modelId": "anthropic/claude-sonnet-4.5",
+			"displayName": "Claude Sonnet 4.5",
+			"tier": "Premium"
+		},
+		{
+			"modelId": "anthropic/claude-haiku-4.5",
+			"displayName": "Claude Haiku 4.5",
+			"tier": "Premium"
+		},
+		{
+			"modelId": "openai/gpt-5.1",
+			"displayName": "GPT-5.1",
+			"tier": "Premium"
+		},
+		{
+			"modelId": "openai/gpt-5.4",
+			"displayName": "GPT-5.4",
+			"tier": "Premium"
+		},
+		{
+			"modelId": "openai/gpt-5.2-codex",
+			"displayName": "GPT-5.2 Codex",
+			"tier": "Premium"
+		}
+	],
+	"modes": {
+		"salesforce-agent": {
+			"recommended": "qwen/qwen3-coder:free",
+			"models": [
+				"z-ai/glm-4.5-air:free",
+				"qwen/qwen3-coder:free",
+				"openai/gpt-oss-120b:free",
+				"openai/gpt-oss-20b:free",
+				"openai/gpt-5.4-nano",
+				"moonshotai/kimi-k2.5",
+				"qwen/qwen3-32b:nitro",
+				"meta-llama/llama-3.3-70b-instruct:nitro",
+				"deepseek/deepseek-v3.2",
+				"openai/gpt-5-mini",
+				"openai/gpt-5.4-mini",
+				"google/gemini-3-flash-preview",
+				"anthropic/claude-sonnet-4.5",
+				"anthropic/claude-haiku-4.5",
+				"openai/gpt-5.1",
+				"openai/gpt-5.4",
+				"openai/gpt-5.2-codex"
+			]
+		},
+		"code": {
+			"recommended": "qwen/qwen3-coder:free",
+			"models": [
+				"z-ai/glm-4.5-air:free",
+				"qwen/qwen3-coder:free",
+				"openai/gpt-oss-120b:free",
+				"openai/gpt-oss-20b:free",
+				"openai/gpt-5.4-nano",
+				"moonshotai/kimi-k2.5",
+				"qwen/qwen3-32b:nitro",
+				"meta-llama/llama-3.3-70b-instruct:nitro",
+				"deepseek/deepseek-v3.2",
+				"openai/gpt-5-mini",
+				"openai/gpt-5.4-mini",
+				"google/gemini-3-flash-preview",
+				"anthropic/claude-sonnet-4.5",
+				"anthropic/claude-haiku-4.5",
+				"openai/gpt-5.1",
+				"openai/gpt-5.4",
+				"openai/gpt-5.2-codex"
+			]
+		},
+		"orchestrator": {
+			"recommended": "qwen/qwen3-coder:free",
+			"models": [
+				"z-ai/glm-4.5-air:free",
+				"qwen/qwen3-coder:free",
+				"openai/gpt-oss-120b:free",
+				"openai/gpt-oss-20b:free",
+				"openai/gpt-5.4-nano",
+				"moonshotai/kimi-k2.5",
+				"qwen/qwen3-32b:nitro",
+				"meta-llama/llama-3.3-70b-instruct:nitro",
+				"deepseek/deepseek-v3.2",
+				"openai/gpt-5-mini",
+				"openai/gpt-5.4-mini",
+				"google/gemini-3-flash-preview",
+				"anthropic/claude-sonnet-4.5",
+				"anthropic/claude-haiku-4.5",
+				"openai/gpt-5.1",
+				"openai/gpt-5.4",
+				"openai/gpt-5.2-codex"
+			]
+		}
+	}
+}
