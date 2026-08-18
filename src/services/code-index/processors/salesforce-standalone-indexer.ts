@@ -445,7 +445,10 @@ export class SalesforceStandaloneIndexer implements vscode.Disposable {
 						results.push(...subFiles)
 					}
 				} else if (entry.isFile()) {
-					if (SF_INDEXED_SUFFIXES.some((s) => lowerName.endsWith(s.toLowerCase()))) {
+					if (
+						SF_INDEXED_SUFFIXES.some((s) => lowerName.endsWith(s.toLowerCase())) ||
+						lowerName.endsWith("-meta.xml")
+					) {
 						results.push(fullPath)
 					}
 				}
