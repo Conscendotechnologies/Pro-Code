@@ -33,10 +33,11 @@ const FETCH_TIMEOUT_MS = 15000
 
 /**
  * Opening the model dropdown triggers a refresh, so repeated opens are
- * collapsed into one request. Long enough to keep clicking cheap, short enough
- * that a user who reopens the dropdown after a fix still sees it.
+ * collapsed into one request. Deliberately short: the payload is a few KB and
+ * CDN-cached, and the case that matters is someone publishing a fix and
+ * reopening the picker to see it. A longer window mostly serves stale data.
  */
-const THROTTLE_MS = 15 * 60 * 1000
+const THROTTLE_MS = 60 * 1000
 
 let lastFetchAt = 0
 let inFlight: Promise<boolean> | null = null
@@ -70,8 +71,11 @@ export async function loadCachedModelList(): Promise<ModelListData | undefined> 
 }
 
 /**
- * Apply the cached list, if any. Called once at startup so the first dropdown
- * render is already correct, without waiting on the network.
+ * Apply the cached list, then refresh from the network in the background.
+ *
+ * The cache is awaited so the first dropdown render is already correct offline.
+ * The fetch deliberately is not: it must never delay activation, and whatever
+ * it returns arrives well before anyone opens the model picker.
  */
 export async function initializeModelList(): Promise<void> {
 	const cached = await loadCachedModelList()
@@ -79,6 +83,9 @@ export async function initializeModelList(): Promise<void> {
 		setModelList(cached)
 		console.log(`[model-list] loaded ${cached.models.length} models from cache`)
 	}
+
+	// Not awaited: a slow or unreachable network must not hold up startup.
+	void refreshModelList(true).catch(() => {})
 }
 
 /**
@@ -91,12 +98,22 @@ export async function initializeModelList(): Promise<void> {
  * @param force skip the throttle (used when a request failed because a model is gone)
  */
 export async function refreshModelList(force = false): Promise<boolean> {
-	if (!force && Date.now() - lastFetchAt < THROTTLE_MS) return false
+	const sinceLastFetch = Date.now() - lastFetchAt
+	if (!force && sinceLastFetch < THROTTLE_MS) {
+		// Logged because a silent skip looks identical to a fetch that returned
+		// stale data, which makes "my edit did not show up" hard to diagnose.
+		console.log(`[model-list] refresh skipped: throttled, last fetch ${Math.round(sinceLastFetch / 1000)}s ago`)
+		return false
+	}
 
 	// Collapse concurrent callers onto one request.
 	if (inFlight) return inFlight
 
 	inFlight = (async () => {
+		// Stamped on attempt rather than on success: a failing network would
+		// otherwise leave this at 0 and retry on every single dropdown open.
+		lastFetchAt = Date.now()
+
 		try {
 			const response = await axios.get(MODEL_LIST_URL, {
 				timeout: FETCH_TIMEOUT_MS,
@@ -111,7 +128,6 @@ export async function refreshModelList(force = false): Promise<boolean> {
 				return false
 			}
 
-			lastFetchAt = Date.now()
 			setModelList(result.data)
 			console.log(`[model-list] updated to ${result.data.models.length} models from ${MODEL_LIST_URL}`)
 
