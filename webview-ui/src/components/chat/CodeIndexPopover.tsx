@@ -63,69 +63,15 @@ interface LocalCodeIndexSettings {
 }
 
 // Validation schema for codebase index settings
-const createValidationSchema = (provider: EmbedderProvider, t: any) => {
-	const baseSchema = z.object({
+const createValidationSchema = (_provider: EmbedderProvider, _t: any) => {
+	return z.object({
 		codebaseIndexEnabled: z.boolean(),
+		salesforceTransactionIndexEnabled: z.boolean().optional(),
+		salesforceGraphIndexEnabled: z.boolean().optional(),
+		salesforceSymbolIndexEnabled: z.boolean().optional(),
 		codebaseIndexQdrantUrl: z.string().optional(),
 		codeIndexQdrantApiKey: z.string().optional(),
 	})
-
-	switch (provider) {
-		case "openai":
-			return baseSchema.extend({
-				codeIndexOpenAiKey: z.string().min(1, t("settings:codeIndex.validation.openaiApiKeyRequired")),
-				codebaseIndexEmbedderModelId: z
-					.string()
-					.min(1, t("settings:codeIndex.validation.modelSelectionRequired")),
-			})
-
-		case "ollama":
-			return baseSchema.extend({
-				codebaseIndexEmbedderBaseUrl: z
-					.string()
-					.min(1, t("settings:codeIndex.validation.ollamaBaseUrlRequired"))
-					.url(t("settings:codeIndex.validation.invalidOllamaUrl")),
-				codebaseIndexEmbedderModelId: z.string().min(1, t("settings:codeIndex.validation.modelIdRequired")),
-				codebaseIndexEmbedderModelDimension: z
-					.number()
-					.min(1, t("settings:codeIndex.validation.modelDimensionRequired"))
-					.optional(),
-			})
-
-		case "openai-compatible":
-			return baseSchema.extend({
-				codebaseIndexOpenAiCompatibleBaseUrl: z
-					.string()
-					.min(1, t("settings:codeIndex.validation.baseUrlRequired"))
-					.url(t("settings:codeIndex.validation.invalidBaseUrl")),
-				codebaseIndexOpenAiCompatibleApiKey: z
-					.string()
-					.min(1, t("settings:codeIndex.validation.apiKeyRequired")),
-				codebaseIndexEmbedderModelId: z.string().min(1, t("settings:codeIndex.validation.modelIdRequired")),
-				codebaseIndexEmbedderModelDimension: z
-					.number()
-					.min(1, t("settings:codeIndex.validation.modelDimensionRequired")),
-			})
-
-		case "gemini":
-			return baseSchema.extend({
-				codebaseIndexGeminiApiKey: z.string().min(1, t("settings:codeIndex.validation.geminiApiKeyRequired")),
-				codebaseIndexEmbedderModelId: z
-					.string()
-					.min(1, t("settings:codeIndex.validation.modelSelectionRequired")),
-			})
-
-		case "mistral":
-			return baseSchema.extend({
-				codebaseIndexMistralApiKey: z.string().min(1, t("settings:codeIndex.validation.mistralApiKeyRequired")),
-				codebaseIndexEmbedderModelId: z
-					.string()
-					.min(1, t("settings:codeIndex.validation.modelSelectionRequired")),
-			})
-
-		default:
-			return baseSchema
-	}
 }
 
 export const CodeIndexPopover: React.FC<CodeIndexPopoverProps> = ({
@@ -161,6 +107,7 @@ export const CodeIndexPopover: React.FC<CodeIndexPopoverProps> = ({
 		codebaseIndexSearchMinScore: CODEBASE_INDEX_DEFAULTS.DEFAULT_SEARCH_MIN_SCORE,
 		salesforceTransactionIndexEnabled: true,
 		salesforceGraphIndexEnabled: true,
+		salesforceSymbolIndexEnabled: true,
 		codeIndexOpenAiKey: "",
 		codeIndexQdrantApiKey: "",
 		codebaseIndexOpenAiCompatibleBaseUrl: "",
@@ -180,10 +127,10 @@ export const CodeIndexPopover: React.FC<CodeIndexPopoverProps> = ({
 		setIndexingStatus(externalIndexingStatus)
 	}, [externalIndexingStatus])
 
-	// Initialize settings from global state
+	// Hydrate settings when codebaseIndexConfig changes
 	useEffect(() => {
 		if (codebaseIndexConfig) {
-			const settings = {
+			const settings: LocalCodeIndexSettings = {
 				codebaseIndexEnabled: codebaseIndexConfig.codebaseIndexEnabled ?? true,
 				codebaseIndexQdrantUrl: codebaseIndexConfig.codebaseIndexQdrantUrl || "",
 				codebaseIndexEmbedderProvider: codebaseIndexConfig.codebaseIndexEmbedderProvider || "openai",
@@ -197,6 +144,7 @@ export const CodeIndexPopover: React.FC<CodeIndexPopoverProps> = ({
 					codebaseIndexConfig.codebaseIndexSearchMinScore ?? CODEBASE_INDEX_DEFAULTS.DEFAULT_SEARCH_MIN_SCORE,
 				salesforceTransactionIndexEnabled: codebaseIndexConfig.salesforceTransactionIndexEnabled ?? true,
 				salesforceGraphIndexEnabled: codebaseIndexConfig.salesforceGraphIndexEnabled ?? true,
+				salesforceSymbolIndexEnabled: codebaseIndexConfig.salesforceSymbolIndexEnabled ?? true,
 				codeIndexOpenAiKey: "",
 				codeIndexQdrantApiKey: "",
 				codebaseIndexOpenAiCompatibleBaseUrl: codebaseIndexConfig.codebaseIndexOpenAiCompatibleBaseUrl || "",
@@ -556,13 +504,31 @@ export const CodeIndexPopover: React.FC<CodeIndexPopoverProps> = ({
 							<div className="text-sm text-vscode-descriptionForeground">
 								<span
 									className={cn("inline-block w-3 h-3 rounded-full mr-2", {
-										"bg-gray-400": indexingStatus.systemStatus === "Standby",
-										"bg-yellow-500 animate-pulse": indexingStatus.systemStatus === "Indexing",
-										"bg-green-500": indexingStatus.systemStatus === "Indexed",
-										"bg-red-500": indexingStatus.systemStatus === "Error",
+										"bg-gray-400":
+											indexingStatus.systemStatus === "Standby" &&
+											(!salesforceProgress || salesforceProgress.phase === "COMPLETE"),
+										"bg-yellow-500 animate-pulse":
+											indexingStatus.systemStatus === "Indexing" ||
+											(salesforceProgress &&
+												salesforceProgress.phase !== "COMPLETE" &&
+												salesforceProgress.phase !== "ERROR"),
+										"bg-green-500":
+											indexingStatus.systemStatus === "Indexed" ||
+											salesforceProgress?.phase === "COMPLETE",
+										"bg-red-500":
+											indexingStatus.systemStatus === "Error" ||
+											salesforceProgress?.phase === "ERROR",
 									})}
 								/>
-								{t(`settings:codeIndex.indexingStatuses.${indexingStatus.systemStatus.toLowerCase()}`)}
+								<span>
+									{salesforceProgress &&
+									salesforceProgress.phase !== "COMPLETE" &&
+									salesforceProgress.phase !== "ERROR"
+										? "Indexing..."
+										: t(
+												`settings:codeIndex.indexingStatuses.${indexingStatus.systemStatus.toLowerCase()}`,
+											)}
+								</span>
 								{indexingStatus.message ? ` - ${indexingStatus.message}` : ""}
 							</div>
 

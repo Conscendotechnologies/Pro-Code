@@ -175,7 +175,11 @@ export const SalesforceFullOverlayLoader: React.FC<SalesforceFullOverlayLoaderPr
 	}
 
 	return (
-		<div className="fixed inset-0 z-[99999] flex flex-col items-center justify-center bg-gradient-to-b from-[#EEF4FB] via-[#F4F8FC] to-[#E8F0FA] text-[#2C3E60] font-sans p-6 select-none overflow-hidden animate-fadeIn">
+		<div
+			role="dialog"
+			aria-modal="true"
+			aria-label="Salesforce Indexing Progress"
+			className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-gradient-to-b from-[#EEF4FB] via-[#F4F8FC] to-[#E8F0FA] text-[#2C3E60] font-sans p-6 select-none overflow-y-auto animate-fadeIn">
 			{/* Soft Subtle Hexagon Pattern Background */}
 			<div
 				className="absolute inset-0 opacity-[0.25] pointer-events-none"

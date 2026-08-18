@@ -37,6 +37,7 @@ export const codebaseIndexConfigSchema = z.object({
 	// Salesforce Indexing Options
 	salesforceTransactionIndexEnabled: z.boolean().optional(),
 	salesforceGraphIndexEnabled: z.boolean().optional(),
+	salesforceSymbolIndexEnabled: z.boolean().optional(),
 })
 
 export type CodebaseIndexConfig = z.infer<typeof codebaseIndexConfigSchema>

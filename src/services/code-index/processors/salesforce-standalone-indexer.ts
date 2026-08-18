@@ -56,7 +56,7 @@ export interface SalesforceIndexingProgress {
 
 /**
  * Standalone Local Salesforce Codebase Indexer & File Watcher.
- * Operates 100% offline with zero reliance on CodeIndexManager, Qdrant, or external vector APIs.
+ * Operates 100% offline with zero reliance on external vector database APIs.
  */
 export class SalesforceStandaloneIndexer implements vscode.Disposable {
 	private static instances: Map<string, SalesforceStandaloneIndexer> = new Map()
@@ -66,6 +66,7 @@ export class SalesforceStandaloneIndexer implements vscode.Disposable {
 	private graphEngine: SalesforceGraphEngine
 	private vectorIndexer: SalesforceVectorIndexer
 	private isIndexing = false
+	private lastIndexTimestamp = 0
 	private watchers: vscode.FileSystemWatcher[] = []
 	private debounceTimer: NodeJS.Timeout | null = null
 	private progressListeners: ((progress: SalesforceIndexingProgress) => void)[] = []
@@ -77,6 +78,10 @@ export class SalesforceStandaloneIndexer implements vscode.Disposable {
 		this.indexer = SalesforceMetadataIndexer.getInstance(workspaceRoot)
 		this.graphEngine = SalesforceGraphEngine.getInstance(workspaceRoot)
 		this.vectorIndexer = SalesforceVectorIndexer.getInstance(workspaceRoot)
+	}
+
+	public getIsIndexing(): boolean {
+		return this.isIndexing
 	}
 
 	public onProgress(listener: (progress: SalesforceIndexingProgress) => void): vscode.Disposable {
@@ -127,6 +132,7 @@ export class SalesforceStandaloneIndexer implements vscode.Disposable {
 			}
 			await this.scanWorkspace()
 			this.setupFileWatcher()
+			this.lastIndexTimestamp = Date.now()
 
 			// Auto-export transaction index on initialize
 			const { exportTransactionIndex } = await import("./salesforce-transaction")
@@ -151,16 +157,17 @@ export class SalesforceStandaloneIndexer implements vscode.Disposable {
 	}
 
 	/**
-	 * Full Scratch Re-index: Clears all memory/disk graph caches, retrieves all Salesforce metadata from scratch,
-	 * parses ASTs, maps execution timelines, and emits real-time progress callbacks to the UI.
+	 * Full Scratch Re-index: Clears all memory/disk graph caches, parses workspace files,
+	 * maps execution timelines, and emits real-time progress callbacks to the UI.
+	 * @param retrieveFromOrg - Only executes `sf project retrieve start` if user explicitly confirmed.
 	 */
-	public async indexFromScratch(): Promise<void> {
+	public async indexFromScratch(retrieveFromOrg: boolean = false): Promise<void> {
 		if (this.isIndexing) return
 		this.isIndexing = true
 		const startTime = Date.now()
 
 		try {
-			// Phase 1: Reset & Discover Org Metadata via SF CLI or Workspace
+			// Phase 1: Reset & Discover Org Metadata
 			this.indexer.clear()
 			this.graphEngine.clear()
 			this.vectorIndexer.clear()
@@ -169,86 +176,99 @@ export class SalesforceStandaloneIndexer implements vscode.Disposable {
 				phase: "DISCOVERING",
 				currentStep: 1,
 				totalSteps: 4,
-				currentFile: "Discovering connected Salesforce Org...",
+				currentFile: retrieveFromOrg
+					? "Retrieving metadata from connected Salesforce Org..."
+					: "Discovering workspace Salesforce files...",
 				itemsProcessed: 0,
 				totalItems: 0,
 			})
 
-			// Check for sfdx-project.json and attempt SF CLI org retrieval if connected
-			try {
-				const sfdxProjectPath = path.join(this.workspaceRoot, "sfdx-project.json")
-				const manifestPath = path.join(this.workspaceRoot, "manifest", "package.xml")
-				const hasSfdxProject = await fs
-					.stat(sfdxProjectPath)
-					.then(() => true)
-					.catch(() => false)
-
-				if (hasSfdxProject) {
-					const hasManifest = await fs
-						.stat(manifestPath)
+			// Only execute CLI retrieve if user explicitly confirmed in modal dialog
+			if (retrieveFromOrg) {
+				try {
+					const sfdxProjectPath = path.join(this.workspaceRoot, "sfdx-project.json")
+					const manifestPath = path.join(this.workspaceRoot, "manifest", "package.xml")
+					const hasSfdxProject = await fs
+						.stat(sfdxProjectPath)
 						.then(() => true)
 						.catch(() => false)
 
-					const metadataList = [
-						"ApexClass",
-						"ApexTrigger",
-						"CustomObject",
-						"CustomField",
-						"LightningComponentBundle",
-						"AuraDefinitionBundle",
-						"Flow",
-						"ValidationRule",
-						"Workflow",
-						"DuplicateRule",
-						"MatchingRule",
-						"AssignmentRules",
-						"AutoResponseRules",
-						"EscalationRules",
-						"SharingRules",
-						"EntitlementProcess",
-						"FlexiPage",
-						"Layout",
-						"PermissionSet",
-						"PermissionSetGroup",
-						"CustomTab",
-						"PathAssistant",
-						"ApexPage",
-						"StaticResource",
-						"CustomLabel",
-						"GenAiPlanner",
-						"GenAiAgent",
-						"Bot",
-					].join(",")
+					if (hasSfdxProject) {
+						const hasManifest = await fs
+							.stat(manifestPath)
+							.then(() => true)
+							.catch(() => false)
 
-					const cmd = hasManifest
-						? "sf project retrieve start --manifest manifest/package.xml --json"
-						: `sf project retrieve start --metadata "${metadataList}" --json`
+						const metadataList = [
+							"ApexClass",
+							"ApexTrigger",
+							"CustomObject",
+							"CustomField",
+							"LightningComponentBundle",
+							"AuraDefinitionBundle",
+							"Flow",
+							"ValidationRule",
+							"Workflow",
+							"DuplicateRule",
+							"MatchingRule",
+							"AssignmentRules",
+							"AutoResponseRules",
+							"EscalationRules",
+							"SharingRules",
+							"EntitlementProcess",
+							"FlexiPage",
+							"Layout",
+							"PermissionSet",
+							"PermissionSetGroup",
+							"CustomTab",
+							"PathAssistant",
+							"ApexPage",
+							"StaticResource",
+							"CustomLabel",
+							"GenAiPlanner",
+							"GenAiAgent",
+							"Bot",
+						].join(",")
 
-					this.emitProgress({
-						phase: "DISCOVERING",
-						currentStep: 1,
-						totalSteps: 4,
-						currentFile: `Executing SF CLI retrieval (${hasManifest ? "manifest/package.xml" : "28 metadata types"})...`,
-						itemsProcessed: 0,
-						totalItems: 0,
-					})
+						const cmd = hasManifest
+							? "sf project retrieve start --manifest manifest/package.xml --json"
+							: `sf project retrieve start --metadata "${metadataList}" --json`
 
-					const { exec } = await import("child_process")
-					const { promisify } = await import("util")
-					const execAsync = promisify(exec)
-					await execAsync(cmd, {
-						cwd: this.workspaceRoot,
-						timeout: 30000,
-					}).catch(() => null)
+						this.emitProgress({
+							phase: "DISCOVERING",
+							currentStep: 1,
+							totalSteps: 4,
+							currentFile: `Executing SF CLI retrieval (${hasManifest ? "manifest/package.xml" : "28 metadata types"})...`,
+							itemsProcessed: 0,
+							totalItems: 0,
+						})
+
+						const { exec } = await import("child_process")
+						const { promisify } = await import("util")
+						const execAsync = promisify(exec)
+						await execAsync(cmd, {
+							cwd: this.workspaceRoot,
+							timeout: 180000, // 3 minutes timeout
+						}).catch(() => {
+							this.emitProgress({
+								phase: "DISCOVERING",
+								currentStep: 1,
+								totalSteps: 4,
+								currentFile: "Org retrieval skipped or timed out; indexing local files...",
+								itemsProcessed: 0,
+								totalItems: 0,
+							})
+						})
+					}
+				} catch (e) {
+					// Fallback to local files
 				}
-			} catch (e) {
-				// Fallback to local files if CLI is unauthenticated or times out
 			}
 
 			const files = await this.findSalesforceFiles(this.workspaceRoot)
 			const totalItems = files.length
 
-			// Phase 2: Retrieve & Parse Metadata
+			// Phase 2: Batch Retrieve & Parse Metadata in Chunks of 50
 			this.emitProgress({
 				phase: "RETRIEVING_METADATA",
 				currentStep: 2,
@@ -258,86 +278,78 @@ export class SalesforceStandaloneIndexer implements vscode.Disposable {
 			})
 
 			let processedCount = 0
-			for (const filePath of files) {
-				try {
-					const content = await fs.readFile(filePath, "utf-8")
-					await this.indexer.indexFile(filePath, content)
-					await this.graphEngine.indexFileForGraph(filePath, content)
+			let lastEmitTime = 0
+			const chunkSize = 50
 
-					const baseName = path.basename(filePath)
-					const lowerPath = filePath.toLowerCase()
-					const docType:
-						| "APEX"
-						| "TRIGGER"
-						| "OBJECT"
-						| "FLOW"
-						| "VALIDATION"
-						| "LWC"
-						| "AURA"
-						| "FLEXIPAGE"
-						| "LAYOUT"
-						| "OTHER" = baseName.endsWith(".cls")
-						? "APEX"
-						: baseName.endsWith(".trigger")
-							? "TRIGGER"
-							: baseName.endsWith(".flow-meta.xml")
-								? "FLOW"
-								: baseName.endsWith(".validationRule-meta.xml")
-									? "VALIDATION"
-									: baseName.includes("object-meta") || baseName.includes("field-meta")
-										? "OBJECT"
-										: lowerPath.includes("/lwc/")
-											? "LWC"
-											: lowerPath.includes("/aura/") || baseName.endsWith(".cmp")
-												? "AURA"
-												: baseName.endsWith(".flexipage-meta.xml")
-													? "FLEXIPAGE"
-													: baseName.endsWith(".layout-meta.xml")
-														? "LAYOUT"
-														: "OTHER"
+			for (let i = 0; i < files.length; i += chunkSize) {
+				const chunk = files.slice(i, i + chunkSize)
+				await Promise.all(
+					chunk.map(async (filePath) => {
+						try {
+							const content = await fs.readFile(filePath, "utf-8")
+							await this.indexer.indexFile(filePath, content)
+							await this.graphEngine.indexFileForGraph(filePath, content)
 
-					const vectorDocType: "APEX" | "FLOW" | "OBJECT" =
-						baseName.endsWith(".cls") || baseName.endsWith(".trigger")
-							? "APEX"
-							: baseName.endsWith(".flow-meta.xml")
-								? "FLOW"
-								: "OBJECT"
+							const baseName = path.basename(filePath)
+							const isVectorTarget =
+								baseName.endsWith(".cls") ||
+								baseName.endsWith(".trigger") ||
+								baseName.endsWith(".object-meta.xml") ||
+								baseName.endsWith(".field-meta.xml") ||
+								baseName.endsWith(".flow-meta.xml") ||
+								baseName.endsWith(".validationRule-meta.xml")
 
-					this.vectorIndexer.indexDocument(filePath, baseName, content, vectorDocType, filePath)
+							if (isVectorTarget) {
+								const vectorDocType =
+									baseName.endsWith(".cls") || baseName.endsWith(".trigger")
+										? "APEX"
+										: baseName.endsWith(".flow-meta.xml")
+											? "FLOW"
+											: "OBJECT"
+								this.vectorIndexer.indexDocument(filePath, baseName, content, vectorDocType, filePath)
+							}
 
-					processedCount++
+							processedCount++
+						} catch (e) {
+							processedCount++
+						}
+					}),
+				)
+
+				// Throttle UI progress emission to at most once per 100ms
+				const now = Date.now()
+				if (now - lastEmitTime > 100 || processedCount === totalItems) {
+					lastEmitTime = now
+					const sampleFile = path.basename(chunk[chunk.length - 1] || "")
 					this.emitProgress({
 						phase: "RETRIEVING_METADATA",
 						currentStep: 2,
 						totalSteps: 4,
-						currentFile: baseName,
-						docType,
-						itemsProcessed: processedCount,
+						currentFile: sampleFile,
+						itemsProcessed: Math.min(processedCount, totalItems),
 						totalItems,
 					})
-				} catch (e) {
-					// Continue processing next file
 				}
 			}
 
-			// Phase 3: Building Transaction Timelines
+			// Phase 3: Building Transaction Timelines & Resolving Edges
 			this.emitProgress({
 				phase: "BUILDING_TRANSACTIONS",
 				currentStep: 3,
 				totalSteps: 4,
-				itemsProcessed: processedCount,
+				itemsProcessed: totalItems,
 				totalItems,
 			})
 
 			this.graphEngine.resolveApexCallEdges()
 			this.graphEngine.aggregateCallChainMetrics()
 
-			// Phase 4: Exporting Graph & Transaction Reports
+			// Phase 4: Exporting Reports Based on User Settings
 			this.emitProgress({
 				phase: "BUILDING_GRAPH",
 				currentStep: 4,
 				totalSteps: 4,
-				itemsProcessed: processedCount,
+				itemsProcessed: totalItems,
 				totalItems,
 			})
 
@@ -348,15 +360,19 @@ export class SalesforceStandaloneIndexer implements vscode.Disposable {
 			const durationMs = Date.now() - startTime
 			const nodeCount = this.graphEngine.getNodes().size
 			const edgeCount = this.graphEngine.getEdges().length
+
+			// Calculate actual entry point timeline count
 			const timelineCount = Array.from(this.graphEngine.getNodes().values()).filter(
-				(n) => n.type === "APEX_TRIGGER" && (n.txn?.dmlCount || n.txn?.soqlCount),
+				(n) => n.type === "APEX_TRIGGER" || n.type === "APEX_CLASS" || n.type === "FLOW",
 			).length
+
+			this.lastIndexTimestamp = Date.now()
 
 			this.emitProgress({
 				phase: "COMPLETE",
 				currentStep: 4,
 				totalSteps: 4,
-				itemsProcessed: processedCount,
+				itemsProcessed: totalItems,
 				totalItems,
 				nodeCount,
 				edgeCount,
@@ -378,19 +394,131 @@ export class SalesforceStandaloneIndexer implements vscode.Disposable {
 	}
 
 	/**
-	 * Incremental Refresh: Scans workspace, updates graph deltas, and re-exports reports.
+	 * Incremental Refresh: Scans workspace for modified files since lastIndexTimestamp,
+	 * updates graph deltas, and re-exports reports without wiping indices or running CLI retrieve.
 	 */
 	public async refreshIndex(): Promise<void> {
-		return this.indexFromScratch()
+		if (this.isIndexing) return
+		this.isIndexing = true
+		const startTime = Date.now()
+
+		try {
+			this.emitProgress({
+				phase: "DISCOVERING",
+				currentStep: 1,
+				totalSteps: 4,
+				currentFile: "Scanning workspace for modified Salesforce files...",
+				itemsProcessed: 0,
+				totalItems: 0,
+			})
+
+			const files = await this.findSalesforceFiles(this.workspaceRoot)
+			const modifiedFiles: string[] = []
+
+			for (const filePath of files) {
+				try {
+					const stat = await fs.stat(filePath)
+					if (stat.mtimeMs > this.lastIndexTimestamp) {
+						modifiedFiles.push(filePath)
+					}
+				} catch (e) {
+					// Ignore stat error
+				}
+			}
+
+			// If no files modified, process all workspace files incrementally
+			const targetFiles = modifiedFiles.length > 0 ? modifiedFiles : files
+			const totalItems = targetFiles.length
+
+			this.emitProgress({
+				phase: "RETRIEVING_METADATA",
+				currentStep: 2,
+				totalSteps: 4,
+				currentFile: `Refreshing ${modifiedFiles.length} modified file(s)...`,
+				itemsProcessed: 0,
+				totalItems,
+			})
+
+			let processedCount = 0
+			const chunkSize = 50
+			for (let i = 0; i < targetFiles.length; i += chunkSize) {
+				const chunk = targetFiles.slice(i, i + chunkSize)
+				await Promise.all(
+					chunk.map(async (filePath) => {
+						try {
+							const content = await fs.readFile(filePath, "utf-8")
+							await this.indexer.indexFile(filePath, content)
+							await this.graphEngine.indexFileForGraph(filePath, content)
+							processedCount++
+						} catch (e) {
+							processedCount++
+						}
+					}),
+				)
+			}
+
+			this.emitProgress({
+				phase: "BUILDING_TRANSACTIONS",
+				currentStep: 3,
+				totalSteps: 4,
+				itemsProcessed: totalItems,
+				totalItems,
+			})
+
+			this.graphEngine.resolveApexCallEdges()
+			this.graphEngine.aggregateCallChainMetrics()
+
+			this.emitProgress({
+				phase: "BUILDING_GRAPH",
+				currentStep: 4,
+				totalSteps: 4,
+				itemsProcessed: totalItems,
+				totalItems,
+			})
+
+			await this.indexer.exportTreeIndex(this.workspaceRoot)
+			await this.graphEngine.exportGraphNetwork(this.workspaceRoot)
+			await exportTransactionIndex(this.graphEngine, this.workspaceRoot)
+
+			const durationMs = Date.now() - startTime
+			const nodeCount = this.graphEngine.getNodes().size
+			const edgeCount = this.graphEngine.getEdges().length
+			const timelineCount = Array.from(this.graphEngine.getNodes().values()).filter(
+				(n) => n.type === "APEX_TRIGGER" || n.type === "APEX_CLASS" || n.type === "FLOW",
+			).length
+
+			this.lastIndexTimestamp = Date.now()
+
+			this.emitProgress({
+				phase: "COMPLETE",
+				currentStep: 4,
+				totalSteps: 4,
+				itemsProcessed: totalItems,
+				totalItems,
+				nodeCount,
+				edgeCount,
+				timelineCount,
+				durationMs,
+			})
+		} catch (error: any) {
+			this.emitProgress({
+				phase: "ERROR",
+				currentStep: 4,
+				totalSteps: 4,
+				itemsProcessed: 0,
+				totalItems: 0,
+				error: error?.message || "Refresh error",
+			})
+		} finally {
+			this.isIndexing = false
+		}
 	}
 
 	/**
-	 * Scans the workspace directory recursively in concurrent chunks of 50
+	 * Async workspace scan in chunks of 50
 	 */
 	private async scanWorkspace(): Promise<void> {
 		const files = await this.findSalesforceFiles(this.workspaceRoot)
-
-		// Batch process files in chunks of 50 for fast non-blocking execution
 		const chunkSize = 50
 		for (let i = 0; i < files.length; i += chunkSize) {
 			const chunk = files.slice(i, i + chunkSize)
@@ -402,13 +530,23 @@ export class SalesforceStandaloneIndexer implements vscode.Disposable {
 						await this.graphEngine.indexFileForGraph(filePath, content)
 
 						const baseName = path.basename(filePath)
-						const docType =
-							baseName.endsWith(".cls") || baseName.endsWith(".trigger")
-								? "APEX"
-								: baseName.endsWith(".flow-meta.xml")
-									? "FLOW"
-									: "OBJECT"
-						this.vectorIndexer.indexDocument(filePath, baseName, content, docType, filePath)
+						const isVectorTarget =
+							baseName.endsWith(".cls") ||
+							baseName.endsWith(".trigger") ||
+							baseName.endsWith(".object-meta.xml") ||
+							baseName.endsWith(".field-meta.xml") ||
+							baseName.endsWith(".flow-meta.xml") ||
+							baseName.endsWith(".validationRule-meta.xml")
+
+						if (isVectorTarget) {
+							const vectorDocType =
+								baseName.endsWith(".cls") || baseName.endsWith(".trigger")
+									? "APEX"
+									: baseName.endsWith(".flow-meta.xml")
+										? "FLOW"
+										: "OBJECT"
+							this.vectorIndexer.indexDocument(filePath, baseName, content, vectorDocType, filePath)
+						}
 					} catch (e) {
 						// Ignore read error
 					}
@@ -416,15 +554,13 @@ export class SalesforceStandaloneIndexer implements vscode.Disposable {
 			)
 		}
 
-		// Resolve CALLS_APEX edges and aggregate handler metrics onto triggers (B1 & B3)
 		this.graphEngine.resolveApexCallEdges()
 		this.graphEngine.aggregateCallChainMetrics()
-
 		this.scheduleDebouncedExport()
 	}
 
 	/**
-	 * Recursive file search for Salesforce metadata files
+	 * Recursive file search for Salesforce metadata files matching SF_INDEXED_SUFFIXES
 	 */
 	private async findSalesforceFiles(dirPath: string): Promise<string[]> {
 		const results: string[] = []
@@ -445,10 +581,7 @@ export class SalesforceStandaloneIndexer implements vscode.Disposable {
 						results.push(...subFiles)
 					}
 				} else if (entry.isFile()) {
-					if (
-						SF_INDEXED_SUFFIXES.some((s) => lowerName.endsWith(s.toLowerCase())) ||
-						lowerName.endsWith("-meta.xml")
-					) {
+					if (SF_INDEXED_SUFFIXES.some((s) => lowerName.endsWith(s.toLowerCase()))) {
 						results.push(fullPath)
 					}
 				}
@@ -460,7 +593,7 @@ export class SalesforceStandaloneIndexer implements vscode.Disposable {
 	}
 
 	/**
-	 * Sets up VS Code FileSystemWatcher for real-time invalidation using dynamic case-exact suffix glob (H1)
+	 * Sets up VS Code FileSystemWatcher for real-time invalidation matching SF_INDEXED_SUFFIXES
 	 */
 	private setupFileWatcher(): void {
 		const rawExtensions = SF_INDEXED_SUFFIXES.map((s) => s.replace(/^\./, "")).join(",")
@@ -477,53 +610,52 @@ export class SalesforceStandaloneIndexer implements vscode.Disposable {
 	private async handleFileChange(filePath: string): Promise<void> {
 		try {
 			const content = await fs.readFile(filePath, "utf-8")
-			const baseName = path.basename(filePath)
-			const docType =
-				baseName.endsWith(".cls") || baseName.endsWith(".trigger")
-					? "APEX"
-					: baseName.endsWith(".flow-meta.xml")
-						? "FLOW"
-						: "OBJECT"
-
-			// Prevent stale node/edge accumulation by removing file from all stores before re-indexing (H2)
-			this.indexer.removeFile(filePath)
-			this.graphEngine.removeFile(filePath)
-			this.vectorIndexer.removeFile(filePath)
-
 			await this.indexer.indexFile(filePath, content)
 			await this.graphEngine.indexFileForGraph(filePath, content)
-			this.vectorIndexer.indexDocument(filePath, baseName, content, docType, filePath)
 
-			this.graphEngine.resolveApexCallEdges()
-			this.graphEngine.aggregateCallChainMetrics()
+			const baseName = path.basename(filePath)
+			const isVectorTarget =
+				baseName.endsWith(".cls") ||
+				baseName.endsWith(".trigger") ||
+				baseName.endsWith(".object-meta.xml") ||
+				baseName.endsWith(".field-meta.xml") ||
+				baseName.endsWith(".flow-meta.xml") ||
+				baseName.endsWith(".validationRule-meta.xml")
+
+			if (isVectorTarget) {
+				const vectorDocType =
+					baseName.endsWith(".cls") || baseName.endsWith(".trigger")
+						? "APEX"
+						: baseName.endsWith(".flow-meta.xml")
+							? "FLOW"
+							: "OBJECT"
+				this.vectorIndexer.indexDocument(filePath, baseName, content, vectorDocType, filePath)
+			}
 
 			this.scheduleDebouncedExport()
 		} catch (e) {
-			// Handle write race
+			// File read error
 		}
 	}
 
 	private handleFileDelete(filePath: string): void {
-		this.indexer.removeFile(filePath)
-		this.graphEngine.removeFile(filePath)
-		this.vectorIndexer.removeFile(filePath)
+		this.graphEngine.removeFileFromGraph(filePath)
 		this.scheduleDebouncedExport()
 	}
 
-	/**
-	 * Trailing debounce timer (3s) for full index re-exports
-	 */
 	private scheduleDebouncedExport(): void {
 		if (this.debounceTimer) {
 			clearTimeout(this.debounceTimer)
 		}
 		this.debounceTimer = setTimeout(async () => {
 			try {
+				this.graphEngine.resolveApexCallEdges()
+				this.graphEngine.aggregateCallChainMetrics()
 				await this.indexer.exportTreeIndex(this.workspaceRoot)
 				await this.graphEngine.exportGraphNetwork(this.workspaceRoot)
 				await exportTransactionIndex(this.graphEngine, this.workspaceRoot)
 			} catch (e) {
-				// Handle export error silently
+				// Ignore background export error
 			}
 		}, 3000)
 	}
@@ -531,11 +663,11 @@ export class SalesforceStandaloneIndexer implements vscode.Disposable {
 	public dispose(): void {
 		if (this.debounceTimer) {
 			clearTimeout(this.debounceTimer)
-			this.debounceTimer = null
 		}
 		for (const watcher of this.watchers) {
 			watcher.dispose()
 		}
 		this.watchers = []
+		this.progressListeners = []
 	}
 }

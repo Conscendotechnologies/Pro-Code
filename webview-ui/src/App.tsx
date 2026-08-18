@@ -186,6 +186,10 @@ const App = () => {
 					images: message.images || [],
 				})
 			}
+
+			if (message.type === "acceptInput") {
+				chatViewRef.current?.acceptInput()
+			}
 		},
 		[switchTab, notificationsEnabled],
 	)
