@@ -17,12 +17,7 @@ export interface ModeModelInfo {
  */
 const MODELS: ModeModelInfo[] = [
 	{ modelId: "z-ai/glm-4.5-air:free", displayName: "GLM 4.5 Air (Free)", provider: "openrouter", tier: "Free" },
-	{
-		modelId: "qwen/qwen3-coder:free",
-		displayName: "Qwen3 Coder (Free, Recommended)",
-		provider: "openrouter",
-		tier: "Free",
-	},
+	{ modelId: "qwen/qwen3-coder:free", displayName: "Qwen3 Coder (Free)", provider: "openrouter", tier: "Free" },
 	{
 		modelId: "openai/gpt-oss-120b:free",
 		displayName: "OpenAI: gpt-oss-120b (Free)",
@@ -74,6 +69,23 @@ export const MODE_TO_MODELS: Record<string, ModeModelInfo[]> = {
 	"salesforce-agent": MODELS,
 	code: MODELS,
 	orchestrator: MODELS,
+}
+
+/**
+ * The model each mode recommends. Kept out of the shared list because it is
+ * per-mode presentation: the UI appends the suffix.
+ */
+const MODE_RECOMMENDED_MODEL: Record<string, string> = {
+	"salesforce-agent": "qwen/qwen3-coder:free",
+	code: "qwen/qwen3-coder:free",
+	orchestrator: "qwen/qwen3-coder:free",
+}
+
+/**
+ * Get the model id a mode recommends, if any
+ */
+export function getRecommendedModelForMode(modeSlug: string): string | undefined {
+	return MODE_RECOMMENDED_MODEL[modeSlug]
 }
 
 /**
