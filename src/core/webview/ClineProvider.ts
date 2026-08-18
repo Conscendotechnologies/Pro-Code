@@ -44,6 +44,7 @@ import { supportPrompt } from "../../shared/support-prompt"
 import { GlobalFileNames } from "../../shared/globalFileNames"
 import { ExtensionMessage, MarketplaceInstalledMetadata } from "../../shared/ExtensionMessage"
 import { Mode, defaultModeSlug, getModeBySlug } from "../../shared/modes"
+import { getModelList } from "../../shared/mode-models"
 import { experimentDefault } from "../../shared/experiments"
 import { formatLanguage } from "../../shared/language"
 import { WebviewMessage } from "../../shared/WebviewMessage"
@@ -1646,6 +1647,10 @@ export class ClineProvider
 	async postStateToWebview() {
 		const state = await this.getStateToPostToWebview()
 		this.postMessageToWebview({ type: "state", state })
+
+		// The list can be replaced by a background fetch after the webview has
+		// already rendered, so send the current one alongside state.
+		this.postMessageToWebview({ type: "modeModelList", modeModelList: getModelList() })
 
 		// Check MDM compliance and send user to account tab if not compliant
 		if (!this.checkMdmCompliance()) {
