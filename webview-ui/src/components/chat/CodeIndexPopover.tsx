@@ -30,7 +30,7 @@ import type { EmbedderProvider } from "@roo/embeddingModels"
 import type { IndexingStatus } from "@roo/ExtensionMessage"
 import { CODEBASE_INDEX_DEFAULTS } from "@siid-code/types"
 import { SalesforceIndexLoader } from "./SalesforceIndexLoader"
-import { type SalesforceIndexingProgress } from "./SalesforceFullOverlayLoader"
+import { SalesforceFullOverlayLoader, type SalesforceIndexingProgress } from "./SalesforceFullOverlayLoader"
 
 interface CodeIndexPopoverProps {
 	children: React.ReactNode
@@ -642,6 +642,12 @@ export const CodeIndexPopover: React.FC<CodeIndexPopoverProps> = ({
 								</div>
 							</div>
 						</div>
+
+						{/* Salesforce Lightning Honeycomb Loader Overlay */}
+						<SalesforceFullOverlayLoader
+							progress={salesforceProgress}
+							onClose={() => setSalesforceProgress(null)}
+						/>
 
 						{/* Inline Salesforce Honeycomb Index Loader for Popover Tab */}
 						<SalesforceIndexLoader progress={salesforceProgress} />

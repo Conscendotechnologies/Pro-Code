@@ -21,10 +21,6 @@ import ErrorBoundary from "./components/ErrorBoundary"
 import { useAddNonInteractiveClickListener } from "./components/ui/hooks/useNonInteractiveClick"
 import { TooltipProvider } from "./components/ui/tooltip"
 import { STANDARD_TOOLTIP_DELAY } from "./components/ui/standard-tooltip"
-import {
-	SalesforceFullOverlayLoader,
-	type SalesforceIndexingProgress,
-} from "./components/chat/SalesforceFullOverlayLoader"
 
 type Tab = "settings" | "history" | "mcp" | "modes" | "chat"
 
@@ -94,9 +90,6 @@ const App = () => {
 		text: "",
 		images: [],
 	})
-
-	const [salesforceProgress, setSalesforceProgress] = useState<SalesforceIndexingProgress | null>(null)
-	const [isOverlayMinimized, setIsOverlayMinimized] = useState(false)
 
 	const settingsRef = useRef<SettingsViewRef>(null)
 	const chatViewRef = useRef<ChatViewRef>(null)
@@ -192,14 +185,6 @@ const App = () => {
 					text: message.text,
 					images: message.images || [],
 				})
-			}
-
-			if (message.type === "salesforceIndexingProgress" && message.values) {
-				const progress = message.values as SalesforceIndexingProgress
-				if (progress.phase === "DISCOVERING" || progress.phase === "RETRIEVING_METADATA") {
-					setIsOverlayMinimized(false)
-				}
-				setSalesforceProgress(progress)
 			}
 		},
 		[switchTab, notificationsEnabled],
@@ -307,10 +292,6 @@ const App = () => {
 					})
 					setEditMessageDialogState((prev) => ({ ...prev, isOpen: false }))
 				}}
-			/>
-			<SalesforceFullOverlayLoader
-				progress={!isOverlayMinimized ? salesforceProgress : null}
-				onClose={() => setIsOverlayMinimized(true)}
 			/>
 		</>
 	)
