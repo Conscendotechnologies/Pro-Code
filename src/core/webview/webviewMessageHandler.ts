@@ -2081,6 +2081,9 @@ export const webviewMessageHandler = async (
 		}
 
 		case "startIndexFromScratch": {
+			// Auto pop-out webview into 3/4 editor window tab for full overlay loading
+			await vscode.commands.executeCommand("siid-code.openInNewTab").then(null, () => null)
+
 			const workspacePath = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath
 			if (workspacePath) {
 				const { SalesforceStandaloneIndexer } = await import(
@@ -2103,6 +2106,9 @@ export const webviewMessageHandler = async (
 		}
 
 		case "refreshSalesforceIndex": {
+			// Auto pop-out webview into 3/4 editor window tab for full overlay loading
+			await vscode.commands.executeCommand("siid-code.openInNewTab").then(null, () => null)
+
 			const workspacePath = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath
 			if (workspacePath) {
 				const { SalesforceStandaloneIndexer } = await import(
