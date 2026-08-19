@@ -481,3 +481,28 @@ export async function exportTransactionIndex(graph: SalesforceGraphEngine, targe
 
 	return output
 }
+
+/**
+ * Counts the exact number of generated SObject x DML event transaction execution timelines.
+ */
+export function countGeneratedTimelines(graph: SalesforceGraphEngine): number {
+	const objectNodesMap = new Map<string, GraphNode[]>()
+	for (const node of graph.getNodes().values()) {
+		if (node.txn?.objectApiName) {
+			const objKey = node.txn.objectApiName.toLowerCase()
+			if (!objectNodesMap.has(objKey)) objectNodesMap.set(objKey, [])
+			objectNodesMap.get(objKey)!.push(node)
+		}
+	}
+	let count = 0
+	for (const objName of objectNodesMap.keys()) {
+		const candidates = objectNodesMap.get(objName)
+		for (const evt of ["insert", "update", "delete"] as DmlEvent[]) {
+			const timeline = getTransactionTimeline(graph, objName, evt, candidates)
+			if (timeline.entries.length > 0) {
+				count++
+			}
+		}
+	}
+	return count
+}

@@ -1,5 +1,6 @@
 import React from "react"
 import { VSCodeButton } from "@vscode/webview-ui-toolkit/react"
+import { useAppTranslation } from "@src/i18n/TranslationContext"
 
 export interface SalesforceIndexingProgress {
 	phase: "DISCOVERING" | "RETRIEVING_METADATA" | "BUILDING_TRANSACTIONS" | "BUILDING_GRAPH" | "COMPLETE" | "ERROR"
@@ -22,6 +23,7 @@ interface SalesforceFullOverlayLoaderProps {
 }
 
 export const SalesforceFullOverlayLoader: React.FC<SalesforceFullOverlayLoaderProps> = ({ progress, onClose }) => {
+	const { t } = useAppTranslation()
 	if (!progress) return null
 
 	const isComplete = progress.phase === "COMPLETE"
@@ -178,11 +180,11 @@ export const SalesforceFullOverlayLoader: React.FC<SalesforceFullOverlayLoaderPr
 		<div
 			role="dialog"
 			aria-modal="true"
-			aria-label="Salesforce Indexing Progress"
-			className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-gradient-to-b from-[#EEF4FB] via-[#F4F8FC] to-[#E8F0FA] text-[#2C3E60] font-sans p-6 select-none overflow-y-auto animate-fadeIn">
+			aria-label={t("settings:codeIndex.salesforce.indexingProgress")}
+			className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-gradient-to-b from-[#EEF4FB] via-[#F4F8FC] to-[#E8F0FA] text-[#2C3E60] dark:from-[#0F172A] dark:via-[#1E293B] dark:to-[#0F172A] dark:text-[#E2E8F0] font-sans p-6 select-none overflow-y-auto animate-fadeIn">
 			{/* Soft Subtle Hexagon Pattern Background */}
 			<div
-				className="absolute inset-0 opacity-[0.25] pointer-events-none"
+				className="absolute inset-0 opacity-[0.25] dark:opacity-[0.10] pointer-events-none"
 				style={{
 					backgroundImage: `radial-gradient(#3B62D1 0.75px, transparent 0.75px), radial-gradient(#3B62D1 0.75px, #EEF4FB 0.75px)`,
 					backgroundSize: `30px 30px`,
@@ -335,31 +337,31 @@ export const SalesforceFullOverlayLoader: React.FC<SalesforceFullOverlayLoaderPr
 				</div>
 
 				{/* Title Matching Reference Design ("Verifying emails" / "Cleaning prospect data") */}
-				<h2 className="text-2xl font-normal text-[#2D3F65] mb-2 tracking-tight">
+				<h2 className="text-2xl font-normal text-[#2D3F65] dark:text-[#E2E8F0] mb-2 tracking-tight">
 					{isComplete
-						? "Salesforce Indexing Complete"
+						? t("settings:codeIndex.salesforce.complete")
 						: isError
 							? "Indexing Error Occurred"
 							: progress.phase === "DISCOVERING"
-								? "Executing SF CLI Org Retrieval..."
+								? t("settings:codeIndex.salesforce.discovering")
 								: progress.phase === "RETRIEVING_METADATA"
-									? "Retrieving org metadata..."
+									? t("settings:codeIndex.salesforce.retrieving")
 									: progress.phase === "BUILDING_TRANSACTIONS"
-										? "Mapping 21-step transaction timelines"
+										? t("settings:codeIndex.salesforce.buildingTransactions")
 										: progress.phase === "BUILDING_GRAPH"
-											? "Building dependency call graph"
+											? t("settings:codeIndex.salesforce.buildingGraph")
 											: "Indexing Salesforce Org"}
 				</h2>
 
 				{/* Live Badge for Current Item */}
 				{progress.currentFile && !isComplete && (
-					<div className="text-xs font-mono text-[#5C729F] mb-6 max-w-sm truncate">
+					<div className="text-xs font-mono text-[#5C729F] dark:text-[#94A3B8] mb-6 max-w-sm truncate">
 						{progress.currentFile}
 					</div>
 				)}
 
 				{/* Reference Image Smooth Light Blue Progress Bar Pill */}
-				<div className="w-64 bg-[#DCE5F2] rounded-full h-2 mb-6 overflow-hidden relative">
+				<div className="w-64 bg-[#DCE5F2] dark:bg-[#334155] rounded-full h-2 mb-6 overflow-hidden relative">
 					<div
 						className="bg-[#3B62D1] h-full rounded-full transition-all duration-300 relative"
 						style={{ width: `${progressPercentage}%` }}
@@ -367,7 +369,7 @@ export const SalesforceFullOverlayLoader: React.FC<SalesforceFullOverlayLoaderPr
 				</div>
 
 				{/* Stats Row */}
-				<div className="flex items-center justify-center gap-6 text-xs text-[#5C729F] mb-6 font-mono">
+				<div className="flex items-center justify-center gap-6 text-xs text-[#5C729F] dark:text-[#94A3B8] mb-6 font-mono">
 					<span>
 						{progress.itemsProcessed} / {progress.totalItems} items
 					</span>
@@ -377,7 +379,9 @@ export const SalesforceFullOverlayLoader: React.FC<SalesforceFullOverlayLoaderPr
 				{/* Close / Background Button */}
 				<div>
 					<VSCodeButton appearance={isComplete ? "primary" : "secondary"} onClick={onClose}>
-						{isComplete ? "Done" : "Run in Background"}
+						{isComplete
+							? t("settings:codeIndex.close")
+							: t("settings:codeIndex.salesforce.runInBackground")}
 					</VSCodeButton>
 				</div>
 			</div>

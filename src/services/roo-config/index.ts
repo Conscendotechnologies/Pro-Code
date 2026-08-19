@@ -23,13 +23,9 @@ import fs from "fs/promises"
  * // Returns: "C:\\Users\\john\\.roo" (on Windows)
  * ```
  */
-const getHomeDir = (): string => (typeof os === "object" && typeof os.homedir === "function" ? os.homedir() : "")
-const joinPaths = (a: string, b: string): string =>
-	typeof path === "object" && typeof path.join === "function" ? path.join(a, b) : `${a}/${b}`.replace(/\/+/g, "/")
-
 export function getGlobalRooDirectory(): string {
-	const homeDir = getHomeDir()
-	return joinPaths(homeDir, ".roo")
+	const homeDir = os.homedir()
+	return path.join(homeDir, ".roo")
 }
 
 /**
@@ -62,7 +58,7 @@ export function getGlobalRooDirectory(): string {
  * ```
  */
 export function getProjectRooDirectoryForCwd(cwd: string): string {
-	return joinPaths(cwd, ".roo")
+	return path.join(cwd, ".roo")
 }
 
 /**
@@ -222,8 +218,8 @@ export async function loadConfiguration(
 	const globalDir = getGlobalRooDirectory()
 	const projectDir = getProjectRooDirectoryForCwd(cwd)
 
-	const globalFilePath = joinPaths(globalDir, relativePath)
-	const projectFilePath = joinPaths(projectDir, relativePath)
+	const globalFilePath = path.join(globalDir, relativePath)
+	const projectFilePath = path.join(projectDir, relativePath)
 
 	// Read global configuration
 	const globalContent = await readFileIfExists(globalFilePath)

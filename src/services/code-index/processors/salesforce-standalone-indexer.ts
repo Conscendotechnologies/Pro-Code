@@ -4,7 +4,7 @@ import * as fs from "fs/promises"
 import { SalesforceMetadataIndexer } from "./salesforce-indexer"
 import { SalesforceGraphEngine } from "./salesforce-graph"
 import { SalesforceVectorIndexer } from "./salesforce-vector-indexer"
-import { exportTransactionIndex } from "./salesforce-transaction"
+import { exportTransactionIndex, countGeneratedTimelines } from "./salesforce-transaction"
 
 export const SF_INDEXED_SUFFIXES = [
 	".cls",
@@ -361,9 +361,7 @@ export class SalesforceStandaloneIndexer implements vscode.Disposable {
 			const nodeCount = this.graphEngine.getNodes().size
 			const edgeCount = this.graphEngine.getEdges().length
 
-			const timelineCount = Array.from(this.graphEngine.getNodes().values()).filter(
-				(n) => n.type === "APEX_TRIGGER" || (n.type === "APEX_CLASS" && (n.txn?.soqlCount || n.txn?.dmlCount)),
-			).length
+			const timelineCount = countGeneratedTimelines(this.graphEngine)
 
 			this.lastIndexTimestamp = Date.now()
 
@@ -430,9 +428,7 @@ export class SalesforceStandaloneIndexer implements vscode.Disposable {
 				const durationMs = Date.now() - startTime
 				const nodeCount = this.graphEngine.getNodes().size
 				const edgeCount = this.graphEngine.getEdges().length
-				const timelineCount = Array.from(this.graphEngine.getNodes().values()).filter(
-					(n) => n.type === "APEX_TRIGGER" || (n.type === "APEX_CLASS" && (n.txn?.soqlCount || n.txn?.dmlCount)),
-				).length
+				const timelineCount = countGeneratedTimelines(this.graphEngine)
 
 				this.emitProgress({
 					phase: "COMPLETE",
@@ -530,9 +526,7 @@ export class SalesforceStandaloneIndexer implements vscode.Disposable {
 			const durationMs = Date.now() - startTime
 			const nodeCount = this.graphEngine.getNodes().size
 			const edgeCount = this.graphEngine.getEdges().length
-			const timelineCount = Array.from(this.graphEngine.getNodes().values()).filter(
-				(n) => n.type === "APEX_TRIGGER" || (n.type === "APEX_CLASS" && (n.txn?.soqlCount || n.txn?.dmlCount)),
-			).length
+			const timelineCount = countGeneratedTimelines(this.graphEngine)
 
 			this.lastIndexTimestamp = Date.now()
 

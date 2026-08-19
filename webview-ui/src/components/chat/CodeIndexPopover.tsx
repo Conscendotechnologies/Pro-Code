@@ -553,7 +553,7 @@ export const CodeIndexPopover: React.FC<CodeIndexPopoverProps> = ({
 							<div className="flex items-center justify-between">
 								<h4 className="text-sm font-semibold text-vscode-foreground m-0 flex items-center gap-1.5">
 									<span className="codicon codicon-symbol-structure text-vscode-symbolIcon-classForeground" />
-									Salesforce Indexing Options
+									{t("settings:codeIndex.salesforce.optionsTitle")}
 								</h4>
 							</div>
 							<p className="text-xs text-vscode-descriptionForeground my-0">
@@ -569,7 +569,7 @@ export const CodeIndexPopover: React.FC<CodeIndexPopoverProps> = ({
 											updateSetting("salesforceTransactionIndexEnabled", e.target.checked)
 										}>
 										<span className="font-medium text-xs text-vscode-foreground">
-											Transactional Indexing
+											{t("settings:codeIndex.salesforce.transactionIndexLabel")}
 										</span>
 									</VSCodeCheckbox>
 									<StandardTooltip content="Indexes 21-Step Salesforce Order of Execution timelines & auto-exports .siid-code/SALESFORCE_TRANSACTIONS.md">
@@ -584,7 +584,7 @@ export const CodeIndexPopover: React.FC<CodeIndexPopoverProps> = ({
 											updateSetting("salesforceGraphIndexEnabled", e.target.checked)
 										}>
 										<span className="font-medium text-xs text-vscode-foreground">
-											Graph Indexing
+											{t("settings:codeIndex.salesforce.graphIndexLabel")}
 										</span>
 									</VSCodeCheckbox>
 									<StandardTooltip content="Indexes Salesforce Metadata Symbol Graph, AST Apex Call Graph, and Dependency Blast-Radius">
@@ -599,7 +599,7 @@ export const CodeIndexPopover: React.FC<CodeIndexPopoverProps> = ({
 											updateSetting("salesforceSymbolIndexEnabled", e.target.checked)
 										}>
 										<span className="font-medium text-xs text-vscode-foreground">
-											Symbol & Vector Search Indexing
+											{t("settings:codeIndex.salesforce.symbolIndexLabel")}
 										</span>
 									</VSCodeCheckbox>
 									<StandardTooltip content="Indexes fast symbol definitions and offline vector code search">
@@ -634,7 +634,7 @@ export const CodeIndexPopover: React.FC<CodeIndexPopoverProps> = ({
 												)
 											}>
 											<span className="codicon codicon-rocket mr-1" />
-											Index Org From Scratch
+											{t("settings:codeIndex.salesforce.indexFromScratch")}
 										</VSCodeButton>
 
 										<VSCodeButton
@@ -649,7 +649,7 @@ export const CodeIndexPopover: React.FC<CodeIndexPopoverProps> = ({
 												)
 											}>
 											<span className="codicon codicon-refresh mr-1" />
-											Refresh Index
+											{t("settings:codeIndex.salesforce.refreshIndex")}
 										</VSCodeButton>
 									</>
 								)}
