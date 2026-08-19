@@ -397,7 +397,7 @@ export class SalesforceMetadataIndexer {
 						name: field.name,
 						qualifiedName: `${objName}.${field.name}`,
 						filePath: field.filePath || obj.filePath,
-						detail: `${field.type}${field.required ? ", Required" : ""}${field.referenceTo ? ` -> ${field.referenceTo}` : ""}`,
+						detail: `${field.type} ${field.required ? "[Required]" : ""}${field.referenceTo ? ` -> ${field.referenceTo}` : ""}`.trim(),
 						score: exactFieldMatch ? 95 : 75,
 					})
 				}
@@ -448,24 +448,37 @@ export class SalesforceMetadataIndexer {
 					detail: `ApexClass: ${cls.sharing} sharing, ${cls.methods.length} methods`,
 					score: exactClassMatch ? 100 : 80,
 				})
-			}
 
-			for (const m of cls.methods) {
-				if (hits.length >= maxResults) break
-				const exactMethodMatch =
-					m.name.toLowerCase() === q || `${clsName.toLowerCase()}.${m.name.toLowerCase()}` === q
-				const partialMethodMatch = m.name.toLowerCase().includes(q) || m.signature.toLowerCase().includes(q)
-
-				if (exactMethodMatch || partialMethodMatch) {
+				// Emit child method hits so searching for a class name returns its method pointers with lines!
+				for (const m of cls.methods) {
 					hits.push({
 						kind: "APEX_METHOD",
 						name: m.name,
 						qualifiedName: `${cls.name}.${m.name}()`,
 						filePath: cls.filePath,
 						line: m.line,
-						detail: `${m.signature} ${m.isAuraEnabled ? "[@AuraEnabled]" : ""}${m.isInvocable ? "[@InvocableMethod]" : ""}`,
-						score: exactMethodMatch ? 95 : 75,
+						detail: `${m.signature} ${m.isAuraEnabled ? "[@AuraEnabled]" : ""}${m.isInvocable ? "[@InvocableMethod]" : ""}`.trim(),
+						score: exactClassMatch ? 90 : 70,
 					})
+				}
+			} else {
+				for (const m of cls.methods) {
+					if (hits.length >= maxResults) break
+					const exactMethodMatch =
+						m.name.toLowerCase() === q || `${clsName.toLowerCase()}.${m.name.toLowerCase()}` === q
+					const partialMethodMatch = m.name.toLowerCase().includes(q) || m.signature.toLowerCase().includes(q)
+
+					if (exactMethodMatch || partialMethodMatch) {
+						hits.push({
+							kind: "APEX_METHOD",
+							name: m.name,
+							qualifiedName: `${cls.name}.${m.name}()`,
+							filePath: cls.filePath,
+							line: m.line,
+							detail: `${m.signature} ${m.isAuraEnabled ? "[@AuraEnabled]" : ""}${m.isInvocable ? "[@InvocableMethod]" : ""}`.trim(),
+							score: exactMethodMatch ? 95 : 75,
+						})
+					}
 				}
 			}
 		}

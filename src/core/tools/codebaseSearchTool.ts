@@ -524,33 +524,21 @@ export async function codebaseSearchTool(
 
 		let sfGraphSection = ""
 		try {
-			const { SalesforceMetadataIndexer } = await import(
-				"../../services/code-index/processors/salesforce-indexer"
+			const { SalesforceSearchRouter } = await import(
+				"../../services/code-index/processors/salesforce-search-router"
 			)
-			const { SalesforceVectorIndexer } = await import(
-				"../../services/code-index/processors/salesforce-vector-indexer"
+			const { SalesforceStandaloneIndexer } = await import(
+				"../../services/code-index/processors/salesforce-standalone-indexer"
 			)
 
-			const sfIndexer = SalesforceMetadataIndexer.getInstance(workspacePath)
-			const sfVector = SalesforceVectorIndexer.getInstance(workspacePath)
+			const standaloneIndexer = SalesforceStandaloneIndexer.getInstance(workspacePath)
+			const router = SalesforceSearchRouter.getInstance(workspacePath)
+			const routerResult = await router.search(cleanedQuery, {
+				isIndexing: standaloneIndexer.getIsIndexing(),
+			})
 
-			const sfSchemaRes = sfIndexer.searchSchema(cleanedQuery)
-			const sfApexRes = sfIndexer.searchApexSymbols(cleanedQuery)
-			const sfVectorDocs = sfVector.searchVector(cleanedQuery, 5)
-
-			let vectorText = ""
-			if (sfVectorDocs.length > 0) {
-				vectorText =
-					`\n=== 🔍 Salesforce Local Offline Vector Matches ===\n` +
-					sfVectorDocs.map((d) => `- [${d.type}] ${d.title} (${d.filePath})`).join("\n")
-			}
-
-			if (
-				!sfSchemaRes.startsWith("No Salesforce") ||
-				!sfApexRes.startsWith("No Apex") ||
-				sfVectorDocs.length > 0
-			) {
-				sfGraphSection = `=== 🕸️ Salesforce GraphRAG Local Index Matches ===\n${sfSchemaRes}\n${sfApexRes}${vectorText}\n`
+			if (!routerResult.startsWith("No Salesforce symbols")) {
+				sfGraphSection = `=== ⚡ Salesforce Authoritative Index Matches ===\n${routerResult}\n`
 			}
 		} catch (e) {
 			// Fallback

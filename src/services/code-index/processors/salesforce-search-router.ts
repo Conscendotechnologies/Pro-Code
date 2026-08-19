@@ -10,12 +10,17 @@ import { SalesforceMetadataIndexer, SearchHit } from "./salesforce-indexer"
 import { SalesforceGraphEngine, DmlEvent } from "./salesforce-graph"
 import { SalesforceVectorIndexer } from "./salesforce-vector-indexer"
 import { getTransactionTimeline } from "./salesforce-transaction"
-import { SalesforceStandaloneIndexer } from "./salesforce-standalone-indexer"
+import * as fs from "fs/promises"
+import { SalesforceMetadataIndexer, SearchHit } from "./salesforce-indexer"
+import { SalesforceGraphEngine, DmlEvent } from "./salesforce-graph"
+import { SalesforceVectorIndexer } from "./salesforce-vector-indexer"
+import { getTransactionTimeline } from "./salesforce-transaction"
 
 export interface SearchOptions {
 	category?: string
 	includeSnippets?: boolean
 	maxResults?: number
+	isIndexing?: boolean
 }
 
 export class SalesforceSearchRouter {
@@ -32,19 +37,19 @@ export class SalesforceSearchRouter {
 	}
 
 	public async search(query: string, options: SearchOptions = {}): Promise<string> {
-		const { category = "all", includeSnippets = true, maxResults = 10 } = options
+		const { includeSnippets = true, maxResults = 10, isIndexing = false } = options
+		const categoryInput = (options.category || "ALL").toUpperCase()
 		const trimmedQuery = query.trim()
 		if (!trimmedQuery) return "Please provide a non-empty search query."
 
 		const symbolIndexer = SalesforceMetadataIndexer.getInstance(this.workspaceRoot)
 		const graphEngine = SalesforceGraphEngine.getInstance(this.workspaceRoot)
 		const vectorIndexer = SalesforceVectorIndexer.getInstance(this.workspaceRoot)
-		const standaloneIndexer = SalesforceStandaloneIndexer.getInstance(this.workspaceRoot)
 
 		const headerLines: string[] = []
 
 		// 1. Check if indexer is currently building
-		if (standaloneIndexer.getIsIndexing()) {
+		if (isIndexing) {
 			headerLines.push(
 				"[Notice: Salesforce Index is actively building in the background. Results below represent partial index state.]\n",
 			)
@@ -53,38 +58,43 @@ export class SalesforceSearchRouter {
 		const hits: SearchHit[] = []
 		const qLower = trimmedQuery.toLowerCase()
 
-		// 2. Classify intent
+		// 2. Intent Classification
 		const isTransactionIntent =
 			/what\s+runs|order\s+of\s+execution|before\s+insert|after\s+insert|before\s+update|after\s+update|before\s+delete|after\s+delete|trigger\s+execution|lifecycle/i.test(
 				trimmedQuery,
 			)
 
-		const isGraphIntent = /what\s+breaks|depends\s+on|blast\s+radius|impact\s+of|used\s+by|calls/i.test(
-			trimmedQuery,
-		)
+		const isGraphIntent =
+			/\bwhat\s+breaks\b|\bdepends\s+on\b|\bblast\s+radius\b|\bimpact\s+of\b|\bused\s+by\b|\bwho\s+calls\b|\bcalls\s+into\b/i.test(
+				trimmedQuery,
+			)
 
-		// 3. Route according to category & intent ladder
-		if (category === "sobject" || category === "FIELD" || category === "OBJECT") {
+		// 3. Routing Ladder
+		if (categoryInput === "OBJECT" || categoryInput === "SOBJECT" || categoryInput === "FIELD") {
 			hits.push(...symbolIndexer.getSchemaSearchHits(trimmedQuery, maxResults))
-		} else if (category === "apex" || category === "APEX_CLASS" || category === "APEX_METHOD") {
+		} else if (categoryInput === "APEX" || categoryInput === "CLASS" || categoryInput === "METHOD") {
 			hits.push(...symbolIndexer.getApexSymbolHits(trimmedQuery, maxResults))
-		} else if (isTransactionIntent) {
-			// Transaction timeline routing
-			const targetObj = trimmedQuery.split(/\s+/).find((w) => w.length > 2) || "Account"
-			const evtMatch = (["insert", "update", "delete"] as DmlEvent[]).find((e) => qLower.includes(e)) || "update"
-			const timeline = getTransactionTimeline(graphEngine, targetObj, evtMatch)
+		} else if (isTransactionIntent || categoryInput === "TRANSACTION") {
+			const targetObj = this.resolveTargetObject(trimmedQuery, symbolIndexer, graphEngine)
+			if (targetObj) {
+				const evtMatch =
+					(["insert", "update", "delete"] as DmlEvent[]).find((e) => qLower.includes(e)) || "update"
+				const timeline = getTransactionTimeline(graphEngine, targetObj, evtMatch)
 
-			for (const entry of timeline.entries) {
-				hits.push({
-					kind: entry.node.type === "APEX_TRIGGER" ? "AUTOMATION" : "APEX_CLASS",
-					name: entry.node.name,
-					qualifiedName: `${targetObj} [${evtMatch.toUpperCase()}] Step ${entry.step}: ${entry.node.name}`,
-					filePath: entry.node.filePath,
-					detail: entry.stageLabel,
-					score: 90,
-				})
+				for (const entry of timeline.entries) {
+					hits.push({
+						kind: entry.node.type === "APEX_TRIGGER" ? "AUTOMATION" : "APEX_CLASS",
+						name: entry.node.name,
+						qualifiedName: `${targetObj} [${evtMatch.toUpperCase()}] Step ${entry.step}: ${entry.node.name}`,
+						filePath: entry.node.filePath,
+						detail: entry.stageLabel,
+						score: 90,
+					})
+				}
 			}
-		} else if (isGraphIntent) {
+		}
+
+		if (hits.length === 0 && (isGraphIntent || categoryInput === "GRAPH")) {
 			// Blast radius graph routing
 			const nodes = graphEngine.findNodes(trimmedQuery)
 			for (const n of nodes) {
@@ -98,17 +108,17 @@ export class SalesforceSearchRouter {
 					score: 85,
 				})
 			}
-		} else {
-			// General ladder: Symbol registry -> Graph -> Vector TF-IDF
+		}
+
+		// Fallthrough: If intent search yielded no hits, execute general symbol & vector search
+		if (hits.length === 0) {
 			const schemaHits = symbolIndexer.getSchemaSearchHits(trimmedQuery, maxResults)
 			const apexHits = symbolIndexer.getApexSymbolHits(trimmedQuery, maxResults)
 			hits.push(...schemaHits, ...apexHits)
 
-			// If symbol hits are sparse, supplement with TF-IDF Vector Search
 			if (hits.length < maxResults) {
 				const scoredVecs = vectorIndexer.searchVectorScored(trimmedQuery, maxResults - hits.length)
 				for (const s of scoredVecs) {
-					// Avoid duplicates
 					if (!hits.some((h) => h.filePath === s.doc.filePath)) {
 						hits.push({
 							kind: s.doc.type === "APEX" ? "APEX_CLASS" : s.doc.type === "FLOW" ? "FLOW" : "OBJECT",
@@ -135,6 +145,7 @@ export class SalesforceSearchRouter {
 		const resultLines: string[] = [...headerLines]
 
 		for (let i = 0; i < topHits.length; i++) {
+			if (resultLines.length >= 140) break // Hard total output line cap
 			const hit = topHits[i]
 			const lineStr = hit.line ? `:${hit.line}` : ""
 			resultLines.push(`[${hit.kind}] ${hit.qualifiedName}`)
@@ -160,6 +171,61 @@ export class SalesforceSearchRouter {
 		}
 
 		return resultLines.join("\n").trim()
+	}
+
+	private resolveTargetObject(
+		query: string,
+		symbolIndexer: SalesforceMetadataIndexer,
+		graphEngine: SalesforceGraphEngine,
+	): string | null {
+		const rawTokens = query
+			.split(/\s+/)
+			.map((t) => t.replace(/[^a-zA-Z0-9_]/g, ""))
+			.filter(Boolean)
+
+		// 1. Custom SObject suffix check (__c, __e, __mdt, __x, __b)
+		const customMatch = rawTokens.find((t) => /__(c|e|mdt|x|b)$/i.test(t))
+		if (customMatch) return customMatch
+
+		// 2. Known SObject names in registry or graph nodes
+		const knownObjects = new Set<string>()
+		for (const objKey of symbolIndexer.getRegistry().objects.keys()) {
+			knownObjects.add(objKey.toLowerCase())
+		}
+		for (const node of graphEngine.getNodes().values()) {
+			if (node.txn?.objectApiName) {
+				knownObjects.add(node.txn.objectApiName.toLowerCase())
+			}
+		}
+
+		const knownMatch = rawTokens.find((t) => knownObjects.has(t.toLowerCase()))
+		if (knownMatch) return knownMatch
+
+		// 3. PascalCase token (excluding common question/control words)
+		const stopWords = new Set([
+			"what",
+			"when",
+			"order",
+			"execution",
+			"trigger",
+			"before",
+			"after",
+			"insert",
+			"update",
+			"delete",
+			"upsert",
+			"which",
+			"how",
+			"show",
+			"for",
+			"on",
+			"in",
+			"is",
+		])
+		const pascalMatch = rawTokens.find((t) => /^[A-Z][a-zA-Z0-9_]+$/.test(t) && !stopWords.has(t.toLowerCase()))
+		if (pascalMatch) return pascalMatch
+
+		return null
 	}
 
 	private async readSnippet(filePath: string, targetLine: number, windowSize = 15): Promise<string | null> {
