@@ -10,11 +10,6 @@ import { SalesforceMetadataIndexer, SearchHit } from "./salesforce-indexer"
 import { SalesforceGraphEngine, DmlEvent } from "./salesforce-graph"
 import { SalesforceVectorIndexer } from "./salesforce-vector-indexer"
 import { getTransactionTimeline } from "./salesforce-transaction"
-import * as fs from "fs/promises"
-import { SalesforceMetadataIndexer, SearchHit } from "./salesforce-indexer"
-import { SalesforceGraphEngine, DmlEvent } from "./salesforce-graph"
-import { SalesforceVectorIndexer } from "./salesforce-vector-indexer"
-import { getTransactionTimeline } from "./salesforce-transaction"
 
 export interface SearchOptions {
 	category?: string
