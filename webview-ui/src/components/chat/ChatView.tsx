@@ -2041,7 +2041,9 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 
 	// Files changed during this task, derived from the task's shadow git repo.
 	// The extension pushes an update whenever a checkpoint is saved.
-	const { files: fileChanges } = useFileChangesBackend(currentTaskItem?.id)
+	// Gated on `task`: currentTaskItem outlives the open task, so passing it
+	// unconditionally keeps fetching (and rendering) on the welcome screen.
+	const { files: fileChanges } = useFileChangesBackend(task ? currentTaskItem?.id : undefined)
 
 	// Open diff in VS Code's native diff editor
 	const openVsCodeDiff = useCallback((file: FileChange) => {
@@ -2270,7 +2272,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 					setMessageQueue((prev) => prev.map((msg, i) => (i === index ? { ...msg, text: newText } : msg)))
 				}}
 			/>
-			{fileChanges.length > 0 && (
+			{task && fileChanges.length > 0 && (
 				<FileChanges
 					files={fileChanges}
 					variant="list"
