@@ -82,9 +82,9 @@ export class SalesforceVectorIndexer {
 	}
 
 	/**
-	 * Search document corpus using query-time IDF normalization
+	 * Search document corpus returning scored documents for cross-source ranking.
 	 */
-	public searchVector(query: string, limit = 10): VectorDocument[] {
+	public searchVectorScored(query: string, limit = 10): Array<{ doc: VectorDocument; score: number }> {
 		if (this.totalDocs === 0) return []
 		const queryTokens = this.tokenize(query)
 		const queryVector = new Map<string, number>()
@@ -112,7 +112,14 @@ export class SalesforceVectorIndexer {
 		}
 
 		scored.sort((a, b) => b.score - a.score)
-		return scored.slice(0, limit).map((s) => s.doc)
+		return scored.slice(0, limit)
+	}
+
+	/**
+	 * Search document corpus using query-time IDF normalization
+	 */
+	public searchVector(query: string, limit = 10): VectorDocument[] {
+		return this.searchVectorScored(query, limit).map((s) => s.doc)
 	}
 
 	private cosineSimilarity(v1: Map<string, number>, v2: Map<string, number>): number {

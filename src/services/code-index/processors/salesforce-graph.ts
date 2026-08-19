@@ -895,6 +895,26 @@ export class SalesforceGraphEngine {
 		}
 	}
 
+	/**
+	 * Find graph nodes matching a query string in ID, name, or metadata.
+	 */
+	public findNodes(query: string): GraphNode[] {
+		const q = query.toLowerCase()
+		const matches: GraphNode[] = []
+
+		for (const node of this.nodes.values()) {
+			if (
+				node.id.toLowerCase().includes(q) ||
+				node.name.toLowerCase().includes(q) ||
+				(node.txn?.objectApiName && node.txn.objectApiName.toLowerCase().includes(q))
+			) {
+				matches.push(node)
+			}
+		}
+
+		return matches
+	}
+
 	public async exportGraphNetwork(targetDir?: string): Promise<string> {
 		const lines: string[] = ["# Salesforce Interlinked Graph Network", ""]
 		lines.push(`Total Nodes: ${this.nodes.size}`)

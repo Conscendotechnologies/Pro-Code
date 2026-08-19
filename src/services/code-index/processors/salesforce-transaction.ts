@@ -455,7 +455,7 @@ export async function exportTransactionIndex(graph: SalesforceGraphEngine, targe
 				for (const entry of timeline.entries) {
 					const activeStr = entry.node.txn?.active === false ? " (Inactive)" : ""
 					objectSection.push(
-						`- **Step ${entry.step}** [${entry.node.type}] \`${entry.node.name}\`${activeStr}`,
+						`- **Step ${entry.step}** [${entry.node.type}] \`${entry.node.name}\`${activeStr} (${entry.node.filePath})`,
 					)
 				}
 				objectSection.push("")

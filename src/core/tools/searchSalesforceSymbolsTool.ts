@@ -6,7 +6,7 @@
 
 import { Task } from "../task/Task"
 import { ToolUse, AskApproval, HandleError, PushToolResult, RemoveClosingTag } from "../../shared/tools"
-import { SalesforceMetadataIndexer } from "../../services/code-index/processors/salesforce-indexer"
+import { SalesforceSearchRouter } from "../../services/code-index/processors/salesforce-search-router"
 
 export async function searchSalesforceSymbolsTool(
 	task: Task,
@@ -38,18 +38,8 @@ export async function searchSalesforceSymbolsTool(
 		}
 
 		task.consecutiveMistakeCount = 0
-		const indexer = SalesforceMetadataIndexer.getInstance(task.cwd || "default")
-
-		let results = ""
-		if (category === "sobject" || category === "OBJECT" || category === "FIELD") {
-			results = indexer.searchSchema(query)
-		} else if (category === "apex" || category === "APEX_CLASS" || category === "APEX_TRIGGER") {
-			results = indexer.searchApexSymbols(query)
-		} else {
-			const schemaRes = indexer.searchSchema(query)
-			const apexRes = indexer.searchApexSymbols(query)
-			results = `=== SObject & Field Symbols ===\n${schemaRes}\n\n=== Apex Method Symbols ===\n${apexRes}`
-		}
+		const searchRouter = SalesforceSearchRouter.getInstance(task.cwd || "default")
+		const results = await searchRouter.search(query, { category })
 
 		pushToolResult(results)
 	} catch (error: any) {

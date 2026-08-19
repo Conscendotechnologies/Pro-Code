@@ -130,6 +130,8 @@ export class SalesforceStandaloneIndexer implements vscode.Disposable {
 			if (SalesforceStandaloneIndexer.isDebugMode()) {
 				console.log(`[SalesforceDebug] Initializing Salesforce Indexer for workspace: ${this.workspaceRoot}`)
 			}
+			// Load saved JSON sidecar for fast cold start
+			await this.indexer.loadJsonIndex(this.workspaceRoot)
 			await this.scanWorkspace()
 			this.setupFileWatcher()
 			this.lastIndexTimestamp = Date.now()

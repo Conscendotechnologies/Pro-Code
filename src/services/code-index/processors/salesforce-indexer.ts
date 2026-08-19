@@ -47,6 +47,16 @@ export interface ApexClassSymbol {
 	filePath: string
 }
 
+export interface SearchHit {
+	kind: "OBJECT" | "FIELD" | "APEX_CLASS" | "APEX_METHOD" | "FLOW" | "AUTOMATION"
+	name: string
+	qualifiedName: string
+	filePath: string
+	line?: number
+	detail: string
+	score: number
+}
+
 export interface SalesforceIndexRegistry {
 	objects: Map<string, SObjectSymbol>
 	apexClasses: Map<string, ApexClassSymbol>
@@ -350,79 +360,227 @@ export class SalesforceMetadataIndexer {
 	}
 
 	/**
-	 * Search for SObject schema definitions in the registry (capped at maxResults).
+	 * Search for SObject schema definitions returning structured SearchHits.
 	 */
-	public searchSchema(query: string, maxResults = 50): string {
-		const results: string[] = []
+	public getSchemaSearchHits(query: string, maxResults = 50): SearchHit[] {
+		const hits: SearchHit[] = []
 		const q = query.toLowerCase()
-		let count = 0
 
 		for (const [objName, obj] of this.registry.objects) {
-			if (count >= maxResults) break
+			if (hits.length >= maxResults) break
 
-			if (objName.toLowerCase().includes(q) || (obj.label && obj.label.toLowerCase().includes(q))) {
-				results.push(`📦 SObject: ${objName} (${obj.label || ""}) [${obj.fields.size} fields]`)
-				for (const [fieldName, field] of obj.fields) {
-					results.push(
-						`   - ${field.name} (${field.type}) ${field.required ? "[Required]" : ""} ${field.referenceTo ? `-> ${field.referenceTo}` : ""}`,
-					)
-				}
-				count++
-			} else {
-				// Search matching fields inside the object
-				const matchingFields: SFieldSymbol[] = []
-				for (const [fieldName, field] of obj.fields) {
-					if (fieldName.toLowerCase().includes(q) || (field.label && field.label.toLowerCase().includes(q))) {
-						matchingFields.push(field)
-					}
-				}
-				if (matchingFields.length > 0) {
-					results.push(`📦 SObject: ${objName} (Matched ${matchingFields.length} field(s))`)
-					for (const field of matchingFields) {
-						results.push(
-							`   - ${field.name} (${field.type}) ${field.required ? "[Required]" : ""} ${field.referenceTo ? `-> ${field.referenceTo}` : ""}`,
-						)
-					}
-					count++
+			const exactObjMatch = objName.toLowerCase() === q
+			const partialObjMatch =
+				objName.toLowerCase().includes(q) || (obj.label && obj.label.toLowerCase().includes(q))
+
+			if (exactObjMatch || partialObjMatch) {
+				hits.push({
+					kind: "OBJECT",
+					name: objName,
+					qualifiedName: objName,
+					filePath: obj.filePath,
+					detail: `SObject: ${obj.label || objName} (${obj.sharingModel}, ${obj.fields.size} fields)`,
+					score: exactObjMatch ? 100 : 80,
+				})
+			}
+
+			for (const [fieldName, field] of obj.fields) {
+				if (hits.length >= maxResults) break
+				const exactFieldMatch =
+					fieldName.toLowerCase() === q || `${objName.toLowerCase()}.${fieldName.toLowerCase()}` === q
+				const partialFieldMatch =
+					fieldName.toLowerCase().includes(q) || (field.label && field.label.toLowerCase().includes(q))
+
+				if (exactFieldMatch || partialFieldMatch) {
+					hits.push({
+						kind: "FIELD",
+						name: field.name,
+						qualifiedName: `${objName}.${field.name}`,
+						filePath: field.filePath || obj.filePath,
+						detail: `${field.type}${field.required ? ", Required" : ""}${field.referenceTo ? ` -> ${field.referenceTo}` : ""}`,
+						score: exactFieldMatch ? 95 : 75,
+					})
 				}
 			}
 		}
 
-		return results.length > 0
-			? results.join("\n")
-			: `No Salesforce SObject or Field matching "${query}" found in index.`
+		return hits.sort((a, b) => b.score - a.score)
 	}
 
 	/**
-	 * Search for Apex class method signatures in the registry (capped at maxResults).
+	 * Search for SObject schema definitions formatted as a readable string with file paths.
 	 */
-	public searchApexSymbols(query: string, maxResults = 50): string {
-		const results: string[] = []
+	public searchSchema(query: string, maxResults = 50): string {
+		const hits = this.getSchemaSearchHits(query, maxResults)
+		if (hits.length === 0) {
+			return `No Salesforce SObject or Field matching "${query}" found in index.`
+		}
+
+		const lines: string[] = []
+		for (const hit of hits) {
+			lines.push(`[${hit.kind}] ${hit.qualifiedName}`)
+			lines.push(`  ${hit.filePath}`)
+			lines.push(`  detail: ${hit.detail}`)
+			lines.push("")
+		}
+		return lines.join("\n").trim()
+	}
+
+	/**
+	 * Search for Apex symbols returning structured SearchHits.
+	 */
+	public getApexSymbolHits(query: string, maxResults = 50): SearchHit[] {
+		const hits: SearchHit[] = []
 		const q = query.toLowerCase()
-		let count = 0
 
 		for (const [clsName, cls] of this.registry.apexClasses) {
-			if (count >= maxResults) break
+			if (hits.length >= maxResults) break
 
-			if (clsName.toLowerCase().includes(q)) {
-				results.push(`⚡ ApexClass: ${cls.name} (${cls.sharing} sharing)`)
-				for (const m of cls.methods) {
-					results.push(`   L${m.line}: ${m.signature} ${m.isAuraEnabled ? "[@AuraEnabled]" : ""}`)
-				}
-				count++
-			} else {
-				const matchingMethods = cls.methods.filter((m) => m.name.toLowerCase().includes(q))
-				if (matchingMethods.length > 0) {
-					results.push(`⚡ ApexClass: ${cls.name} (Matched ${matchingMethods.length} method(s))`)
-					for (const m of matchingMethods) {
-						results.push(`   L${m.line}: ${m.signature} ${m.isAuraEnabled ? "[@AuraEnabled]" : ""}`)
-					}
-					count++
+			const exactClassMatch = clsName.toLowerCase() === q
+			const partialClassMatch = clsName.toLowerCase().includes(q)
+
+			if (exactClassMatch || partialClassMatch) {
+				hits.push({
+					kind: "APEX_CLASS",
+					name: cls.name,
+					qualifiedName: cls.name,
+					filePath: cls.filePath,
+					detail: `ApexClass: ${cls.sharing} sharing, ${cls.methods.length} methods`,
+					score: exactClassMatch ? 100 : 80,
+				})
+			}
+
+			for (const m of cls.methods) {
+				if (hits.length >= maxResults) break
+				const exactMethodMatch =
+					m.name.toLowerCase() === q || `${clsName.toLowerCase()}.${m.name.toLowerCase()}` === q
+				const partialMethodMatch = m.name.toLowerCase().includes(q) || m.signature.toLowerCase().includes(q)
+
+				if (exactMethodMatch || partialMethodMatch) {
+					hits.push({
+						kind: "APEX_METHOD",
+						name: m.name,
+						qualifiedName: `${cls.name}.${m.name}()`,
+						filePath: cls.filePath,
+						line: m.line,
+						detail: `${m.signature} ${m.isAuraEnabled ? "[@AuraEnabled]" : ""}${m.isInvocable ? "[@InvocableMethod]" : ""}`,
+						score: exactMethodMatch ? 95 : 75,
+					})
 				}
 			}
 		}
 
-		return results.length > 0 ? results.join("\n") : `No Apex class or method matching "${query}" found in index.`
+		return hits.sort((a, b) => b.score - a.score)
+	}
+
+	/**
+	 * Search for Apex class method signatures formatted as addressable pointers with file paths and line numbers.
+	 */
+	public searchApexSymbols(query: string, maxResults = 50): string {
+		const hits = this.getApexSymbolHits(query, maxResults)
+		if (hits.length === 0) {
+			return `No Apex class or method matching "${query}" found in index.`
+		}
+
+		const lines: string[] = []
+		for (const hit of hits) {
+			const lineStr = hit.line ? `:${hit.line}` : ""
+			lines.push(`[${hit.kind}] ${hit.qualifiedName}`)
+			lines.push(`  ${hit.filePath}${lineStr}`)
+			lines.push(`  detail: ${hit.detail}`)
+			lines.push("")
+		}
+		return lines.join("\n").trim()
+	}
+
+	/**
+	 * Export machine-readable JSON sidecar file (.siid-code/salesforce-index.json) containing exact paths and line numbers.
+	 */
+	public async exportJsonIndex(targetDir?: string): Promise<string> {
+		const serializableObjects: Record<string, any> = {}
+		for (const [key, obj] of this.registry.objects) {
+			const fieldsObj: Record<string, any> = {}
+			for (const [fKey, f] of obj.fields) {
+				fieldsObj[fKey] = f
+			}
+			serializableObjects[key] = {
+				apiName: obj.apiName,
+				label: obj.label,
+				sharingModel: obj.sharingModel,
+				filePath: obj.filePath,
+				fields: fieldsObj,
+			}
+		}
+
+		const serializableApex: Record<string, any> = {}
+		for (const [key, cls] of this.registry.apexClasses) {
+			serializableApex[key] = cls
+		}
+
+		const data = {
+			lastUpdated: this.registry.lastUpdated,
+			objects: serializableObjects,
+			apexClasses: serializableApex,
+		}
+
+		const jsonContent = JSON.stringify(data, null, 2)
+
+		if (targetDir) {
+			try {
+				const siidDir = path.join(targetDir, ".siid-code")
+				await fs.mkdir(siidDir, { recursive: true })
+				await fs.writeFile(path.join(siidDir, "salesforce-index.json"), jsonContent, "utf-8")
+			} catch (e) {
+				// Fallback
+			}
+		}
+
+		return jsonContent
+	}
+
+	/**
+	 * Load saved JSON sidecar file (.siid-code/salesforce-index.json) on activation for immediate cold start availability.
+	 */
+	public async loadJsonIndex(targetDir: string): Promise<boolean> {
+		try {
+			const jsonPath = path.join(targetDir, ".siid-code", "salesforce-index.json")
+			const content = await fs.readFile(jsonPath, "utf-8")
+			const parsed = JSON.parse(content)
+
+			if (!parsed || typeof parsed !== "object") return false
+
+			this.registry.lastUpdated = parsed.lastUpdated || Date.now()
+			this.registry.objects.clear()
+			this.registry.apexClasses.clear()
+
+			if (parsed.objects && typeof parsed.objects === "object") {
+				for (const [key, obj] of Object.entries<any>(parsed.objects)) {
+					const fieldsMap = new Map<string, SFieldSymbol>()
+					if (obj.fields && typeof obj.fields === "object") {
+						for (const [fKey, f] of Object.entries<any>(obj.fields)) {
+							fieldsMap.set(fKey, f)
+						}
+					}
+					this.registry.objects.set(key, {
+						apiName: obj.apiName,
+						label: obj.label,
+						sharingModel: obj.sharingModel,
+						filePath: obj.filePath,
+						fields: fieldsMap,
+					})
+				}
+			}
+
+			if (parsed.apexClasses && typeof parsed.apexClasses === "object") {
+				for (const [key, cls] of Object.entries<any>(parsed.apexClasses)) {
+					this.registry.apexClasses.set(key, cls)
+				}
+			}
+
+			return true
+		} catch (e) {
+			return false
+		}
 	}
 
 	public async exportTreeIndex(targetDir?: string): Promise<string> {
@@ -430,7 +588,7 @@ export class SalesforceMetadataIndexer {
 
 		lines.push("## Objects & Fields")
 		for (const [objName, obj] of this.registry.objects) {
-			lines.push(`- **${objName}** (${obj.label || ""}) - ${obj.fields.size} fields`)
+			lines.push(`- **${objName}** (${obj.label || ""}) - ${obj.fields.size} fields [${obj.filePath}]`)
 			for (const [fieldName, f] of obj.fields) {
 				lines.push(`  - \`${f.name}\` (${f.type})`)
 			}
@@ -439,7 +597,7 @@ export class SalesforceMetadataIndexer {
 		lines.push("")
 		lines.push("## Apex Classes & Methods")
 		for (const [clsName, cls] of this.registry.apexClasses) {
-			lines.push(`- **${cls.name}** (${cls.sharing} sharing)`)
+			lines.push(`- **${cls.name}** (${cls.sharing} sharing) [${cls.filePath}]`)
 			for (const m of cls.methods) {
 				lines.push(`  - \`${m.signature}\` (L${m.line})`)
 			}
@@ -452,6 +610,7 @@ export class SalesforceMetadataIndexer {
 				const siidDir = path.join(targetDir, ".siid-code")
 				await fs.mkdir(siidDir, { recursive: true })
 				await fs.writeFile(path.join(siidDir, "SALESFORCE_INDEX.md"), output, "utf-8")
+				await this.exportJsonIndex(targetDir)
 			} catch (e) {
 				// Fallback
 			}
