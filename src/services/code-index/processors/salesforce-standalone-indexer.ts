@@ -344,7 +344,7 @@ export class SalesforceStandaloneIndexer implements vscode.Disposable {
 			this.graphEngine.resolveApexCallEdges()
 			this.graphEngine.aggregateCallChainMetrics()
 
-			// Phase 4: Exporting Reports Based on User Settings
+			// Phase 4: Exporting Reports
 			this.emitProgress({
 				phase: "BUILDING_GRAPH",
 				currentStep: 4,
@@ -361,9 +361,8 @@ export class SalesforceStandaloneIndexer implements vscode.Disposable {
 			const nodeCount = this.graphEngine.getNodes().size
 			const edgeCount = this.graphEngine.getEdges().length
 
-			// Calculate actual entry point timeline count
 			const timelineCount = Array.from(this.graphEngine.getNodes().values()).filter(
-				(n) => n.type === "APEX_TRIGGER" || n.type === "APEX_CLASS" || n.type === "FLOW",
+				(n) => n.type === "APEX_TRIGGER" || (n.type === "APEX_CLASS" && (n.txn?.soqlCount || n.txn?.dmlCount)),
 			).length
 
 			this.lastIndexTimestamp = Date.now()
@@ -395,7 +394,7 @@ export class SalesforceStandaloneIndexer implements vscode.Disposable {
 
 	/**
 	 * Incremental Refresh: Scans workspace for modified files since lastIndexTimestamp,
-	 * updates graph deltas, and re-exports reports without wiping indices or running CLI retrieve.
+	 * updates graph & vector deltas, and re-exports reports without wiping indices or running CLI retrieve.
 	 */
 	public async refreshIndex(): Promise<void> {
 		if (this.isIndexing) return
@@ -426,8 +425,31 @@ export class SalesforceStandaloneIndexer implements vscode.Disposable {
 				}
 			}
 
-			// If no files modified, process all workspace files incrementally
-			const targetFiles = modifiedFiles.length > 0 ? modifiedFiles : files
+			// If no files modified, return early as a clean no-op
+			if (modifiedFiles.length === 0) {
+				const durationMs = Date.now() - startTime
+				const nodeCount = this.graphEngine.getNodes().size
+				const edgeCount = this.graphEngine.getEdges().length
+				const timelineCount = Array.from(this.graphEngine.getNodes().values()).filter(
+					(n) => n.type === "APEX_TRIGGER" || (n.type === "APEX_CLASS" && (n.txn?.soqlCount || n.txn?.dmlCount)),
+				).length
+
+				this.emitProgress({
+					phase: "COMPLETE",
+					currentStep: 4,
+					totalSteps: 4,
+					itemsProcessed: 0,
+					totalItems: 0,
+					currentFile: "No modified files detected.",
+					nodeCount,
+					edgeCount,
+					timelineCount,
+					durationMs,
+				})
+				return
+			}
+
+			const targetFiles = modifiedFiles
 			const totalItems = targetFiles.length
 
 			this.emitProgress({
@@ -446,9 +468,34 @@ export class SalesforceStandaloneIndexer implements vscode.Disposable {
 				await Promise.all(
 					chunk.map(async (filePath) => {
 						try {
+							// Remove stale symbol, graph, and vector state before re-indexing (Fix R1 / vector drift)
+							this.indexer.removeFile(filePath)
+							this.graphEngine.removeFile(filePath)
+							this.vectorIndexer.removeFile(filePath)
+
 							const content = await fs.readFile(filePath, "utf-8")
 							await this.indexer.indexFile(filePath, content)
 							await this.graphEngine.indexFileForGraph(filePath, content)
+
+							const baseName = path.basename(filePath)
+							const isVectorTarget =
+								baseName.endsWith(".cls") ||
+								baseName.endsWith(".trigger") ||
+								baseName.endsWith(".object-meta.xml") ||
+								baseName.endsWith(".field-meta.xml") ||
+								baseName.endsWith(".flow-meta.xml") ||
+								baseName.endsWith(".validationRule-meta.xml")
+
+							if (isVectorTarget) {
+								const vectorDocType =
+									baseName.endsWith(".cls") || baseName.endsWith(".trigger")
+										? "APEX"
+										: baseName.endsWith(".flow-meta.xml")
+											? "FLOW"
+											: "OBJECT"
+								this.vectorIndexer.indexDocument(filePath, baseName, content, vectorDocType, filePath)
+							}
+
 							processedCount++
 						} catch (e) {
 							processedCount++
@@ -484,7 +531,7 @@ export class SalesforceStandaloneIndexer implements vscode.Disposable {
 			const nodeCount = this.graphEngine.getNodes().size
 			const edgeCount = this.graphEngine.getEdges().length
 			const timelineCount = Array.from(this.graphEngine.getNodes().values()).filter(
-				(n) => n.type === "APEX_TRIGGER" || n.type === "APEX_CLASS" || n.type === "FLOW",
+				(n) => n.type === "APEX_TRIGGER" || (n.type === "APEX_CLASS" && (n.txn?.soqlCount || n.txn?.dmlCount)),
 			).length
 
 			this.lastIndexTimestamp = Date.now()
@@ -609,6 +656,11 @@ export class SalesforceStandaloneIndexer implements vscode.Disposable {
 
 	private async handleFileChange(filePath: string): Promise<void> {
 		try {
+			// Purge stale symbol, graph, and vector state before re-indexing (Fix R1 / vector drift)
+			this.indexer.removeFile(filePath)
+			this.graphEngine.removeFile(filePath)
+			this.vectorIndexer.removeFile(filePath)
+
 			const content = await fs.readFile(filePath, "utf-8")
 			await this.indexer.indexFile(filePath, content)
 			await this.graphEngine.indexFileForGraph(filePath, content)
@@ -639,7 +691,10 @@ export class SalesforceStandaloneIndexer implements vscode.Disposable {
 	}
 
 	private handleFileDelete(filePath: string): void {
-		this.graphEngine.removeFileFromGraph(filePath)
+		// Purge deleted file from symbol indexer, graph engine, and vector indexer (Fix R2)
+		this.indexer.removeFile(filePath)
+		this.graphEngine.removeFile(filePath)
+		this.vectorIndexer.removeFile(filePath)
 		this.scheduleDebouncedExport()
 	}
 

@@ -2116,10 +2116,10 @@ export const webviewMessageHandler = async (
 				}
 
 				// Clean up previous progress listener to prevent memory leak
-				if ((provider as any)._sfProgressDisposable) {
-					;(provider as any)._sfProgressDisposable.dispose()
+				if (provider.sfProgressDisposable) {
+					provider.sfProgressDisposable.dispose()
 				}
-				;(provider as any)._sfProgressDisposable = indexer.onProgress((progress) => {
+				provider.sfProgressDisposable = indexer.onProgress((progress) => {
 					provider.postMessageToWebview({
 						type: "salesforceIndexingProgress",
 						values: progress,
@@ -2147,10 +2147,10 @@ export const webviewMessageHandler = async (
 				}
 
 				// Clean up previous progress listener to prevent memory leak
-				if ((provider as any)._sfProgressDisposable) {
-					;(provider as any)._sfProgressDisposable.dispose()
+				if (provider.sfProgressDisposable) {
+					provider.sfProgressDisposable.dispose()
 				}
-				;(provider as any)._sfProgressDisposable = indexer.onProgress((progress) => {
+				provider.sfProgressDisposable = indexer.onProgress((progress) => {
 					provider.postMessageToWebview({
 						type: "salesforceIndexingProgress",
 						values: progress,

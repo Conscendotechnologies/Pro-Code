@@ -118,26 +118,6 @@ export class SalesforceGraphEngine {
 		this.pendingApexCalls.clear()
 	}
 
-	public removeFileFromGraph(filePath: string): void {
-		const normalizedPath = filePath.replace(/\\/g, "/")
-		const nodesToRemove: string[] = []
-		for (const [id, node] of this.nodes.entries()) {
-			if (node.filePath && node.filePath.replace(/\\/g, "/") === normalizedPath) {
-				nodesToRemove.push(id)
-			}
-		}
-		for (const id of nodesToRemove) {
-			this.nodes.delete(id)
-		}
-		this.edges = this.edges.filter(
-			(e) => !nodesToRemove.includes(e.sourceId) && !nodesToRemove.includes(e.targetId),
-		)
-		this.edgeKeys.clear()
-		for (const edge of this.edges) {
-			this.edgeKeys.add(`${edge.sourceId}:${edge.targetId}:${edge.relationship}`)
-		}
-	}
-
 	/**
 	 * Second-pass resolution of CALLS_APEX edges for verified Apex classes
 	 */
