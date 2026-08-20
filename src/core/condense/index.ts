@@ -9,7 +9,7 @@ import { maybeRemoveImageBlocks } from "../../api/transform/image-cleaning"
 
 export const N_MESSAGES_TO_KEEP = 0 // Changed: Now we don't keep any messages, only the summary
 export const MIN_CONDENSE_THRESHOLD = 5 // Minimum percentage of context window to trigger condensing
-export const MAX_CONDENSE_THRESHOLD = 80 // Maximum percentage of context window to trigger condensing
+export const MAX_CONDENSE_THRESHOLD = 90 // Maximum percentage of context window to trigger condensing
 const CONTINUATION_PROMPT = "Please continue from where we left off based on the summary above."
 const MAX_SUMMARY_ATTEMPTS = 2
 const MIN_SUMMARY_CHARS_ABSOLUTE = 350
