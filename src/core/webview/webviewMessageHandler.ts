@@ -671,6 +671,7 @@ export const webviewMessageHandler = async (
 				litellm: {},
 				ollama: {},
 				lmstudio: {},
+				"9router": {},
 			}
 
 			const safeGetModels = async (options: GetModelsOptions): Promise<ModelRecord> => {
@@ -693,6 +694,15 @@ export const webviewMessageHandler = async (
 				modelFetchPromises.push({
 					key: "litellm",
 					options: { provider: "litellm", apiKey: litellmApiKey, baseUrl: litellmBaseUrl },
+				})
+			}
+
+			const nineRouterApiKey = apiConfiguration.nineRouterApiKey || message?.values?.nineRouterApiKey
+			const nineRouterBaseUrl = apiConfiguration.nineRouterBaseUrl || message?.values?.nineRouterBaseUrl
+			if (nineRouterBaseUrl || apiConfiguration.apiProvider === "9router") {
+				modelFetchPromises.push({
+					key: "9router",
+					options: { provider: "9router", apiKey: nineRouterApiKey, baseUrl: nineRouterBaseUrl },
 				})
 			}
 

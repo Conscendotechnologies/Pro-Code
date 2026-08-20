@@ -46,6 +46,8 @@ import {
 	mainlandZAiModels,
 	fireworksModels,
 	fireworksDefaultModelId,
+	nineRouterDefaultModelId,
+	nineRouterDefaultModelInfo,
 } from "@siid-code/types"
 
 import type { ModelRecord, RouterModels } from "@roo/api"
@@ -275,6 +277,11 @@ function getSelectedModel({
 		case "fireworks": {
 			const id = apiConfiguration.apiModelId ?? fireworksDefaultModelId
 			const info = fireworksModels[id as keyof typeof fireworksModels]
+			return { id, info }
+		}
+		case "9router": {
+			const id = apiConfiguration.nineRouterModelId ?? nineRouterDefaultModelId
+			const info = routerModels["9router"]?.[id] ?? nineRouterDefaultModelInfo
 			return { id, info }
 		}
 		// case "anthropic":
