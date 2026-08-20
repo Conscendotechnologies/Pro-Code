@@ -2477,7 +2477,14 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 				const didToolUse = this.assistantMessageContent.some((block) => block.type === "tool_use")
 
 				if (!didToolUse) {
-					this.userMessageContent.push({ type: "text", text: formatResponse.noToolsUsed() })
+					// Pass the reply through so an invented tool name can be named
+					// back to the model instead of a generic "no tool used".
+					const assistantText = this.assistantMessageContent
+						.filter((block) => block.type === "text")
+						.map((block) => block.content)
+						.join("\n")
+
+					this.userMessageContent.push({ type: "text", text: formatResponse.noToolsUsed(assistantText) })
 					this.consecutiveMistakeCount++
 				} else {
 					// Reset count when tools are successfully used
