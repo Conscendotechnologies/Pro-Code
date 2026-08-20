@@ -281,7 +281,11 @@ function getSelectedModel({
 		}
 		case "9router": {
 			const id = apiConfiguration.nineRouterModelId ?? nineRouterDefaultModelId
-			const info = routerModels["9router"]?.[id] ?? nineRouterDefaultModelInfo
+			const fetchedInfo = routerModels["9router"]?.[id]
+			const info: ModelInfo = fetchedInfo ?? {
+				...nineRouterDefaultModelInfo,
+				description: `${id} via 9Router`,
+			}
 			return { id, info }
 		}
 		// case "anthropic":

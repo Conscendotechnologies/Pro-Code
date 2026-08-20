@@ -12,11 +12,16 @@ export class NineRouterHandler extends BaseOpenAiCompatibleProvider<string> {
 			providerName: "9Router",
 			baseURL: options.nineRouterBaseUrl || nineRouterDefaultBaseUrl,
 			apiKey: options.nineRouterApiKey || "9router",
-			defaultProviderModelId: nineRouterDefaultModelId,
+			defaultProviderModelId: modelId,
 			providerModels: {
 				[modelId]: nineRouterDefaultModelInfo,
 			},
 			defaultTemperature: 0,
 		})
+	}
+
+	override getModel() {
+		const id = this.options.nineRouterModelId || nineRouterDefaultModelId
+		return { id, info: nineRouterDefaultModelInfo }
 	}
 }
