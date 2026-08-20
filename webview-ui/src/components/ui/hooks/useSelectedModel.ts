@@ -47,7 +47,7 @@ import {
 	fireworksModels,
 	fireworksDefaultModelId,
 	nineRouterDefaultModelId,
-	nineRouterDefaultModelInfo,
+	inferModelInfoFromId,
 } from "@siid-code/types"
 
 import type { ModelRecord, RouterModels } from "@roo/api"
@@ -282,10 +282,7 @@ function getSelectedModel({
 		case "9router": {
 			const id = apiConfiguration.nineRouterModelId ?? nineRouterDefaultModelId
 			const fetchedInfo = routerModels["9router"]?.[id]
-			const info: ModelInfo = fetchedInfo ?? {
-				...nineRouterDefaultModelInfo,
-				description: `${id} via 9Router`,
-			}
+			const info: ModelInfo = fetchedInfo ?? inferModelInfoFromId(id)
 			return { id, info }
 		}
 		// case "anthropic":
