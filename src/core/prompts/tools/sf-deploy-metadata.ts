@@ -47,6 +47,7 @@ Parameters:
   - For AssignmentRule use ObjectApi.RuleApi
   - For AssignmentRules use ObjectApi (example: Lead)
 - test_level: (optional) NoTestRun | RunLocalTests | RunAllTestsInOrg | RunSpecifiedTests
+  WARNING: do NOT pass test_level to run tests. Deploy without it, then run tests with the siid_forge \`runApexTests\` feature — it returns structured pass/fail, per-failure messages, coverage, and debug logs, none of which a deploy test_level gives you.
 - tests: (optional) Required only with RunSpecifiedTests (comma-separated test class names)
 - ignore_warnings: (optional) true | false
 - source_dir: (optional) currently ignored by the tool command builder
