@@ -806,7 +806,7 @@ export const webviewMessageHandler = async (
 			break
 		}
 		case "requestOpenAiModels":
-			if (message?.values?.baseUrl && message?.values?.apiKey) {
+			if (message?.values?.baseUrl) {
 				const openAiModels = await getOpenAiModels(
 					message?.values?.baseUrl,
 					message?.values?.apiKey,
