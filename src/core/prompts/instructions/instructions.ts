@@ -22,7 +22,7 @@ import {
 	roleCreationInstructions,
 	validationRulesInstructions,
 } from "./salesforce-instructions"
-import { invocableApexInstructions, adaptiveResponseAgentInstructions } from "./code-instructions"
+import { adaptiveResponseAgentInstructions } from "./code-instructions"
 import {
 	pmdApexInstructions,
 	pmdHtmlInstructions,
@@ -131,9 +131,6 @@ export async function fetchInstructions(text: string, detail: InstructionsDetail
 		}
 		case "pmd_xml": {
 			return await pmdXmlInstructions(detail.context)
-		} // Code Instructions
-		case "invocable_apex": {
-			return await invocableApexInstructions(detail.context)
 		}
 		// Adaptive Response Agent Instructions
 		case "adaptive_response_agent": {
