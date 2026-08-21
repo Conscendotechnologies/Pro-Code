@@ -64,7 +64,17 @@ export async function getNineRouterModels(
 		const cleanBaseUrl = baseUrl ? baseUrl.trim().replace(/\/+$/, "") : "http://localhost:20128/v1"
 		const modelsEndpoint = cleanBaseUrl.endsWith("/models") ? cleanBaseUrl : `${cleanBaseUrl}/models`
 
-		const response = await axios.get(modelsEndpoint, { headers, timeout: 5000 })
+		let response
+		try {
+			response = await axios.get(modelsEndpoint, { headers, timeout: 15000 })
+		} catch (firstErr) {
+			if (cleanBaseUrl.includes("localhost")) {
+				const fallbackEndpoint = modelsEndpoint.replace("localhost", "127.0.0.1")
+				response = await axios.get(fallbackEndpoint, { headers, timeout: 15000 })
+			} else {
+				throw firstErr
+			}
+		}
 		const models: ModelRecord = {}
 
 		const parseModelInfo = (modelObj: any, modelId: string): ModelInfo => {
