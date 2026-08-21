@@ -88,7 +88,7 @@ export async function getNineRouterModels(
 							? modelObj.max_context_length
 							: inferred.contextWindow
 
-			const maxTokens =
+			const rawMaxTokens =
 				typeof modelObj?.max_tokens === "number"
 					? modelObj.max_tokens
 					: typeof modelObj?.max_completion_tokens === "number"
@@ -96,6 +96,11 @@ export async function getNineRouterModels(
 						: typeof modelObj?.max_output_tokens === "number"
 							? modelObj.max_output_tokens
 							: nineRouterDefaultModelInfo.maxTokens
+
+			const maxTokens =
+				typeof rawMaxTokens === "number" && rawMaxTokens > 0 && rawMaxTokens <= 16384
+					? rawMaxTokens
+					: nineRouterDefaultModelInfo.maxTokens
 
 			const supportsImages =
 				typeof modelObj?.supports_images === "boolean"
