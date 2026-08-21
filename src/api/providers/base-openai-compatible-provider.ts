@@ -59,6 +59,8 @@ export abstract class BaseOpenAiCompatibleProvider<ModelName extends string>
 			baseURL,
 			apiKey: this.options.apiKey,
 			defaultHeaders: DEFAULT_HEADERS,
+			timeout: 60000, // 60s timeout to prevent indefinite hanging on stuck proxy requests
+			maxRetries: 2,
 		})
 	}
 

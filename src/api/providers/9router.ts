@@ -8,6 +8,8 @@ import { inferModelInfoFromId } from "./fetchers/9router"
 
 export class NineRouterHandler extends BaseOpenAiCompatibleProvider<string> {
 	private modelsCache: ModelRecord = {}
+	private lastFetchTime = 0
+	private static readonly FETCH_TTL_MS = 5 * 60 * 1000 // Cache for 5 minutes
 
 	constructor(options: ApiHandlerOptions) {
 		const modelId = options.nineRouterModelId || nineRouterDefaultModelId
@@ -26,14 +28,18 @@ export class NineRouterHandler extends BaseOpenAiCompatibleProvider<string> {
 	}
 
 	public async fetchModel() {
-		try {
-			this.modelsCache = await getModels({
-				provider: "9router",
-				apiKey: this.options.nineRouterApiKey,
-				baseUrl: this.options.nineRouterBaseUrl || nineRouterDefaultBaseUrl,
-			})
-		} catch (err) {
-			console.warn("[NineRouterHandler] Failed to fetch models cache:", err)
+		const now = Date.now()
+		if (Object.keys(this.modelsCache).length === 0 || now - this.lastFetchTime > NineRouterHandler.FETCH_TTL_MS) {
+			try {
+				this.modelsCache = await getModels({
+					provider: "9router",
+					apiKey: this.options.nineRouterApiKey,
+					baseUrl: this.options.nineRouterBaseUrl || nineRouterDefaultBaseUrl,
+				})
+				this.lastFetchTime = now
+			} catch (err) {
+				console.warn("[NineRouterHandler] Failed to fetch models cache:", err)
+			}
 		}
 		return this.getModel()
 	}
