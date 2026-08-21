@@ -99,7 +99,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
 	try {
 		if (cloudService.telemetryClient) {
-			TelemetryService.instance.register(cloudService.telemetryClient)
+			TelemetryService.instance.register(cloudService.telemetryClient as any)
 		}
 	} catch (error) {
 		outputChannel.appendLine(

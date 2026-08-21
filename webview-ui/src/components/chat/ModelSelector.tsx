@@ -1,4 +1,5 @@
 import React from "react"
+import { useEvent } from "react-use"
 import { Check } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useRooPortal } from "@/components/ui/hooks/useRooPortal"
@@ -6,6 +7,15 @@ import { Popover, PopoverContent, PopoverTrigger, StandardTooltip } from "@/comp
 import { useAppTranslation } from "@/i18n/TranslationContext"
 import { getModelsForMode } from "@roo/mode-models"
 import { Mode } from "@roo/modes"
+import { vscode } from "@/utils/vscode"
+import { ExtensionMessage } from "@roo/ExtensionMessage"
+
+type CustomProviderInfo = {
+	apiProvider?: string
+	openAiBaseUrl?: string
+	openAiApiKey?: string
+	openAiHeaders?: Record<string, string>
+}
 
 interface ModelSelectorProps {
 	value: string // Current model ID
@@ -16,6 +26,7 @@ interface ModelSelectorProps {
 	triggerClassName?: string
 	useFreeModels?: boolean // Filter to show only free models
 	developerMode?: boolean // Developer mode shows all models
+	customProvider?: CustomProviderInfo // When apiProvider is a custom endpoint (openai), fetch models from it
 }
 
 export const ModelSelector = ({
@@ -27,8 +38,10 @@ export const ModelSelector = ({
 	triggerClassName = "",
 	useFreeModels = false,
 	developerMode = false,
+	customProvider,
 }: ModelSelectorProps) => {
 	const [open, setOpen] = React.useState(false)
+	const [customModels, setCustomModels] = React.useState<string[] | null>(null)
 	const portalContainer = useRooPortal("roo-portal")
 	const { t } = useAppTranslation()
 	const formatTierLabel = React.useCallback((tier: string) => {
@@ -36,8 +49,41 @@ export const ModelSelector = ({
 		return tier.charAt(0).toUpperCase() + tier.slice(1)
 	}, [])
 
+	const isCustomEndpoint = customProvider?.apiProvider === "openai" && !!customProvider.openAiBaseUrl
+
+	// Fetch models from the custom endpoint when the popover opens
+	React.useEffect(() => {
+		if (!open || !isCustomEndpoint) return
+		vscode.postMessage({
+			type: "requestOpenAiModels",
+			values: {
+				baseUrl: customProvider!.openAiBaseUrl,
+				apiKey: customProvider!.openAiApiKey,
+				openAiHeaders: customProvider!.openAiHeaders,
+			},
+		})
+	}, [open, isCustomEndpoint, customProvider])
+
+	const onMessage = React.useCallback(
+		(event: MessageEvent) => {
+			if (!isCustomEndpoint) return
+			const message: ExtensionMessage = event.data
+			if (message.type === "openAiModels") {
+				setCustomModels(message.openAiModels ?? [])
+			}
+		},
+		[isCustomEndpoint],
+	)
+	useEvent("message", onMessage)
+
 	// Get available models for the current mode with filtering
 	const availableModels = React.useMemo(() => {
+		// Custom endpoint (9Router/OmniRoute): show the endpoint's model list
+		if (isCustomEndpoint) {
+			const ids = customModels ?? (value ? [value] : [])
+			return ids.map((id) => ({ modelId: id, displayName: id, tier: "" as string, priority: 999 }))
+		}
+
 		const allModels = getModelsForMode(mode)
 
 		// Developer mode shows all models
@@ -58,7 +104,7 @@ export const ModelSelector = ({
 
 		// Sort by priority (lower number = higher priority)
 		return [...filtered].sort((a, b) => (a.priority || 999) - (b.priority || 999))
-	}, [mode, useFreeModels, developerMode])
+	}, [mode, useFreeModels, developerMode, isCustomEndpoint, customModels, value])
 
 	// Find the selected model info
 	const selectedModel = React.useMemo(() => {
