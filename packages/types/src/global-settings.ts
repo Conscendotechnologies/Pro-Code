@@ -60,8 +60,7 @@ export const globalSettingsSchema = z.object({
 	alwaysAllowModeSwitch: z.boolean().optional(),
 	alwaysAllowSubtasks: z.boolean().optional(),
 	alwaysAllowExecute: z.boolean().optional(),
-	
-	
+
 	alwaysAllowDeploySfMetadata: z.boolean().optional(),
 	alwaysAllowRetrieveSfMetadata: z.boolean().optional(),
 	allowedCommands: z.array(z.string()).optional(),
@@ -218,6 +217,7 @@ export const SECRET_STATE_KEYS = [
 	"huggingFaceApiKey",
 	"sambaNovaApiKey",
 	"fireworksApiKey",
+	"nineRouterApiKey",
 ] as const satisfies readonly (keyof ProviderSettings)[]
 export type SecretState = Pick<ProviderSettings, (typeof SECRET_STATE_KEYS)[number]>
 
@@ -264,7 +264,6 @@ export const EVALS_SETTINGS: RooCodeSettings = {
 	alwaysAllowModeSwitch: true,
 	alwaysAllowSubtasks: true,
 	alwaysAllowExecute: true,
-	
 
 	allowedCommands: ["*"],
 	commandExecutionTimeout: 20,
