@@ -223,52 +223,18 @@ export async function getEnvironmentDetails(
 		details += terminalDetails
 	}
 
-	// Add current time information with timezone.
-	const now = new Date()
-
-	const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone
-	const timeZoneOffset = -now.getTimezoneOffset() / 60 // Convert to hours and invert sign to match conventional notation
-	const timeZoneOffsetHours = Math.floor(Math.abs(timeZoneOffset))
-	const timeZoneOffsetMinutes = Math.abs(Math.round((Math.abs(timeZoneOffset) - timeZoneOffsetHours) * 60))
-	const timeZoneOffsetStr = `${timeZoneOffset >= 0 ? "+" : "-"}${timeZoneOffsetHours}:${timeZoneOffsetMinutes.toString().padStart(2, "0")}`
-	details += `\n\n# Current Time\nCurrent time in ISO 8601 UTC format: ${now.toISOString()}\nUser time zone: ${timeZone}, UTC${timeZoneOffsetStr}`
+	// Current time removed in favor of delta-based updates
 
 	// Add context tokens information.
-	const { contextTokens, totalCost } = getApiMetrics(cline.clineMessages)
-	const { id: modelId } = cline.api.getModel()
+	const metrics = getApiMetrics(cline.clineMessages)
 
-	details += `\n\n# Current Cost\n${totalCost !== null ? `$${totalCost.toFixed(2)}` : "(Not available)"}`
+	details += `\n\n# Current Turn Metrics`
+	details += `\n- **Input:** ${metrics.lastTokensIn !== undefined ? metrics.lastTokensIn : "unknown"} tokens`
+	details += `\n- **Output:** ${metrics.lastTokensOut !== undefined ? metrics.lastTokensOut : "unknown"} tokens`
+	details += `\n- **Cached:** ${metrics.lastCacheReads !== undefined ? metrics.lastCacheReads : "unknown"} tokens`
+	details += `\n- **Total Cost (Running):** ${metrics.totalCost !== null ? `$${metrics.totalCost.toFixed(3)}` : "unknown"}`
 
-	// Add current mode and any mode-specific warnings.
-	const {
-		mode,
-		customModes,
-		customModePrompts,
-		experiments = {} as Record<ExperimentId, boolean>,
-		customInstructions: globalCustomInstructions,
-		language,
-	} = state ?? {}
-
-	const currentMode = mode ?? defaultModeSlug
-
-	const modeDetails = await getFullModeDetails(currentMode, customModes, customModePrompts, {
-		cwd: cline.cwd,
-		globalCustomInstructions,
-		language: language ?? formatLanguage(vscode.env.language),
-	})
-
-	details += `\n\n# Current Mode\n`
-	details += `<slug>${currentMode}</slug>\n`
-	details += `<name>${modeDetails.name}</name>\n`
-	details += `<model>${modelId}</model>\n`
-
-	if (Experiments.isEnabled(experiments ?? {}, EXPERIMENT_IDS.POWER_STEERING)) {
-		details += `<role>${modeDetails.roleDefinition}</role>\n`
-
-		if (modeDetails.customInstructions) {
-			details += `<custom_instructions>${modeDetails.customInstructions}</custom_instructions>\n`
-		}
-	}
+	// Current Mode block moved to system prompt
 
 	// Planning files section removed - using TodoWrite for progress tracking instead
 
@@ -281,25 +247,43 @@ export async function getEnvironmentDetails(
 			// permission popup.
 			details += "(Desktop files not shown automatically. Use list_files to explore if needed.)"
 		} else {
-			const maxFiles = maxWorkspaceFiles ?? 200
+			const maxFiles = 10000 // We can use a high limit since we only output a summary
+			const [files, didHitLimit] = await listFiles(cline.cwd, true, maxFiles)
 
-			// Early return for limit of 0
-			if (maxFiles === 0) {
-				details += "(Workspace files context disabled. Use list_files to explore if needed.)"
-			} else {
-				const [files, didHitLimit] = await listFiles(cline.cwd, true, maxFiles)
-				const { showRooIgnoredFiles = true } = state ?? {}
+			const counts = new Map<string, { type: "dir" | "file"; count: number }>()
 
-				const result = formatResponse.formatFilesList(
-					cline.cwd,
-					files,
-					didHitLimit,
-					cline.rooIgnoreController,
-					showRooIgnoredFiles,
-				)
+			for (const file of files) {
+				const relativePath = path.relative(cline.cwd, file).replace(/\\/g, "/")
+				if (!relativePath || relativePath === ".") continue
 
-				details += result
+				const parts = relativePath.split("/")
+				const topLevel = parts[0]
+				const isDir = parts.length > 1 || file.endsWith("/") || file.endsWith("\\")
+
+				if (!counts.has(topLevel)) {
+					counts.set(topLevel, { type: isDir ? "dir" : "file", count: 0 })
+				}
+				if (parts.length > 1) {
+					// It's a file inside a dir
+					counts.get(topLevel)!.count++
+				}
 			}
+
+			let result = ""
+			const sortedKeys = Array.from(counts.keys()).sort()
+			for (const key of sortedKeys) {
+				const info = counts.get(key)!
+				if (info.type === "dir") {
+					result += `${key}/ (${info.count} files)\n`
+				} else {
+					result += `${key}\n`
+				}
+			}
+			if (didHitLimit) {
+				result += "\n(File list truncated, counts may be incomplete)"
+			}
+
+			details += `\n${result}`
 		}
 	}
 

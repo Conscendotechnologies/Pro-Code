@@ -305,6 +305,10 @@ export async function presentAssistantMessage(cline: Task) {
 				break
 			}
 
+			// Immediately mark that a tool has been dispatched in this message.
+			// When multiple tool calls are enabled, this flag is still set but won't block subsequent tools.
+			cline.didAlreadyUseTool = true
+
 			const pushToolResult = (content: ToolResponse) => {
 				cline.userMessageContent.push({ type: "text", text: `${toolDescription()} Result:` })
 
@@ -313,11 +317,6 @@ export async function presentAssistantMessage(cline: Task) {
 				} else {
 					cline.userMessageContent.push(...content)
 				}
-
-				// Once a tool result has been collected, mark that a tool has
-				// been used. When multiple tool calls are enabled, this flag
-				// is still set but won't block subsequent tools.
-				cline.didAlreadyUseTool = true
 			}
 
 			const askApproval = async (

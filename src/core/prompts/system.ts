@@ -16,6 +16,7 @@ import { CodeIndexManager } from "../../services/code-index/manager"
 import { PromptVariables, loadCustomPromptIndexFile } from "./sections/custom-system-index"
 
 import { getToolDescriptionsForMode } from "./tools"
+import { getStaticPreTaskInstructions } from "../task/getPreTaskDetails"
 import {
 	getRulesSection,
 	getSystemInfoSection,
@@ -142,7 +143,17 @@ ${getDeveloperInfoSection()}
 
 ${getObjectiveSection(codeIndexManager, experiments, enablePmdRules)}
 
-${baseInstructions}`
+${baseInstructions}
+
+${getStaticPreTaskInstructions()}
+
+### Todo List Instructions
+A todo list exists. UPDATE it as you progress - don't recreate.
+IMPORTANT: When task status changes, remember to call update_todo_list.
+
+### Current Mode
+<slug>${modeConfig.slug}</slug>
+<name>${modeConfig.name}</name>`
 
 	return basePrompt
 }

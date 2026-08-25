@@ -241,6 +241,10 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 	fuzzyMatchThreshold: number
 	didEditFile: boolean = false
 
+	// State for delta updates
+	private previousEnvironmentDetails: Record<string, string> = {}
+	private previousPreTaskDetails: string = ""
+
 	// LLM Messages & Chat Messages
 	apiConversationHistory: ApiMessage[] = []
 	clineMessages: ClineMessage[] = []
@@ -609,6 +613,32 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 		} catch (error) {
 			// In the off chance this fails, we don't want to stop the task.
 			console.error("Failed to save API conversation history:", error)
+		}
+	}
+
+	private async ageOutOldToolResults() {
+		let modified = false
+		const endIndex = Math.max(0, this.apiConversationHistory.length - 10) // Older than 5 turns
+
+		for (let i = 0; i < endIndex; i++) {
+			const message = this.apiConversationHistory[i]
+			if (message.role === "user" && Array.isArray(message.content)) {
+				for (let j = 0; j < message.content.length; j++) {
+					const block = message.content[j]
+					if (block.type === "text" && block.text.match(/\[.*?\] Result:/)) {
+						const nextBlock = message.content[j + 1]
+						if (nextBlock && nextBlock.type === "text" && nextBlock.text.length > 2000) {
+							const turnsAgo = Math.floor((this.apiConversationHistory.length - i) / 2)
+							nextBlock.text = `(Result omitted for brevity. Tool was used ${turnsAgo} turns ago.)`
+							modified = true
+						}
+					}
+				}
+			}
+		}
+
+		if (modified) {
+			await this.saveApiConversationHistory()
 		}
 	}
 
@@ -1999,15 +2029,33 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 			maxReadFileLine,
 		})
 
-		const environmentDetails = await getEnvironmentDetails(
+		let environmentDetails = await getEnvironmentDetails(
 			this,
 			provider?.contextProxy.globalStorageUri,
 			includeFileDetails,
 		)
 
+		// Compute environment details delta
+		const envContent = environmentDetails
+			.replace("<environment_details>\n", "")
+			.replace("\n</environment_details>", "")
+			.trim()
+		const envSections = envContent.split("\n\n# ").filter(Boolean)
+		let changedEnv = ""
+		for (const section of envSections) {
+			const header = section.split("\n")[0]
+			if (this.previousEnvironmentDetails[header] !== section) {
+				changedEnv += `\n\n# ${section}`
+				this.previousEnvironmentDetails[header] = section
+			}
+		}
+		environmentDetails = changedEnv.trim()
+			? `<environment_details>\n${changedEnv.trim()}\n</environment_details>`
+			: ""
+
 		const hasTodoList = Array.isArray(this.todoList) && this.todoList.length > 0
 		const state = await provider?.getState()
-		const preTaskDetails = await getPreTaskDetails(provider?.contextProxy.globalStorageUri, {
+		let preTaskDetails = await getPreTaskDetails(provider?.contextProxy.globalStorageUri, {
 			taskGuidesFetched: this.taskGuidesFetched,
 			hasTodoList,
 			cwd: this.cwd,
@@ -2016,12 +2064,20 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 			planningFilePath: this.planningFilePath,
 		})
 
+		if (preTaskDetails === this.previousPreTaskDetails) {
+			preTaskDetails = ""
+		} else {
+			this.previousPreTaskDetails = preTaskDetails
+		}
+
 		// Add pre-task details FIRST for higher priority, then parsed content, then environment details
-		const finalUserContent = [
-			...parsedUserContent,
-			{ type: "text" as const, text: preTaskDetails },
-			{ type: "text" as const, text: environmentDetails },
-		]
+		const finalUserContent: any[] = [...parsedUserContent]
+		if (preTaskDetails) {
+			finalUserContent.push({ type: "text" as const, text: preTaskDetails })
+		}
+		if (environmentDetails) {
+			finalUserContent.push({ type: "text" as const, text: environmentDetails })
+		}
 		console.log("Final user content:", finalUserContent)
 
 		await this.addToApiConversationHistory({ role: "user", content: finalUserContent })
@@ -2715,6 +2771,8 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 				)
 			}
 		}
+
+		await this.ageOutOldToolResults()
 
 		const cleanConversationHistory = maybeRemoveImageBlocks(this.apiConversationHistory, this.api).map(
 			({ role, content }) => ({ role, content }),
