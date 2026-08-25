@@ -239,11 +239,11 @@ export async function getEnvironmentDetails(
 			// permission popup.
 			details += "(Desktop files not shown automatically. Use list_files to explore if needed.)"
 		} else if (maxWorkspaceFiles === 0) {
-			// User has disabled automatic file listing
+			details += "(Workspace files context disabled. Use list_files to explore if needed.)"
 		} else {
 			const [files, didHitLimit] = await listFiles(cline.cwd, false, maxWorkspaceFiles)
 
-			const counts = new Map<string, { type: "dir" | "file"; count: number }>()
+			const topLevelNames = new Set<string>()
 
 			for (const file of files) {
 				const relativePath = path.relative(cline.cwd, file).replace(/\\/g, "/")
@@ -253,27 +253,16 @@ export async function getEnvironmentDetails(
 				const topLevel = parts[0]
 				const isDir = parts.length > 1 || file.endsWith("/") || file.endsWith("\\")
 
-				if (!counts.has(topLevel)) {
-					counts.set(topLevel, { type: isDir ? "dir" : "file", count: 0 })
-				}
-				if (parts.length > 1) {
-					// It's a file inside a dir
-					counts.get(topLevel)!.count++
-				}
+				topLevelNames.add(isDir ? `${topLevel}/` : topLevel)
 			}
 
 			let result = ""
-			const sortedKeys = Array.from(counts.keys()).sort()
+			const sortedKeys = Array.from(topLevelNames).sort()
 			for (const key of sortedKeys) {
-				const info = counts.get(key)!
-				if (info.type === "dir") {
-					result += `${key}/ (${info.count} files)\n`
-				} else {
-					result += `${key}\n`
-				}
+				result += `${key}\n`
 			}
 			if (didHitLimit) {
-				result += "\n(File list truncated, counts may be incomplete)"
+				result += "\n(File list truncated)"
 			}
 
 			details += `\n${result}`

@@ -2344,21 +2344,48 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 			}
 
 			if (inputTokens > 0 || outputTokens > 0 || cacheWriteTokens > 0 || cacheReadTokens > 0) {
+				const cost =
+					totalCost ??
+					calculateApiCostAnthropic(
+						this.api.getModel().info,
+						inputTokens,
+						outputTokens,
+						cacheWriteTokens,
+						cacheReadTokens,
+					)
+
 				TelemetryService.instance.captureLlmCompletion(this.taskId, {
 					inputTokens,
 					outputTokens,
 					cacheWriteTokens,
 					cacheReadTokens,
-					cost:
-						totalCost ??
-						calculateApiCostAnthropic(
-							this.api.getModel().info,
+					cost,
+				})
+
+				// Issue 3: Log per-turn metrics to a local file for developer validation
+				try {
+					const metricsPath = path.join(
+						this.api.options.cwd || this.providerRef.deref()?.globalStoragePath || "",
+						".cline",
+						"metrics.jsonl",
+					)
+					// Use providerRef.deref()?.globalStoragePath / tasks / taskId ?
+					// Let's just put it in the task folder.
+					const taskStorage = path.join(this.globalStoragePath, "tasks", this.taskId)
+					const taskMetricsPath = path.join(taskStorage, "metrics.jsonl")
+					const data =
+						JSON.stringify({
+							ts: Date.now(),
 							inputTokens,
 							outputTokens,
 							cacheWriteTokens,
 							cacheReadTokens,
-						),
-				})
+							cost,
+						}) + "\n"
+					await fs.appendFile(taskMetricsPath, data)
+				} catch (e) {
+					console.error("Failed to append metrics to task log", e)
+				}
 			}
 
 			// Need to call here in case the stream was aborted.
