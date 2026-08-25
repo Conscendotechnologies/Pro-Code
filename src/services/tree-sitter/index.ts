@@ -89,6 +89,14 @@ const extensions = [
 	// Embedded Template
 	"ejs",
 	"erb",
+	// Salesforce Apex & Metadata
+	"cls",
+	"trigger",
+	"object-meta.xml",
+	"field-meta.xml",
+	"flow-meta.xml",
+	"cmp",
+	"page",
 	// Visual Basic .NET
 	"vb",
 ].map((e) => `.${e}`)

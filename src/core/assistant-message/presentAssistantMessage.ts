@@ -43,6 +43,8 @@ import { generateCustomFieldTool } from "../tools/generateCustomFieldTool"
 import { assignFieldPermissionsTool } from "../tools/assignFieldPermissionsTool"
 import { generateApexClassTool } from "../tools/generateApexClassTool"
 import { generateApexTriggerTool } from "../tools/generateApexTriggerTool"
+import { searchSalesforceSymbolsTool } from "../tools/searchSalesforceSymbolsTool"
+import { searchSalesforceGraphTool } from "../tools/searchSalesforceGraphTool"
 
 /**
  * Processes and presents assistant message content to the user interface.
@@ -616,6 +618,26 @@ export async function presentAssistantMessage(cline: Task) {
 					break
 				case "assign_field_permissions":
 					await assignFieldPermissionsTool(
+						cline,
+						block,
+						askApproval,
+						handleError,
+						pushToolResult,
+						removeClosingTag,
+					)
+					break
+				case "search_salesforce_symbols":
+					await searchSalesforceSymbolsTool(
+						cline,
+						block,
+						askApproval,
+						handleError,
+						pushToolResult,
+						removeClosingTag,
+					)
+					break
+				case "search_salesforce_graph":
+					await searchSalesforceGraphTool(
 						cline,
 						block,
 						askApproval,

@@ -33,11 +33,8 @@ export class CodeParser implements ICodeParser {
 			fileHash?: string
 		},
 	): Promise<CodeBlock[]> {
-		// Get file extension
-		const ext = path.extname(filePath).toLowerCase()
-
 		// Skip if not a supported language
-		if (!this.isSupportedLanguage(ext)) {
+		if (!this.isSupportedLanguage(filePath)) {
 			return []
 		}
 
@@ -72,8 +69,17 @@ export class CodeParser implements ICodeParser {
 	 * @param extension File extension
 	 * @returns Boolean indicating if the language is supported
 	 */
-	private isSupportedLanguage(extension: string): boolean {
-		return scannerExtensions.includes(extension)
+	private isSupportedLanguage(filePath: string): boolean {
+		const lowerPath = filePath.toLowerCase()
+		if (
+			lowerPath.endsWith(".object-meta.xml") ||
+			lowerPath.endsWith(".field-meta.xml") ||
+			lowerPath.endsWith(".flow-meta.xml")
+		) {
+			return true
+		}
+		const ext = path.extname(filePath).toLowerCase()
+		return scannerExtensions.includes(ext)
 	}
 
 	/**

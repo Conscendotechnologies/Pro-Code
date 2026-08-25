@@ -63,7 +63,11 @@ export const toolParamNames = [
 	"start_line",
 	"end_line",
 	"query",
-	"args",
+	"symbolId",
+	"category",
+	"objectApiName",
+	"dmlEvent",
+	"fieldName",
 	"todos",
 	"metadata_type",
 	"metadata_name",
@@ -279,6 +283,8 @@ export const TOOL_DISPLAY_NAMES: Record<ToolName, string> = {
 	assign_field_permissions: "assign field permissions",
 	generate_apex_class: "generate apex classes",
 	generate_apex_trigger: "generate apex triggers",
+	search_salesforce_symbols: "search salesforce symbols",
+	search_salesforce_graph: "search salesforce graph",
 } as const
 
 // Define available tool groups.
@@ -292,6 +298,8 @@ export const TOOL_GROUPS: Record<ToolGroup, ToolGroupConfig> = {
 			"list_code_definition_names",
 			"codebase_search",
 			"retrieve_sf_metadata",
+			"search_salesforce_symbols",
+			"search_salesforce_graph",
 		],
 	},
 	edit: {

@@ -161,6 +161,14 @@ export async function activate(context: vscode.ExtensionContext) {
 		const codeIndexManagers: CodeIndexManager[] = []
 		if (vscode.workspace.workspaceFolders) {
 			for (const folder of vscode.workspace.workspaceFolders) {
+				// Initialize Standalone Local Salesforce Indexer (100% Offline, Zero Qdrant/External Embedder dependencies)
+				const { SalesforceStandaloneIndexer } = await import(
+					"./services/code-index/processors/salesforce-standalone-indexer"
+				)
+				const standaloneIndexer = SalesforceStandaloneIndexer.getInstance(folder.uri.fsPath)
+				void standaloneIndexer.initialize()
+				context.subscriptions.push(standaloneIndexer)
+
 				const manager = CodeIndexManager.getInstance(context, folder.uri.fsPath)
 				if (manager) {
 					codeIndexManagers.push(manager)

@@ -142,6 +142,8 @@ export async function loadRequiredLanguageParsers(filesToParse: string[], source
 				query = new Query(language, rubyQuery)
 				break
 			case "java":
+			case "cls":
+			case "trigger":
 				language = await loadLanguage("java", sourceDirectory)
 				query = new Query(language, javaQuery)
 				break
@@ -163,6 +165,9 @@ export async function loadRequiredLanguageParsers(filesToParse: string[], source
 				query = new Query(language, cssQuery)
 				break
 			case "html":
+			case "cmp":
+			case "page":
+			case "xml":
 				language = await loadLanguage("html", sourceDirectory)
 				query = new Query(language, htmlQuery)
 				break

@@ -2089,5 +2089,89 @@ export const webviewMessageHandler = async (
 			}
 			break
 		}
+
+		case "startIndexFromScratch": {
+			const workspacePath = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath
+			if (workspacePath) {
+				const { SalesforceStandaloneIndexer } = await import(
+					"../../services/code-index/processors/salesforce-standalone-indexer"
+				)
+				const indexer = SalesforceStandaloneIndexer.getInstance(workspacePath)
+
+				if (indexer.getIsIndexing()) {
+					vscode.window.showInformationMessage("Salesforce codebase indexing is already in progress.")
+					break
+				}
+
+				// Ask user confirmation before overwriting force-app files via SF CLI retrieve
+				const sfdxProjectPath = path.join(workspacePath, "sfdx-project.json")
+				let retrieveFromOrg = false
+				const hasSfdx = await fs
+					.stat(sfdxProjectPath)
+					.then(() => true)
+					.catch(() => false)
+
+				if (hasSfdx) {
+					const choice = await vscode.window.showWarningMessage(
+						"Index Org From Scratch will parse workspace files. Do you also want to retrieve fresh metadata from your connected Salesforce Org into force-app/?",
+						{ modal: true },
+						"Index Local Files Only",
+						"Retrieve Org & Index",
+						"Cancel",
+					)
+					if (choice === "Cancel" || !choice) {
+						break
+					}
+					retrieveFromOrg = choice === "Retrieve Org & Index"
+				}
+
+				// Clean up previous progress listener to prevent memory leak
+				if (provider.sfProgressDisposable) {
+					provider.sfProgressDisposable.dispose()
+				}
+				provider.sfProgressDisposable = indexer.onProgress((progress) => {
+					provider.postMessageToWebview({
+						type: "salesforceIndexingProgress",
+						values: progress,
+					})
+				})
+
+				indexer.indexFromScratch(retrieveFromOrg).catch((err) => {
+					console.error("[SalesforceIndexer] Error indexing from scratch:", err)
+				})
+			}
+			break
+		}
+
+		case "refreshSalesforceIndex": {
+			const workspacePath = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath
+			if (workspacePath) {
+				const { SalesforceStandaloneIndexer } = await import(
+					"../../services/code-index/processors/salesforce-standalone-indexer"
+				)
+				const indexer = SalesforceStandaloneIndexer.getInstance(workspacePath)
+
+				if (indexer.getIsIndexing()) {
+					vscode.window.showInformationMessage("Salesforce codebase indexing is already in progress.")
+					break
+				}
+
+				// Clean up previous progress listener to prevent memory leak
+				if (provider.sfProgressDisposable) {
+					provider.sfProgressDisposable.dispose()
+				}
+				provider.sfProgressDisposable = indexer.onProgress((progress) => {
+					provider.postMessageToWebview({
+						type: "salesforceIndexingProgress",
+						values: progress,
+					})
+				})
+
+				indexer.refreshIndex().catch((err) => {
+					console.error("[SalesforceIndexer] Error refreshing index:", err)
+				})
+			}
+			break
+		}
 	}
 }

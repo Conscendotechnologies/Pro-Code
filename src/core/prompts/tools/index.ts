@@ -32,6 +32,8 @@ import { getGenerateCustomFieldDescription } from "./generate-custom-field"
 import { getAssignFieldPermissionsDescription } from "./assign-field-permissions"
 import { getGenerateApexClassDescription } from "./generate-apex-class"
 import { getGenerateApexTriggerDescription } from "./generate-apex-trigger"
+import { getSearchSalesforceSymbolsDescription } from "./search-salesforce-symbols"
+import { getSearchSalesforceGraphDescription } from "./search-salesforce-graph"
 
 // Map of tool names to their description functions
 const toolDescriptionMap: Record<string, (args: ToolArgs) => string | undefined> = {
@@ -63,6 +65,8 @@ const toolDescriptionMap: Record<string, (args: ToolArgs) => string | undefined>
 	assign_field_permissions: (args) => getAssignFieldPermissionsDescription(args),
 	generate_apex_class: (args) => getGenerateApexClassDescription(args),
 	generate_apex_trigger: (args) => getGenerateApexTriggerDescription(args),
+	search_salesforce_symbols: () => getSearchSalesforceSymbolsDescription(),
+	search_salesforce_graph: () => getSearchSalesforceGraphDescription(),
 }
 
 export function getToolDescriptionsForMode(

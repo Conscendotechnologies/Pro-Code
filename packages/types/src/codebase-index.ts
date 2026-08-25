@@ -34,6 +34,10 @@ export const codebaseIndexConfigSchema = z.object({
 	// OpenAI Compatible specific fields
 	codebaseIndexOpenAiCompatibleBaseUrl: z.string().optional(),
 	codebaseIndexOpenAiCompatibleModelDimension: z.number().optional(),
+	// Salesforce Indexing Options
+	salesforceTransactionIndexEnabled: z.boolean().optional(),
+	salesforceGraphIndexEnabled: z.boolean().optional(),
+	salesforceSymbolIndexEnabled: z.boolean().optional(),
 })
 
 export type CodebaseIndexConfig = z.infer<typeof codebaseIndexConfigSchema>
