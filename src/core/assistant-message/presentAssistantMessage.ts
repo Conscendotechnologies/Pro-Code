@@ -272,6 +272,8 @@ export async function presentAssistantMessage(cline: Task) {
 					}
 					case "retrieve_sf_metadata":
 						return `[${block.name} for '${block.params.metadata_type}'${block.params.metadata_name ? `: ${block.params.metadata_name}` : " (all)"}]`
+					case "invalid_tool_tag_mismatch":
+						return `[invalid_tool_tag_mismatch]`
 					default:
 						return `[${block.name}]`
 				}
@@ -307,7 +309,9 @@ export async function presentAssistantMessage(cline: Task) {
 
 			// Immediately mark that a tool has been dispatched in this message.
 			// When multiple tool calls are enabled, this flag is still set but won't block subsequent tools.
-			cline.didAlreadyUseTool = true
+			if (!block.partial) {
+				cline.didAlreadyUseTool = true
+			}
 
 			const pushToolResult = (content: ToolResponse) => {
 				cline.userMessageContent.push({ type: "text", text: `${toolDescription()} Result:` })
@@ -644,6 +648,14 @@ export async function presentAssistantMessage(cline: Task) {
 						pushToolResult,
 						removeClosingTag,
 					)
+					break
+				case "invalid_tool_tag_mismatch":
+					pushToolResult(
+						formatResponse.toolError("Invalid tool tag mismatch. Closing tag did not match opening tag."),
+					)
+					break
+				default:
+					handleError(new Error(`Tool ${block.name} is not supported.`))
 					break
 			}
 

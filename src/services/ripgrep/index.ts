@@ -223,22 +223,34 @@ export async function regexSearchFiles(
 function formatResults(fileResults: SearchFileResult[], cwd: string): string {
 	const groupedResults: { [key: string]: SearchResult[] } = {}
 
-	let totalResults = fileResults.reduce((sum, file) => sum + file.searchResults.length, 0)
+	let totalMatches = fileResults.reduce((sum, file) => sum + file.searchResults.length, 0)
+	let totalFiles = fileResults.length
+
 	let output = ""
-	if (totalResults >= MAX_RESULTS) {
-		output += `Showing first ${MAX_RESULTS} of ${MAX_RESULTS}+ results. Use a more specific search if necessary.\n\n`
+	if (totalMatches >= MAX_RESULTS) {
+		output += `Found ${totalMatches === 1 ? "1 match" : `${totalMatches.toLocaleString()} matches`} across ${totalFiles === 1 ? "1 file" : `${totalFiles.toLocaleString()} files`}.\nShowing first ${MAX_RESULTS} results. Use a more specific search if necessary.\n\n`
+	} else if (totalMatches > 0) {
+		output += `Found ${totalMatches === 1 ? "1 match" : `${totalMatches.toLocaleString()} matches`} across ${totalFiles === 1 ? "1 file" : `${totalFiles.toLocaleString()} files`}.\n\n`
 	} else {
-		output += `Found ${totalResults === 1 ? "1 result" : `${totalResults.toLocaleString()} results`}.\n\n`
+		output += "No results found.\n\n"
 	}
 
+	let resultCount = 0
+
 	// Group results by file name
-	fileResults.slice(0, MAX_RESULTS).forEach((file) => {
+	fileResults.forEach((file) => {
+		if (resultCount >= MAX_RESULTS) return
+
 		const relativeFilePath = path.relative(cwd, file.file)
 		if (!groupedResults[relativeFilePath]) {
 			groupedResults[relativeFilePath] = []
-
-			groupedResults[relativeFilePath].push(...file.searchResults)
 		}
+
+		// Calculate how many results we can still add
+		const spaceLeft = MAX_RESULTS - resultCount
+		const resultsToAdd = file.searchResults.slice(0, spaceLeft)
+		groupedResults[relativeFilePath].push(...resultsToAdd)
+		resultCount += resultsToAdd.length
 	})
 
 	for (const [filePath, fileResults] of Object.entries(groupedResults)) {

@@ -7,10 +7,6 @@ import { FileChangesService } from "../../services/file-changes"
 
 export interface PreTaskOptions {
 	globalStorageUri: vscode.Uri | undefined
-	taskGuidesFetched?: boolean
-	hasTodoList?: boolean
-	cwd?: string
-	experiments?: Experiments
 	taskId?: string
 	planningFilePath?: string
 }
@@ -44,14 +40,7 @@ export function getStaticPreTaskInstructions(): string {
  * Content is dynamic based on current task state.
  */
 export async function getPreTaskDetails(globalStorageUri: vscode.Uri | undefined, options?: Partial<PreTaskOptions>) {
-	const {
-		taskGuidesFetched = false,
-		hasTodoList = false,
-		cwd,
-		experiments: exps,
-		taskId,
-		planningFilePath,
-	} = options || {}
+	const { taskId, planningFilePath } = options || {}
 
 	let preTask = ""
 

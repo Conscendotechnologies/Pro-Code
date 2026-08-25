@@ -224,15 +224,7 @@ export async function getEnvironmentDetails(
 	}
 
 	// Current time removed in favor of delta-based updates
-
-	// Add context tokens information.
-	const metrics = getApiMetrics(cline.clineMessages)
-
-	details += `\n\n# Current Turn Metrics`
-	details += `\n- **Input:** ${metrics.lastTokensIn !== undefined ? metrics.lastTokensIn : "unknown"} tokens`
-	details += `\n- **Output:** ${metrics.lastTokensOut !== undefined ? metrics.lastTokensOut : "unknown"} tokens`
-	details += `\n- **Cached:** ${metrics.lastCacheReads !== undefined ? metrics.lastCacheReads : "unknown"} tokens`
-	details += `\n- **Total Cost (Running):** ${metrics.totalCost !== null ? `$${metrics.totalCost.toFixed(3)}` : "unknown"}`
+	// Current Mode block moved to system prompt
 
 	// Current Mode block moved to system prompt
 
@@ -246,9 +238,10 @@ export async function getEnvironmentDetails(
 			// Don't want to immediately access desktop since it would show
 			// permission popup.
 			details += "(Desktop files not shown automatically. Use list_files to explore if needed.)"
+		} else if (maxWorkspaceFiles === 0) {
+			// User has disabled automatic file listing
 		} else {
-			const maxFiles = 10000 // We can use a high limit since we only output a summary
-			const [files, didHitLimit] = await listFiles(cline.cwd, true, maxFiles)
+			const [files, didHitLimit] = await listFiles(cline.cwd, false, maxWorkspaceFiles)
 
 			const counts = new Map<string, { type: "dir" | "file"; count: number }>()
 

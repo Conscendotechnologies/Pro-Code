@@ -616,30 +616,29 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 		}
 	}
 
-	private async ageOutOldToolResults() {
-		let modified = false
-		const endIndex = Math.max(0, this.apiConversationHistory.length - 10) // Older than 5 turns
+	private getAgedOutConversationHistory(): ApiMessage[] {
+		// create a deep copy
+		const historyCopy = JSON.parse(JSON.stringify(this.apiConversationHistory)) as ApiMessage[]
+
+		const endIndex = Math.max(0, historyCopy.length - 10) // Older than 5 turns
 
 		for (let i = 0; i < endIndex; i++) {
-			const message = this.apiConversationHistory[i]
+			const message = historyCopy[i]
 			if (message.role === "user" && Array.isArray(message.content)) {
 				for (let j = 0; j < message.content.length; j++) {
 					const block = message.content[j]
 					if (block.type === "text" && block.text.match(/\[.*?\] Result:/)) {
 						const nextBlock = message.content[j + 1]
 						if (nextBlock && nextBlock.type === "text" && nextBlock.text.length > 2000) {
-							const turnsAgo = Math.floor((this.apiConversationHistory.length - i) / 2)
+							const turnsAgo = Math.floor((historyCopy.length - i) / 2)
 							nextBlock.text = `(Result omitted for brevity. Tool was used ${turnsAgo} turns ago.)`
-							modified = true
 						}
 					}
 				}
 			}
 		}
 
-		if (modified) {
-			await this.saveApiConversationHistory()
-		}
+		return historyCopy
 	}
 
 	// Cline Messages
@@ -892,6 +891,9 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 	}
 
 	public async condenseContext(isAutomaticTrigger = false, forcedApiHandler?: ApiHandler): Promise<boolean> {
+		this.previousEnvironmentDetails = {}
+		this.previousPreTaskDetails = ""
+
 		const systemPrompt = await this.getSystemPrompt()
 
 		// Get condensing configuration
@@ -2040,15 +2042,32 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 			.replace("<environment_details>\n", "")
 			.replace("\n</environment_details>", "")
 			.trim()
-		const envSections = envContent.split("\n\n# ").filter(Boolean)
+
+		let processedEnvContent = envContent
+		if (processedEnvContent.startsWith("# ")) {
+			processedEnvContent = processedEnvContent.substring(2)
+		}
+		const envSections = processedEnvContent.split("\n\n# ").filter(Boolean)
 		let changedEnv = ""
+		const currentHeaders = new Set<string>()
+
 		for (const section of envSections) {
 			const header = section.split("\n")[0]
+			currentHeaders.add(header)
 			if (this.previousEnvironmentDetails[header] !== section) {
 				changedEnv += `\n\n# ${section}`
 				this.previousEnvironmentDetails[header] = section
 			}
 		}
+
+		// Check for removed sections (tombstones)
+		for (const [header, _] of Object.entries(this.previousEnvironmentDetails)) {
+			if (!currentHeaders.has(header)) {
+				changedEnv += `\n\n# ${header}\n(none)`
+				delete this.previousEnvironmentDetails[header]
+			}
+		}
+
 		environmentDetails = changedEnv.trim()
 			? `<environment_details>\n${changedEnv.trim()}\n</environment_details>`
 			: ""
@@ -2056,10 +2075,6 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 		const hasTodoList = Array.isArray(this.todoList) && this.todoList.length > 0
 		const state = await provider?.getState()
 		let preTaskDetails = await getPreTaskDetails(provider?.contextProxy.globalStorageUri, {
-			taskGuidesFetched: this.taskGuidesFetched,
-			hasTodoList,
-			cwd: this.cwd,
-			experiments: state?.experiments,
 			taskId: this.taskId,
 			planningFilePath: this.planningFilePath,
 		})
@@ -2772,11 +2787,12 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 			}
 		}
 
-		await this.ageOutOldToolResults()
+		const agedOutHistory = this.getAgedOutConversationHistory()
 
-		const cleanConversationHistory = maybeRemoveImageBlocks(this.apiConversationHistory, this.api).map(
-			({ role, content }) => ({ role, content }),
-		)
+		const cleanConversationHistory = maybeRemoveImageBlocks(agedOutHistory, this.api).map(({ role, content }) => ({
+			role,
+			content,
+		}))
 
 		// Check auto-approval limits
 		const approvalResult = await this.autoApprovalHandler.checkAutoApprovalLimits(

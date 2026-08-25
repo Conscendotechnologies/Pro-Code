@@ -9,6 +9,7 @@ import { Mode, modes, defaultModeSlug, getModeBySlug, getGroupName, getModeSelec
 import { DiffStrategy } from "../../shared/tools"
 import { formatLanguage } from "../../shared/language"
 import { isEmpty } from "../../utils/object"
+import { EXPERIMENT_IDS, experiments as Experiments } from "../../shared/experiments"
 
 import { McpHub } from "../../services/mcp/McpHub"
 import { CodeIndexManager } from "../../services/code-index/manager"
@@ -153,7 +154,12 @@ IMPORTANT: When task status changes, remember to call update_todo_list.
 
 ### Current Mode
 <slug>${modeConfig.slug}</slug>
-<name>${modeConfig.name}</name>`
+<name>${modeConfig.name}</name>
+${
+	Experiments.isEnabled(experiments ?? {}, EXPERIMENT_IDS.POWER_STEERING)
+		? `<role>${roleDefinition}</role>\n${baseInstructions ? `<custom_instructions>${baseInstructions}</custom_instructions>` : ""}`
+		: ""
+}`
 
 	return basePrompt
 }

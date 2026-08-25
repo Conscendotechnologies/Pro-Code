@@ -50,7 +50,7 @@ export function parseAssistantMessageV2(assistantMessage: string): AssistantMess
 	// Precompute tags for faster lookups.
 	const toolUseOpenTags = new Map<string, ToolName>()
 	const toolParamOpenTags = new Map<string, ToolParamName>()
-	const allToolCloseTags: string[] = ["</tool>", "</function>"]
+	const allToolCloseTags: string[] = ["</tool>", "</function>", "</invoke>"]
 
 	for (const name of toolNames) {
 		toolUseOpenTags.set(`<${name}>`, name)
@@ -67,7 +67,7 @@ export function parseAssistantMessageV2(assistantMessage: string): AssistantMess
 		const currentCharIndex = i
 
 		// Check for mismatched tool close tags (to prevent hanging on hallucinated tags)
-		if (currentToolUse) {
+		if (currentToolUse && !currentParamName) {
 			const expectedToolCloseTag = `</${currentToolUse.name}>`
 			let foundMismatchedToolCloseTag = false
 			for (const invalidTag of allToolCloseTags) {
