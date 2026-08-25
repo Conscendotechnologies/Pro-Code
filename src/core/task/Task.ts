@@ -1,6 +1,7 @@
 import * as path from "path"
 import * as vscode from "vscode"
 import os from "os"
+import fs from "fs/promises"
 import crypto from "crypto"
 import EventEmitter from "events"
 
@@ -2364,12 +2365,6 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 
 				// Issue 3: Log per-turn metrics to a local file for developer validation
 				try {
-					const metricsPath = path.join(
-						this.api.options.cwd || this.providerRef.deref()?.globalStoragePath || "",
-						".cline",
-						"metrics.jsonl",
-					)
-					// Use providerRef.deref()?.globalStoragePath / tasks / taskId ?
 					// Let's just put it in the task folder.
 					const taskStorage = path.join(this.globalStoragePath, "tasks", this.taskId)
 					const taskMetricsPath = path.join(taskStorage, "metrics.jsonl")
