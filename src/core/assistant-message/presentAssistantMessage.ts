@@ -272,7 +272,7 @@ export async function presentAssistantMessage(cline: Task) {
 					}
 					case "retrieve_sf_metadata":
 						return `[${block.name} for '${block.params.metadata_type}'${block.params.metadata_name ? `: ${block.params.metadata_name}` : " (all)"}]`
-					case "invalid_tool_tag_mismatch":
+					case "invalid_tool_tag_mismatch" as any:
 						return `[invalid_tool_tag_mismatch]`
 					default:
 						return `[${block.name}]`
@@ -649,13 +649,13 @@ export async function presentAssistantMessage(cline: Task) {
 						removeClosingTag,
 					)
 					break
-				case "invalid_tool_tag_mismatch":
+				case "invalid_tool_tag_mismatch" as any:
 					pushToolResult(
 						formatResponse.toolError("Invalid tool tag mismatch. Closing tag did not match opening tag."),
 					)
 					break
 				default:
-					handleError(new Error(`Tool ${block.name} is not supported.`))
+					await handleError("executing tool", new Error(`Tool ${block.name} is not supported.`))
 					break
 			}
 
