@@ -133,6 +133,7 @@ export interface ExtensionMessage {
 		| "fileCreated"
 		| "fileChanges"
 		| "fileChangesStatistics"
+		| "mcpPresetTestResult"
 	text?: string
 	title?: string
 	payload?: any // Add a generic payload for now, can refine later
