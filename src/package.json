@@ -3,7 +3,7 @@
   "displayName": "%extension.displayName%",
   "description": "%extension.description%",
   "publisher": "ConscendoTechInc",
-  "version": "2026.0.62",
+  "version": "2026.0.63",
   "releaseQuality": "agent-edition",
   "icon": "assets/icons/icon.png",
   "galleryBanner": {
