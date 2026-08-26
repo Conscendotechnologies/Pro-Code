@@ -11,6 +11,7 @@ export const GlobalFileNames = {
 	invocableapexInstructions: "code/agentforce-apex-guide.md",
 	adaptiveResponseAgentInstructions: "code/ADAPTIVE_RESPONSE_AGENT_INSTRUCTIONS.md",
 	asynchronousApexInstructions: "code/asynchronous-apex-guide.md",
+	invocableApexInstructions: "code/invocable-apex-guide.md",
 	// Salesforce Agent Instructions
 	agentforceAgentInstructions: "Salesforce_Agent/agentforce-agent-create-workflow.md",
 	agentforceAnalyseInstructions: "Salesforce_Agent/agentforce-agent-analyse-workflow.md",

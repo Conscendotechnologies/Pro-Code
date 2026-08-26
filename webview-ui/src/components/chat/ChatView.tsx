@@ -260,7 +260,11 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 	const [activeEditorSelection, setActiveEditorSelection] = useState<
 		{ startLine: number; endLine: number } | undefined
 	>(undefined)
-	const [activeFileDismissed, setActiveFileDismissed] = useState(false)
+	// Opt-in context. The active editor is only ever a *suggestion*; clicking + freezes
+	// it into this list as it was at that moment (including any line range), so the user
+	// can then select different lines or switch files and add those too. A boolean
+	// "current file is added" cannot express that - the add has to outlive the cursor.
+	const [addedFiles, setAddedFiles] = useState<{ mention: string; path: string }[]>([])
 	const [selectedImages, setSelectedImages] = useState<string[]>([])
 	const [messageQueue, setMessageQueue] = useState<QueuedMessage[]>([])
 	const isProcessingQueueRef = useRef(false)
@@ -693,17 +697,21 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 		disableAutoScrollRef.current = false
 	}, [])
 
-	// The active editor offered as an attachment, as an @mention the server-side
-	// mention parser already knows how to resolve. Null once dismissed.
-	const attachedFileMention = useMemo(() => {
-		if (!activeEditorPath || activeFileDismissed) {
+	// The active editor as an @mention the server-side parser already knows how to
+	// resolve. Recomputed as the user moves around; it is only a suggestion until
+	// clicking + copies it into addedFiles.
+	const activeFileMention = useMemo(() => {
+		if (!activeEditorPath) {
 			return undefined
 		}
 		const base = convertToMentionPath(activeEditorPath, cwd)
 		return activeEditorSelection
 			? `${base}:${activeEditorSelection.startLine}-${activeEditorSelection.endLine}`
 			: base
-	}, [activeEditorPath, activeEditorSelection, activeFileDismissed, cwd])
+	}, [activeEditorPath, activeEditorSelection, cwd])
+
+	// Already added, so the suggestion chip has nothing left to offer.
+	const activeFileAlreadyAdded = !!activeFileMention && addedFiles.some((f) => f.mention === activeFileMention)
 
 	/**
 	 * Handles sending messages to the extension
@@ -719,8 +727,17 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 				// Prepend the attached file as an @mention so the existing mention
 				// parser resolves its contents server-side. Skip if the user already
 				// mentioned it themselves.
-				if (attachedFileMention && !text.includes(attachedFileMention)) {
-					text = text ? `${attachedFileMention} ${text}` : attachedFileMention
+				const mentionsToSend = addedFiles.map((f) => f.mention).filter((m) => !text.includes(m))
+
+				if (mentionsToSend.length > 0) {
+					const prefix = mentionsToSend.join(" ")
+					text = text ? `${prefix} ${text}` : prefix
+				}
+
+				if (addedFiles.length > 0) {
+					// The adds applied to this message: the files are now in the
+					// conversation, so re-sending them every turn would waste context.
+					setAddedFiles([])
 				}
 
 				if (text || images.length > 0) {
@@ -777,7 +794,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 				// but for now we'll just log it
 			}
 		},
-		[handleChatReset, markFollowUpAsAnswered, sendingDisabled, postAskResponse, attachedFileMention], // messagesRef and clineAskRef are stable
+		[handleChatReset, markFollowUpAsAnswered, sendingDisabled, postAskResponse, addedFiles], // messagesRef and clineAskRef are stable
 	)
 
 	useEffect(() => {
@@ -977,15 +994,10 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 					}
 					break
 				case "activeEditorChanged": {
+					// Only the suggestion follows the editor. Anything already added stays
+					// added - that is the whole point of freezing it on +.
 					const selection = message.values as { startLine: number; endLine: number } | undefined
-					setActiveEditorPath((prev) => {
-						// A new tab is a new suggestion: undo any earlier dismissal.
-						// Selection changes within the same file must not resurrect it.
-						if (prev !== message.text) {
-							setActiveFileDismissed(false)
-						}
-						return message.text
-					})
+					setActiveEditorPath(message.text)
 					setActiveEditorSelection(selection)
 					break
 				}
@@ -2041,7 +2053,9 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 
 	// Files changed during this task, derived from the task's shadow git repo.
 	// The extension pushes an update whenever a checkpoint is saved.
-	const { files: fileChanges } = useFileChangesBackend(currentTaskItem?.id)
+	// Gated on `task`: currentTaskItem outlives the open task, so passing it
+	// unconditionally keeps fetching (and rendering) on the welcome screen.
+	const { files: fileChanges } = useFileChangesBackend(task ? currentTaskItem?.id : undefined)
 
 	// Open diff in VS Code's native diff editor
 	const openVsCodeDiff = useCallback((file: FileChange) => {
@@ -2270,7 +2284,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 					setMessageQueue((prev) => prev.map((msg, i) => (i === index ? { ...msg, text: newText } : msg)))
 				}}
 			/>
-			{fileChanges.length > 0 && (
+			{task && fileChanges.length > 0 && (
 				<FileChanges
 					files={fileChanges}
 					variant="list"
@@ -2282,10 +2296,24 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 			)}
 			<ChatTextArea
 				ref={textAreaRef}
-				attachedFile={
-					attachedFileMention ? { mention: attachedFileMention, path: activeEditorPath! } : undefined
+				activeFileSuggestion={
+					activeFileMention && !activeFileAlreadyAdded
+						? { mention: activeFileMention, path: activeEditorPath! }
+						: undefined
 				}
-				onRemoveAttachedFile={() => setActiveFileDismissed(true)}
+				addedFiles={addedFiles}
+				onAddActiveFile={() =>
+					activeFileMention &&
+					activeEditorPath &&
+					setAddedFiles((prev) =>
+						prev.some((f) => f.mention === activeFileMention)
+							? prev
+							: [...prev, { mention: activeFileMention, path: activeEditorPath }],
+					)
+				}
+				onRemoveAddedFile={(mention: string) =>
+					setAddedFiles((prev) => prev.filter((f) => f.mention !== mention))
+				}
 				inputValue={inputValue}
 				setInputValue={setInputValue}
 				sendingDisabled={sendingDisabled || isProfileDisabled}

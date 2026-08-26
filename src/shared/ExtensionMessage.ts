@@ -135,6 +135,7 @@ export interface ExtensionMessage {
 		| "fileChangesStatistics"
 		| "loginDenied"
 		| "hackDateUpdated"
+		| "mcpPresetTestResult"
 	text?: string
 	title?: string
 	payload?: any // Add a generic payload for now, can refine later

@@ -3,6 +3,7 @@ import { createModeInstructions } from "./create-mode"
 import { createLWCInstructions } from "./create-lwc"
 import { createApexInstructions } from "./create-apex"
 import { createAsyncApexInstructions } from "./create-async-apex"
+import { createInvocableApexInstructions } from "./create-invocable-apex"
 import { createVisualForceInstructions } from "./create-visual-force"
 import { createAuraComponentsInstructions } from "./create-aura-components"
 import {
@@ -21,7 +22,7 @@ import {
 	roleCreationInstructions,
 	validationRulesInstructions,
 } from "./salesforce-instructions"
-import { invocableApexInstructions, adaptiveResponseAgentInstructions } from "./code-instructions"
+import { adaptiveResponseAgentInstructions } from "./code-instructions"
 import {
 	pmdApexInstructions,
 	pmdHtmlInstructions,
@@ -56,6 +57,9 @@ export async function fetchInstructions(text: string, detail: InstructionsDetail
 		}
 		case "create_async_apex": {
 			return await createAsyncApexInstructions(detail.context, detail.section)
+		}
+		case "invocable_apex": {
+			return await createInvocableApexInstructions(detail.context, detail.section)
 		}
 		case "create_visual_force": {
 			console.log("[INSTRUCTIONS] Matched task: create_visual_force")
@@ -127,9 +131,6 @@ export async function fetchInstructions(text: string, detail: InstructionsDetail
 		}
 		case "pmd_xml": {
 			return await pmdXmlInstructions(detail.context)
-		} // Code Instructions
-		case "invocable_apex": {
-			return await invocableApexInstructions(detail.context)
 		}
 		// Adaptive Response Agent Instructions
 		case "adaptive_response_agent": {

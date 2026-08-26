@@ -58,6 +58,9 @@ export const commandIds = [
 
 	"testOpenRouterApiKey",
 	"showAgentDeploymentGuide",
+
+	"addCustomProvider",
+	"switchModel",
 ] as const
 
 export type CommandId = (typeof commandIds)[number]
