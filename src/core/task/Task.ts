@@ -1136,8 +1136,9 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 					`  Will fit: ${contextCheck.willFit}`,
 			)
 
-			// Check if condensing is needed
-			if (!contextCheck.willFit) {
+			// Check if condensing is needed when switching to a model with lower context or if usage exceeds 90%
+			const shouldCondenseOnSwitch = !contextCheck.willFit || contextCheck.percentUsed >= MAX_CONDENSE_THRESHOLD
+			if (shouldCondenseOnSwitch) {
 				// Show user feedback about condensing
 				// await this.say(
 				// 	"text",

@@ -959,6 +959,12 @@ const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
 								title={t("chat:selectModel", { defaultValue: "Select model" })}
 								useFreeModels={useFreeModels}
 								developerMode={developerMode}
+								customProvider={{
+									apiProvider: apiConfiguration?.apiProvider,
+									openAiBaseUrl: apiConfiguration?.openAiBaseUrl,
+									openAiApiKey: apiConfiguration?.openAiApiKey,
+									openAiHeaders: apiConfiguration?.openAiHeaders,
+								}}
 							/>
 						</div>
 					)}
