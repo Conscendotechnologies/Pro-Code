@@ -2564,6 +2564,7 @@ describe("ClineProvider - Router Models", () => {
 		expect(mockPostMessage).toHaveBeenCalledWith({
 			type: "routerModels",
 			routerModels: {
+				"9router": {},
 				openrouter: mockModels,
 				requesty: mockModels,
 				glama: mockModels,
@@ -2609,6 +2610,7 @@ describe("ClineProvider - Router Models", () => {
 		expect(mockPostMessage).toHaveBeenCalledWith({
 			type: "routerModels",
 			routerModels: {
+				"9router": {},
 				openrouter: mockModels,
 				requesty: {},
 				glama: mockModels,
@@ -2719,6 +2721,7 @@ describe("ClineProvider - Router Models", () => {
 		expect(mockPostMessage).toHaveBeenCalledWith({
 			type: "routerModels",
 			routerModels: {
+				"9router": {},
 				openrouter: mockModels,
 				requesty: mockModels,
 				glama: mockModels,
