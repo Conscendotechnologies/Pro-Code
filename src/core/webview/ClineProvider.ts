@@ -44,7 +44,7 @@ import { supportPrompt } from "../../shared/support-prompt"
 import { GlobalFileNames } from "../../shared/globalFileNames"
 import { ExtensionMessage, MarketplaceInstalledMetadata } from "../../shared/ExtensionMessage"
 import { Mode, defaultModeSlug, getModeBySlug } from "../../shared/modes"
-import { getDefaultModelForMode, getModelsForMode } from "../../shared/mode-models"
+import { getModelList } from "../../shared/mode-models"
 import { experimentDefault } from "../../shared/experiments"
 import { formatLanguage } from "../../shared/language"
 import { WebviewMessage } from "../../shared/WebviewMessage"
@@ -571,8 +571,18 @@ export class ClineProvider
 		const activeEditorSubscription = vscode.window.onDidChangeActiveTextEditor(() => {
 			// Update subscription when workspace might have changed
 			this.updateCodeIndexStatusSubscription()
+			this.postActiveEditorToWebview()
 		})
 		this.webviewDisposables.push(activeEditorSubscription)
+
+		// Selections change without switching tabs, so track them too.
+		const selectionSubscription = vscode.window.onDidChangeTextEditorSelection(() => {
+			this.postActiveEditorToWebview()
+		})
+		this.webviewDisposables.push(selectionSubscription)
+
+		// Seed the webview with the editor that is already active on launch.
+		this.postActiveEditorToWebview()
 
 		// Logs show up in bottom panel > Debug Console
 
@@ -1648,6 +1658,10 @@ export class ClineProvider
 		const state = await this.getStateToPostToWebview()
 		this.postMessageToWebview({ type: "state", state })
 
+		// The list can be replaced by a background fetch after the webview has
+		// already rendered, so send the current one alongside state.
+		this.postMessageToWebview({ type: "modeModelList", modeModelList: getModelList() })
+
 		// Check MDM compliance and send user to account tab if not compliant
 		if (!this.checkMdmCompliance()) {
 			await this.postMessageToWebview({ type: "action", action: "accountButtonClicked" })
@@ -2375,6 +2389,27 @@ export class ClineProvider
 	 */
 	public getCurrentWorkspaceCodeIndexManager(): CodeIndexManager | undefined {
 		return CodeIndexManager.getInstance(this.context)
+	}
+
+	/**
+	 * Pushes the active editor's file path to the webview so it can offer the
+	 * file as an attachment. Sends undefined when the active tab isn't a file
+	 * (output panels, settings, diffs all report non-`file` schemes).
+	 */
+	private postActiveEditorToWebview(): void {
+		const editor = vscode.window.activeTextEditor
+		const uri = editor?.document.uri
+		const selection = editor?.selection
+
+		this.postMessageToWebview({
+			type: "activeEditorChanged",
+			text: uri?.scheme === "file" ? uri.fsPath : undefined,
+			// 1-based inclusive lines, omitted when the selection is just a caret.
+			values:
+				selection && !selection.isEmpty
+					? { startLine: selection.start.line + 1, endLine: selection.end.line + 1 }
+					: undefined,
+		})
 	}
 
 	/**

@@ -1234,9 +1234,15 @@ export const ChatRowContent = ({
 				if (tool.success !== undefined || tool.phase !== undefined) {
 					return null
 				}
-				const followers = (followingMessages ?? [])
+				// Progress/result rows belong to the FIRST approval row above them. Calling the same
+				// feature twice in a task would otherwise let this row bind to the next call's
+				// result, showing one run as finished while it is still awaiting approval - so stop
+				// at the next approval row (no phase, no success) for this feature.
+				const allForgeRows = (followingMessages ?? [])
 					.map((m) => (m.say === "tool" || m.ask === "tool" ? safeJsonParse<ClineSayTool>(m.text) : null))
 					.filter((t): t is ClineSayTool => !!t && t.tool === "siidForge" && t.feature === tool.feature)
+				const nextInvocation = allForgeRows.findIndex((t) => t.phase === undefined && t.success === undefined)
+				const followers = nextInvocation === -1 ? allForgeRows : allForgeRows.slice(0, nextInvocation)
 				const forgeResult = followers.find((t) => t.success !== undefined) ?? null
 				const lastProgress = [...followers]
 					.reverse()
