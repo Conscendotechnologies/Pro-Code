@@ -15,7 +15,7 @@ import type { ClineAsk, ClineMessage } from "@siid-code/types"
 import { ClineSayBrowserAction, ClineSayTool, ExtensionMessage } from "@roo/ExtensionMessage"
 import { McpServer, McpTool } from "@roo/mcp"
 import { findLast } from "@roo/array"
-import {  SuggestionItem } from "@siid-code/types"
+import { SuggestionItem } from "@siid-code/types"
 import { combineApiRequests } from "@roo/combineApiRequests"
 import { combineCommandSequences } from "@roo/combineCommandSequences"
 import { getApiMetrics } from "@roo/getApiMetrics"
@@ -59,7 +59,7 @@ export interface ChatViewProps {
 	isHidden: boolean
 	showAnnouncement: boolean
 	hideAnnouncement: () => void
-	onSwitchTab?: (tab: "settings" | "history" | "mcp" | "modes" | "chat") => void
+	onSwitchTab?: (tab: "settings" | "history" | "mcp" | "modes" | "chat" | "org") => void
 }
 
 export interface ChatViewRef {
@@ -192,13 +192,13 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 		allowedCommands,
 		deniedCommands,
 		writeDelayMs,
-		
+
 		mode,
 		setMode,
 		autoApprovalEnabled,
 		alwaysAllowModeSwitch,
 		alwaysAllowSubtasks,
-		
+
 		alwaysAllowDeploySfMetadata,
 		alwaysAllowRetrieveSfMetadata,
 		customModes,
@@ -1391,8 +1391,6 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 				return false
 			}
 
-			
-
 			if (message.ask === "browser_action_launch") {
 				return alwaysAllowBrowser
 			}
@@ -1419,8 +1417,6 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 				if (!tool) {
 					return false
 				}
-
-				
 
 				if (tool?.tool === "deploySfMetadata") {
 					return alwaysAllowDeploySfMetadata
@@ -1476,9 +1472,9 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 			isAllowedCommand,
 			alwaysAllowMcp,
 			isMcpToolAlwaysAllowed,
-			
+
 			alwaysAllowSubtasks,
-			
+
 			alwaysAllowDeploySfMetadata,
 			alwaysAllowRetrieveSfMetadata,
 		],
@@ -1972,7 +1968,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 		alwaysAllowWrite,
 		alwaysAllowWriteOutsideWorkspace,
 		alwaysAllowExecute,
-		
+
 		alwaysAllowMcp,
 		messages,
 		allowedCommands,
@@ -1982,7 +1978,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 		lastMessage,
 		writeDelayMs,
 		isWriteToolAction,
-		
+
 		handleSuggestionClickInRow,
 		isAllowedCommand,
 		isDeniedCommand,
@@ -2500,6 +2496,12 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 					/>
 				</>
 			)}
+			<div className="px-3.5 mb-2">
+				<VSCodeButton className="w-full" appearance="secondary" onClick={() => onSwitchTab?.("org")}>
+					<span className="codicon codicon-organization mr-2"></span>
+					Open Org Visualizer
+				</VSCodeButton>
+			</div>
 			<ChatTextArea
 				ref={textAreaRef}
 				inputValue={inputValue}
