@@ -21,8 +21,9 @@ import ErrorBoundary from "./components/ErrorBoundary"
 import { useAddNonInteractiveClickListener } from "./components/ui/hooks/useNonInteractiveClick"
 import { TooltipProvider } from "./components/ui/tooltip"
 import { STANDARD_TOOLTIP_DELAY } from "./components/ui/standard-tooltip"
+import OrgVisualizerView from "./components/org-visualizer/OrgVisualizerView"
 
-type Tab = "settings" | "history" | "mcp" | "modes" | "chat"
+type Tab = "settings" | "history" | "mcp" | "modes" | "chat" | "org"
 
 interface HumanRelayDialogState {
 	isOpen: boolean
@@ -255,6 +256,7 @@ const App = () => {
 			{tab === "modes" && <ModesView onDone={() => switchTab("chat")} />}
 			{tab === "mcp" && <McpView onDone={() => switchTab("chat")} />}
 			{tab === "history" && <HistoryView onDone={() => switchTab("chat")} />}
+			{tab === "org" && <OrgVisualizerView onDone={() => switchTab("chat")} />}
 			{tab === "settings" && (
 				<SettingsView ref={settingsRef} onDone={() => setTab("chat")} targetSection={currentSection} />
 			)}
